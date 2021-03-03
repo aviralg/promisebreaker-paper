@@ -1,4 +1,6 @@
-
+DATADIR := data
+GRAPHDIR := graph
+MACRODIR := macro
 
 # Tools
 LATEXMK = latexmk
@@ -18,7 +20,7 @@ clean:
 	rm *~ *.log *.aux *.bbl *.out *.blg
 
 report:
-	R --slave -e "rmarkdown::render('report.Rmd', 'html_document', params = list(data_dirpath = '$(realpath $(UNCOMPRESSED_DATA_DIRPATH))', graph_dirpath = '$(realpath $(GRAPH_DIRPATH))', latex_macro_filepath = '$(realpath $(ANALYSIS_VARIABLES_FILEPATH))'))"
+	$(R) --slave -e "rmarkdown::render('report.Rmd', 'html_document', params = list(datadir = '$(realpath $(DATADIR))', graphdir = '$(realpath $(GRAPHDIR))', macrodir = '$(realpath $(MACRODIR))'))"
 
 .PHONY: all open clean pdf
 
