@@ -1,0 +1,62 @@
+---
+title: "Promises are made to be Broken"
+output: html_document
+params:
+    datadir: "./data"
+    graphdir: "./graphs"
+    macrodir: "./macros"
+---
+
+```{r echo = FALSE, warning=FALSE, message=FALSE}
+library(tidyverse)
+library(ggplot2)
+library(fst)
+library(DT)
+```
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+`read_lazy<-` <- function(var, filename) {
+    filepath <- path_join(list(params$datadir, filename))
+    eval_env <- environment()
+    assign_env <- parent.frame()
+    delayedAssign(as.character(substitute(var)), read_fst(filepath), eval_env, assign_env) 
+}
+
+compute_percentage <- function(n, precision) {
+    round( (n * 100) / sum(n) , precision)
+}
+
+extract_index <- read_lazy("extract_index.fst")
+sloc_corpus <- read_lazy("sloc_corpus.fst")
+#sloc_package <- read_lazy("sloc_package.fst")
+```
+
+```
+corpus_count_by_type <-
+    extract_index %>%
+        count(type, name = "count") %>%
+        mutate(perc = compute_percentage(count))
+
+corpus_count_by_package_type <-
+    extract_index %>%
+        count(package, type, name = "count") %>%
+        mutate(perc = compute_percentage(count))
+
+show_table(corpus_count_by_type)
+show_table(corpus_count_by_package_type)
+```
+
+```
+sloc_count_by_type <-
+    sloc_corpus %>%
+        count(type, name = "count") %>%
+        mutate(perc = compute_percentage(count))
+
+sloc_count_by_package_type <-
+    sloc_corpus %>%
+        count(package, type, name = "count") %>%
+        mutate(perc = compute_percentage(count))
+
+show_table(sloc_count_by_type)
+show_table(sloc_count_by_package_type)
+```
