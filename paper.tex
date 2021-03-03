@@ -1,0 +1,129 @@
+\documentclass[screen,acmsmall]{acmart}
+\settopmatter{printfolios=true,printccs=true,printacmref=true}
+
+\bibliographystyle{ACM-Reference-Format}
+\citestyle{acmauthoryear}   %% For author/year citations
+\usepackage{mathpartir}
+\usepackage[utf8]{inputenc}
+\usepackage{fontenc}
+\usepackage{microtype}
+\usepackage{listings,array,multirow,wrapfig,xspace,booktabs,subcaption}
+\usepackage{xcolor,tikz, graphicx}
+\usetikzlibrary{positioning}
+
+\newcommand{\authorcomment}[3]{\xspace\textcolor{#1}{{\bf #2} #3}\xspace} % start by defining an authorcomment
+
+% For author notes:
+%
+\newcommand{\AG}[1]{\authorcomment{orange}{AG}{#1}}
+\newcommand{\JV}[1]{\authorcomment{red}{JV}{#1}}
+
+% For meta comments:
+%
+\newcommand{\isit}[1]{\authorcomment{cyan}{Check}{#1}}
+\newcommand{\todo}[1]{\authorcomment{red}{TODO}{#1}}
+
+
+\lstset{language=R}
+
+\definecolor{LightGray}{rgb}{.92,.92,.92}
+\definecolor{Gray}{rgb}{.3,.3,.3}
+\definecolor{DarkGray}{rgb}{.5,.5,.5}
+
+\lstset{ %
+  columns=flexible,
+  captionpos=b,
+  frame=single,
+  framerule=0pt,
+  framexleftmargin=-1mm,
+  framexrightmargin=-1mm,
+  tabsize=2,
+  belowskip=0pt,
+  basicstyle=\small\ttfamily,
+  backgroundcolor=\color{LightGray},
+  emphstyle=\sffamily,
+  keywordstyle=\bfseries,
+  commentstyle=\color{Gray}\em,
+  stringstyle=\color{Gray}
+}
+\lstdefinestyle{R}{ %
+  language=R,
+  deletekeywords={new, env, equal, c, runif, trace, args, exp, t, all, get,
+    names, is, environment, class, substitute, expression, list, null, Internal,
+    sample, diag, length, rep, nrow, stop, offset, pmax, Machine,
+    double, parent, frame, par, methods, end, dir, apply, deparse, missing,
+    plot, as, integer, character, inherits, numeric, paste, eval, quote, call,
+    formula, df, log, sum, c, local, legend, file, scale, round, title, order,
+    drop, which, grid, print, ncol, dim, max, format, sort, rug, matrix, start,
+    unique, mean, df, attr, do, power},
+  otherkeywords={},
+  breaklines=true
+}
+
+\newcommand{\code}[1]{\lstinline[style=R]|#1|\xspace}
+\renewcommand{\c}[1]{\lstinline[style=R]|#1|\xspace}
+
+%%% \setcopyright{rightsretained}
+%%% \acmPrice{}
+%%% \acmDOI{10.1145/3360579}
+%%% \acmYear{2019}
+%%% \copyrightyear{2019}
+%%% \acmJournal{PACMPL}
+%%% \acmVolume{3}
+%%% \acmNumber{OOPSLA}
+%%% \acmArticle{153}
+%%% \acmMonth{10}
+\begin{document}
+\title{Promise are Made to be Broken}
+
+
+\author{Aviral Goel}\affiliation{\institution{Northeastern University}\country{USA}}
+\author{Jan Vitek}\affiliation{\institution{Czech Technical University and Northeastern University}\country{USA}}
+\authorsaddresses{} 
+\renewcommand{\shortauthors}{Goel, Vitek}
+
+\begin{abstract} 
+TODO
+\end{abstract}
+
+\begin{CCSXML}
+<ccs2012>
+<concept>
+<concept_id>10002944.10011123.10010912</concept_id>
+<concept_desc>General and reference~Empirical studies</concept_desc>
+<concept_significance>500</concept_significance>
+</concept>
+<concept>
+<concept_id>10011007.10011006.10011008</concept_id>
+<concept_desc>Software and its engineering~General programming languages</concept_desc>
+<concept_significance>500</concept_significance>
+</concept>
+<concept>
+<concept_id>10011007.10011006.10011050.10010517</concept_id>
+<concept_desc>Software and its engineering~Scripting languages</concept_desc>
+<concept_significance>500</concept_significance>
+</concept>
+<concept>
+<concept_id>10011007.10011006.10011039.10011311</concept_id>
+<concept_desc>Software and its engineering~Semantics</concept_desc>
+<concept_significance>300</concept_significance>
+</concept>
+</ccs2012>
+\end{CCSXML}
+
+\ccsdesc[500]{General and reference~Empirical studies}
+\ccsdesc[500]{Software and its engineering~General programming languages}
+\ccsdesc[500]{Software and its engineering~Scripting languages}
+\ccsdesc[300]{Software and its engineering~Semantics}
+
+\keywords{R language, delayed or lazy evaluation}
+
+\maketitle
+\section{Introduction}
+
+
+\section*{Acknowledgments}
+%% TODO: Thank Flip
+\bibliography{jan, aviral}
+
+\end{document}
