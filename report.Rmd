@@ -11,27 +11,32 @@ params:
 library(tidyverse)
 library(ggplot2)
 library(fst)
+library(fs)
 library(DT)
 ```
 
-```{r echo=FALSE, warning=FALSE, message=FALSE}
-`read_lazy<-` <- function(var, filename) {
-    filepath <- path_join(list(params$datadir, filename))
+```{r echo=TRUE, warning=FALSE, message=FALSE}
+read_lazy <- function(var, filename) {
+    filepath <- path_join(c(params$datadir, filename))
     eval_env <- environment()
     assign_env <- parent.frame()
-    delayedAssign(as.character(substitute(var)), read_fst(filepath), eval_env, assign_env) 
+    delayedAssign(as.character(substitute(var)), read_fst(print(filepath)), eval_env, assign_env) 
 }
 
 compute_percentage <- function(n, precision) {
     round( (n * 100) / sum(n) , precision)
 }
 
-extract_index <- read_lazy("extract_index.fst")
-sloc_corpus <- read_lazy("sloc_corpus.fst")
-#sloc_package <- read_lazy("sloc_package.fst")
+show_table <- function(df) {
+    datatable(df)
+}
+
+read_lazy(extract_index, "extract-index.fst")
+read_lazy(sloc_corpus, "sloc-corpus.fst")
+#read_lazy(sloc_package, "sloc-package.fst")
 ```
 
-```
+```{r echo=FALSE, warning=FALSE, message=FALSE, eval=TRUE}
 corpus_count_by_type <-
     extract_index %>%
         count(type, name = "count") %>%
@@ -46,7 +51,7 @@ show_table(corpus_count_by_type)
 show_table(corpus_count_by_package_type)
 ```
 
-```
+```{r echo=FALSE, warning=FALSE, message=FALSE, eval=TRUE}
 sloc_count_by_type <-
     sloc_corpus %>%
         count(type, name = "count") %>%
