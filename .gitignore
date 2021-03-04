@@ -227,5 +227,4 @@ paper.pdf
 .#paper.tex
 analysis/.Rhistory
 analysis/.RData
-*.html
 !graphs/*.pdf
