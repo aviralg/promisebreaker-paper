@@ -13,6 +13,7 @@ library(ggplot2)
 library(fst)
 library(fs)
 library(DT)
+library(tibble)
 ```
 
 ```{r echo=TRUE, warning=FALSE, message=FALSE}
@@ -32,10 +33,60 @@ show_table <- function(df) {
 }
 
 read_lazy(extract_index, "extract-index.fst")
+read_lazy(package_info, "package-info.fst")
 read_lazy(sloc_corpus, "sloc-corpus.fst")
-#read_lazy(sloc_package, "sloc-package.fst")
+read_lazy(sloc_package, "sloc-package.fst")
 ```
 
+## Functions per Package
+
+```{r echo=FALSE, warning=FALSE, message=FALSE, eval=TRUE}
+package_count <- length(unique(package_info$package))
+
+function_count <- nrow(distinct(package_info, package, funname))
+
+function_count_by_package <-
+    package_info %>%
+    mutate(exported = c("private", "public")[ as.integer(exported) + 1 ] ) %>%
+    group_by(package, exported) %>%
+    summarize(count = length(unique(funname))) %>%
+    ungroup() %>%
+    pivot_wider(names_from = exported, values_from = count, values_fill = 0) %>%
+    mutate(all = public + private, perc = compute_percentage(all))
+    
+show_table(function_count_by_package)
+```
+
+### Function Distribution
+
+```{r eval = TRUE}
+function_count_by_package_count <-
+    function_count_by_package %>%
+    count(all, name = "package_count") %>%
+    mutate(function_count = all) %>%
+    select(package_count, function_count)
+    
+tail_package_count <- 
+    function_count_by_package_count %>%
+    dplyr::filter(function_count > 250) %>%
+    pull(package_count) %>%
+    sum()
+    
+function_count_by_package_count <-
+    function_count_by_package_count %>%
+    dplyr::filter(function_count <= 250) %>%
+    mutate(function_count = ceiling(function_count / 5) * 5) %>%
+    group_by(function_count) %>%
+    summarize(package_count = sum(package_count)) %>%
+    ungroup() %>%
+    add_row(package_count = tail_package_count, function_count = 251)
+
+show_table(function_count_by_package_count)
+
+ggplot(function_count_by_package_count, aes(x = function_count, y = package_count)) +
+    geom_col() +
+    scale_x_binned(n.breaks = nrow(function_count_by_package_count))
+```
 ## Corpus
 
 ### Programs
