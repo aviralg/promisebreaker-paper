@@ -12,12 +12,12 @@ R = R
 
 # Targets
 all:
-	pdflatex paper && bibtex paper
+	pdflatex main && bibtex main
 
-open: paper.pdf
-	open paper.pdf
+open: main.pdf
+	open main.pdf
 
-paper.pdf: all
+main.pdf: all
 
 clean:
 	rm *~ *.log *.aux *.bbl *.out *.blg

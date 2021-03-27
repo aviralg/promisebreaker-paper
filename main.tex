@@ -74,16 +74,31 @@
 %%% \acmArticle{153}
 %%% \acmMonth{10}
 \begin{document}
-\title{Promise are Made to be Broken}
-
+\title{Promises are made to be broken}
+\subtitle{On providing strict evaluation semantics for the R language}
 
 \author{Aviral Goel}\affiliation{\institution{Northeastern University}\country{USA}}
+\author{Jan Ječmen}\affiliation{\institution{Czech Technical University}\country{Czechia}}
+\author{Sebastián Krynski}\affiliation{\institution{Czech Technical University}\country{Czechia}}
+\author{Oliver Flückiger}\affiliation{\institution{Northeastern University}\country{USA}}
 \author{Jan Vitek}\affiliation{\institution{Czech Technical University and Northeastern University}\country{USA}}
-\authorsaddresses{} 
+\authorsaddresses{}
 \renewcommand{\shortauthors}{Goel, Vitek}
 
-\begin{abstract} 
-TODO
+\begin{abstract}
+  Function calls in the R language do not evaluate their arguments, these are
+  passed as suspended computations to the callee which will evaluate them only
+  if they are needed. After 25 years of experience with the language, there are
+  very few cases where delayed evaluation is being intentionally leveraged by
+  programmers. Yet being lazy comes at a price in performance and complexity.
+  This paper explores what would happen if the semantics of the language was
+  changed to become strict-by-default and lazy-on-demand. To answer this
+  question we implemented a dynamic analysis that synthesizes strictness
+  signatures for functions. Given such signature, we implemented a tool that
+  automatically transforms source code to enforce the signatures. We then
+  performed a large scale evaluation of the robustness of the inferred
+  signature. Finally we explored the impact of providing strictness signatures
+  on a just-in-time compiler.
 \end{abstract}
 
 \begin{CCSXML}
@@ -124,6 +139,6 @@ TODO
 
 \section*{Acknowledgments}
 %% TODO: Thank Flip
-\bibliography{jan, aviral}
+\bibliography{bib/jv, bib/aviral}
 
 \end{document}
