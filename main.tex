@@ -136,6 +136,14 @@
 \maketitle
 \section{Introduction}
 
+The programming language R is widely used in data science. Surprisingly to many
+of its users, R adopts a relaxed call-by-need semantics. \citet{oopsla19b}
+studied the implementation of laziness in R and how programmers-at-large use it.
+Their paper demonstrated that R does not quite implement call-by-need as defined
+by \citet{hudak89}. There are points were evaluation is stricter than it
+strictly needs to. Assignment and function returns are strict
+
+
 
 \section*{Acknowledgments}
 %% TODO: Thank Flip
