@@ -173,7 +173,19 @@ structures put pressure on the memory manager. Delayed evaluation further
 complicates the work of compilers for the language by hindering optimizations
 and increasing the number of indirect calls.
 
-
+\paragraph{The Case for Laziness.} The success of a programming language
+often comes down to the strength of its ecosystem. With tens of millions of
+lines of contributed library code, any change to the core semantics of the
+language risks changing the behavior of some library functions. Preserving the
+status quo is a pragmatic choice to protect the investment in legacy code bases.
+Laziness is needed for an additional reason, it is the building block of the
+meta-programming facilities of the language. Unevaluated arguments can be
+coerced back to their source code, that code can be modified, and evaluated in
+an environment of the programmer's choice. Meta-programming is used to extend
+the language and to create embedded domain specific languages. While it is
+possible to imagine using macros instead, the number of libraries that use
+meta-programming is sufficiently large that it would be non-trivial to refactor
+them.
 
 
 %%\section*{Acknowledgments}
