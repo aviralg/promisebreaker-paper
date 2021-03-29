@@ -136,16 +136,47 @@
 \maketitle
 \section{Introduction}
 
-The programming language R is widely used in data science. Surprisingly to many
-of its users, R adopts a relaxed call-by-need semantics. \citet{oopsla19b}
-studied the implementation of laziness in R and how programmers-at-large use it.
-Their paper demonstrated that R does not quite implement call-by-need as defined
-by \citet{hudak89}. There are points were evaluation is stricter than it
-strictly needs to. Assignment and function returns are strict
+The R programming language is widely used in data science. Unbeknownst to many
+of its end-users, function calls have a call-by-need, or lazy, semantics. In
+other words the arguments of a function call are suspended computations which
+are evaluated if and when they are needed. \citet{oopsla19b} provided a thorough
+observational study of a corpus consisting of 16,707 packages written in R. For
+the most part, the corpus appears to have been written without reliance on
+laziness with the exception of code that leverages it for meta-programming.
+
+This paper argues that laziness should be the exception in R. We propose to make
+it a \emph{eager by default, lazy on demand} language by introducing strictness
+annotations. The question we wish to answer is whether it is possible to switch
+the semantics of a language without causing undue breakage in the legacy code
+that is in daily use. This concern is relevant because, even if programmers
+don't avail themselves of call-by-need, it is conceivable that their code
+accidentally depends on it. A change in the order of evaluation of arguments may
+introduce errors if that code was performing side effects.
+
+\paragraph{The Case for Strictness.} Laziness is error-prone, inconsistent
+and costly. The combination of delayed evaluation and side-effects in a language
+without type annotations is an invitation to subtle programming errors. If a
+function has multiple evaluation orders and is called with effectful arguments,
+their effects will be observed to happen in various orders. Functional languages
+prevent ordering issues by reflecting effects in the type system. R cannot do
+this as it is dynamically typed. Instead, libraries routinely add code at the
+boundaries of their API to force a single evaluation order. The design and use
+of call-by-need is inconsistent because there are multiple points where
+evaluation is arbitrarily forced. These include right-hand side of assignments
+and function returns, neither of which is required in a lazy language.
+Furthermore, to support object-oriented programming, R allows both single- and
+multiple-dispatch; in order to perform dispatch, arguments must be evaluated
+eagerly. Last, there are costs to lazy evaluation. Each argument must be boxed
+in a data structure that holds a reference to the expression to evaluate, its
+environment and the result of evaluation. Allocating and deallocating these data
+structures put pressure on the memory manager. Delayed evaluation further
+complicates the work of compilers for the language by hindering optimizations
+and increasing the number of indirect calls.
 
 
 
-\section*{Acknowledgments}
+
+%%\section*{Acknowledgments}
 %% TODO: Thank Flip
 \bibliography{bib/jv, bib/aviral}
 
