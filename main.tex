@@ -203,12 +203,27 @@ them.
 \subsection{Synthesizing Signatures}
 
 \section{Analysis Infrastructure}
-
-\subsection{Instrumented R}
-
-\subsection{Lazr}
+In this section, we describe the analysis pipeline that \emph{(a)} profiles R
+programs for laziness, \emph{(b)} extracts and analyzes strictness signatures
+from the profile, and \emph{(c)} validates those signatures by eagerly forcing
+function arguments. The analysis pipeline starts with setting up a Docker image
+that includes all the dependencies for installing analysis code and R packages
+from CRAN and Bioconductor. This provides a reliable reproducible setup across
+the three machines. Next, we mirror CRAN and Bioconductor repositories and
+install their R packages. This is followed by generation of execution traces
+from a dynamic analyzer running inside an instrumented R virtual machine. These
+traces are analyzed to generate tabular data files and strictness signatures.
+Finally, the signatures are applied to client programs for validation. Our
+experiments were performed on three Intel Xeon 6140, 2.30GHz machines with 72
+cores and 256GB of RAM each. The pipeline is managed by a Makefile which has
+rules for every step. This makes it easy to administer the experiments on
+multiple machines. Wherever possible, we parallelize the steps using GNU
+parallel.
 
 \subsection{Synthesis of Laziness Signatures}
+
+\subsubsection{Instrumented R}
+\subsubsection{Lazr}
 
 \subsection{Strictr}
 
