@@ -217,17 +217,119 @@ Finally, the signatures are applied to client programs for validation. Our
 experiments were performed on three Intel Xeon 6140, 2.30GHz machines with 72
 cores and 256GB of RAM each. The pipeline is managed by a Makefile which has
 rules for every step. This makes it easy to administer the experiments on
-multiple machines. Wherever possible, we parallelize the steps using GNU
-parallel.
+multiple machines. Whenever possible, we parallelize the steps using GNU
+parallel\cite{tange2011a}.
 
-\subsection{Synthesis of Laziness Signatures}
+\subsection{Synthesizing Laziness Signatures}
 
-\subsubsection{Instrumented R}
-\subsubsection{Lazr}
+A function's strictness signature is a tuple $\langle p, f, s_1, ..., s_n
+\rangle$, where $p$ is the package in which the function is defined, $f$ is the
+function's name and $s_i$ are one based positions of arguments that can be
+evaluted strictly. We synthesize strictness signatures for functions by
+observing the evaluation of their arguments at runtime. For this, we use three
+tools that enable us to dynamically inspect a function call's arguments.
 
-\subsection{Strictr}
+%% R-dyntrace
 
-\subsection{Application of Strictness Signatures}
+First,
+we use an instrumented R virtual machine, \emph{R-dyntrace} \citet{oopsla19b}
+based on GNU-R version 4.0.2. The framework provides an event framework for
+invoking user-defined callbacks at specific points inside the R interpreter.
+\emph{R-dyntrace} supplies raw R objects to the callbacks. Extracting meaningful
+information at this low level requires handling a lot of subtleties arising from
+the intricacies of R's implementation and execution model. These details are
+surprisingly hard to get right, even for simple progrms. The challenges are
+described in detail by \cite{oopsla19b} in the design of their tracer for
+collecting information about use of laziness in R programs.
+
+%% instrumentr
+
+To iron these wrinkles, we developed \emph{instrumentr}, an R package that
+provides a layer of abstraction on top of the event framework exposed by
+\emph{R-dyntrace}. \emph{instrumentr} intercepts \emph{R-dyntrace} events and
+invokes callbacks registered by clients. It passes model R objects to client
+callbacks by wrapping the raw R objects provided to its own callbacks registered
+with \emph{R-dyntrace}. These model objects contain metadata about the raw R
+object and provide a consistent API for inspecting their constituents.
+\begin{itemize}
+\item The object metadata keeps track of the object's unique id. This uniqueness guarantee
+enables downstream client analyses to key objects by their id instead of
+addresses which are not unique since they get resused by R's garbage collector.
+\item The model objects are reference counted which makes it possible for a model
+object to be referenced by multiple model objects with proper memory management.
+A complication arises in this design when objects have cyclic references. For
+example, a promise argument keeps a reference to a call object and vice-versa.
+To address this, \emph{instrumentr} defines the notion of a primary owner. The
+primary owner of a model object can ``kill'' the object, i.e. free up object's
+internals (and decrement the references it holds to other objects) even if it is
+referenced by other objects. Killing does not free up the model object's memory
+or affect its metadata. This lets secondary owners access the dead object's
+metadata even after the raw R object no longer exists. The ``dead'' object's
+memory is finally freed when it is no longer referenced by any other object in
+the system. This design insight makes it trivial to express complex object
+dependencies without any memory leaks at the scale of millions of objects. This
+also enables clients to query dead object's metadata if they are referenced by
+model objects made available to the clients via their callbacks. This greatly
+simplifies the handling of promises, first class environments and function
+calls.
+\item \emph{instrumentr} keeps track of logical time, from tracing entry to
+tracing exit, incremented on every event. The model object's metadata keeps
+track of its time of allocation and deallocation. For environments, it also
+keeps track of last read and last write time. For promises, it keeps track of
+force entry and force exit time. This information is used to identify non-local
+reads and writes to environments. The model objects are cached in a table keyed
+by the R object's address. Table entries are inserted and erased on \emph{object
+  allocation and deallocation} events respectively. This prevents duplication of
+model objects when the same R object is encountered on multiple events.
+\item \emph{instrumentr} models the call stack. It also adds promise objects under
+evaluation to the stack. This helps identify if an event, say a side-effect, is
+occuring inside a promise. Furthermore, R uses \emph{longjmp} to do non-local
+returns. \emph{instrumentr} exposes a deterministic behavior during such events
+by artificially calling the exit callbacks of interrupted calls and promises on
+the stack. This simplifies the client side tracing logic, significantly.
+\item \emph{instrumentr} keeps track of environment and function names in their model
+objects. Getting fully qualified function names dynamically is challenging in R
+becausse packages are first class environments that are constructed piecemeal
+and all functions are by default anonymous objects that may be bound to a name
+in their lexical scope. \emph{instrumentr} handles this by assigning names to
+environments on package load events and checking on every write if a function is
+being bound to a name. Functions can be nested to arbitrary depths in which case
+\emph{instrumentr} links model objects together to reflect the parent-child
+relationship.
+\end{itemize}
+%% lazr
+
+For extracting execution
+traces, we developed \emph{lazr}, an R library which sits atop
+\emph{instrumentr}. \emph{lazr} collects information about function calls,
+arguments, side-effects, and reflective environment access. from the model
+objects provided by the following instrumentr event: \emph{function entry and
+  exit}, \emph{promise evaluation entry and exit}, \emph{variable reads and
+  writes}, \emph{promise value and expression reads}, and \emph{function
+  lookup}. This information is stored in compressed tabular format using R's
+\emph{fst} library. Analysis scripts provided by \emph{lazr} use this data to
+synthesize strictness signatures.
+
+\subsection{Applying Strictness Signatures}
+
+To apply a function's strictness signature, we force the corresponding
+arguments on every call to that fuction. For this, we developed \emph{strictr},
+an R package that adds code to force arguments at the top of a function's
+definition. R allows packages to register callbacks which are invoked when a
+package is loaded by the program. \emph{strictr} sets up a package load callback
+for all the packages for which we generate signatures. When a program loads a
+package, \emph{strictr}'s callback is invoked. \emph{strictr} reads the
+signatures for functions of the loaded package from a file, and injects code in
+the function's definition in accordance with the signature. The injected code
+first checks for missingness and evaluates the argument only if it is supplied
+by the user or has a default value. The arguments are evaluated in the order
+specified by the signature. \emph{strictr} also supports nested functions by
+recursively descending into the parent function's definitions until it finds the
+inner function binding. Signatures are made available to \emph{strictr} as a
+directory containing one file per package. Providing signatures in external
+files avoids the need to modify the source code of programs. This also enables
+easy experimentation with different signature configurations by providing a
+different directory location.
 
 \section{Corpus of R Programs}
 
