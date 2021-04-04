@@ -187,12 +187,37 @@ possible to imagine using macros instead, the number of libraries that use
 meta-programming is sufficiently large that it would be non-trivial to refactor
 them.
 
-\section{Background}
-\subsection{Related Work}
+\section{The R Language}
 
-\subsection{The R Language}
 
-\section{Strictness Signatures for R}
+\section{Strictness Signatures}
+
+A function's strictness signature is a tuple $\langle p, f, s_1, ..., s_n
+\rangle$, where $p$ is the package in which the function is defined, $f$ is the
+function's name and $s_i$ are positions of arguments that can be evaluted
+strictly.
+
+However, the intricacies of R introduce many challenges. The first challenge is
+treatment of $...$, or varargs. $...$ paramaters accept arbitrary number of
+arguments including zero. These are typically used for two reasons: \emph{(a)
+   }
+number of arguments for 
+strictness signatures.
+strict.
+...
+effect
+as.environment
+
+Firstly, 
+The first source of laziness is when an argument is not
+used in a call to the function. Such arguments could still be evaluated strictly
+but there might be a significant performance penalty, or worse, a side-effect.
+Even reads performed by the argument could trigger evaluation of promises that
+could lead to side-effects.
+
+There are 2 internal sources of
+laziness in R: metaprogramming, and unused arguments.
+
 
 \emph{Metaprogramming}
 
@@ -209,7 +234,7 @@ from the profile, and \emph{(c)} validates those signatures by eagerly forcing
 function arguments. The analysis pipeline starts with setting up a Docker image
 that includes all the dependencies for installing analysis code and R packages
 from CRAN and Bioconductor. This provides a reliable reproducible setup across
-the three machines. Next, we mirror CRAN and Bioconductor repositories and
+the three machines. Next, we mirror CRAN and Bioconductor\cite{bioc} repositories and
 install their R packages. This is followed by generation of execution traces
 from a dynamic analyzer running inside an instrumented R virtual machine. These
 traces are analyzed to generate tabular data files and strictness signatures.
@@ -220,7 +245,7 @@ rules for every step. This makes it easy to administer the experiments on
 multiple machines. Whenever possible, we parallelize the steps using GNU
 parallel\cite{tange2011a}.
 
-\subsection{Synthesizing Laziness Signatures}
+\subsection{Synthesizing Strictness Signatures}
 
 A function's strictness signature is a tuple $\langle p, f, s_1, ..., s_n
 \rangle$, where $p$ is the package in which the function is defined, $f$ is the
@@ -246,32 +271,35 @@ collecting information about use of laziness in R programs.
 
 To iron these wrinkles, we developed \emph{instrumentr}, an R package that
 provides a layer of abstraction on top of the event framework exposed by
-\emph{R-dyntrace}. \emph{instrumentr} intercepts \emph{R-dyntrace} events and
-invokes callbacks registered by clients. It passes model R objects to client
-callbacks by wrapping the raw R objects provided to its own callbacks registered
-with \emph{R-dyntrace}. These model objects contain metadata about the raw R
-object and provide a consistent API for inspecting their constituents.
+\emph{R-dyntrace}. \emph{instrumentr} provides API to create tracer objects to
+which event specific callbacks can be attached. \emph{instrumentr} intercepts
+\emph{R-dyntrace} events and invokes the corresponding tracer's callbacks. It
+passes model objects to callbacks by wrapping the raw R objects provided to
+its own callbacks registered with \emph{R-dyntrace}.
 \begin{itemize}
-\item The object metadata keeps track of the object's unique id. This uniqueness guarantee
-enables downstream client analyses to key objects by their id instead of
-addresses which are not unique since they get resused by R's garbage collector.
-\item The model objects are reference counted which makes it possible for a model
-object to be referenced by multiple model objects with proper memory management.
-A complication arises in this design when objects have cyclic references. For
-example, a promise argument keeps a reference to a call object and vice-versa.
-To address this, \emph{instrumentr} defines the notion of a primary owner. The
-primary owner of a model object can ``kill'' the object, i.e. free up object's
-internals (and decrement the references it holds to other objects) even if it is
-referenced by other objects. Killing does not free up the model object's memory
-or affect its metadata. This lets secondary owners access the dead object's
-metadata even after the raw R object no longer exists. The ``dead'' object's
-memory is finally freed when it is no longer referenced by any other object in
-the system. This design insight makes it trivial to express complex object
-dependencies without any memory leaks at the scale of millions of objects. This
-also enables clients to query dead object's metadata if they are referenced by
-model objects made available to the clients via their callbacks. This greatly
-simplifies the handling of promises, first class environments and function
-calls.
+\item These model objects contain metadata about the raw R object and provide a
+  consistent API for inspecting their constituents.
+\item The object metadata keeps track of the object's unique id. This uniqueness
+  guarantee enables downstream client analyses to key objects by their id
+  instead of addresses which are not unique since they get resused by R's
+  garbage collector.
+\item The model objects are reference counted which makes it possible for a
+  model object to be referenced by multiple model objects with proper memory
+  management. A complication arises in this design when objects have cyclic
+  references. For example, a promise argument keeps a reference to a call object
+  and vice-versa. To address this, \emph{instrumentr} defines the notion of a
+  primary owner. The primary owner of a model object can ``kill'' the object,
+  i.e. free up object's internals (and decrement the references it holds to
+  other objects) even if it is referenced by other objects. Killing does not
+  free up the model object's memory or affect its metadata. This lets secondary
+  owners access the dead object's metadata even after the raw R object no longer
+  exists. The ``dead'' object's memory is finally freed when it is no longer
+  referenced by any other object in the system. This design insight makes it
+  trivial to express complex object dependencies without any memory leaks at the
+  scale of millions of objects. This also enables clients to query dead object's
+  metadata if they are referenced by model objects made available to the clients
+  via their callbacks. This greatly simplifies the handling of promises, first
+  class environments and function calls.
 \item \emph{instrumentr} keeps track of logical time, from tracing entry to
 tracing exit, incremented on every event. The model object's metadata keeps
 track of its time of allocation and deallocation. For environments, it also
@@ -294,7 +322,7 @@ and all functions are by default anonymous objects that may be bound to a name
 in their lexical scope. \emph{instrumentr} handles this by assigning names to
 environments on package load events and checking on every write if a function is
 being bound to a name. Functions can be nested to arbitrary depths in which case
-\emph{instrumentr} links model objects together to reflect the parent-child
+\emph{instrumentr} links model function objects to reflect the parent-child
 relationship.
 \end{itemize}
 %% lazr
@@ -352,6 +380,49 @@ different directory location.
 \section{Discussion}
 
 \section{Conclusion}
+The foundation for our work is \cite{oopsla19b}'s work on the design,
+implementation, and use of laziness in R. They provide a detailed account of R's
+call-by-need evaluation strategy with a small-step operational semantics and an
+empirical evaluation of 16,707 R packages. Their study shows that R is rather
+strict for a lazy language, with most R code written without reliance on
+laziness. In their corpus of 388.3K functions, they identify 83.7\% functions as
+strict, i.e., these functions evaluate all of their arguments in a single order
+across all calls. The authors find that R programmers ``force'' arguments at the
+beginning of a function for a deterministic evaluation order. The authors
+identify only one instance of lazy data structure and find that meta-programming
+is the only dominant use of R's laziness.
+
+\cite{oopsla20b}'s work on empirically inferring type signatures for R functions
+is very similar to our work in spirit. They synthesize function type signatures
+by dynamically observing the type of function arguments and return values. They
+validate these signatures by inserting type checking code inside functions and
+monitor type contract failure by running client programs. Failed type contracts
+can be detected at a function's boundary by comparing a value's actual type
+against its expected type. However, evaluating an argument on function entry
+does not prohibit it from being used in a non-strict setting such as
+metaprogramming. A side-effecting argument which would otherwise not have been
+evaluated by the function could still be evaluated according to our strictness
+signature without an observable error. This makes validation of strictness
+signatures hard.
+
+With this work, we are trying to propose a change in the semantics of R. There
+are many other instances of mainstream languages incorporating a major change in
+semantics. The most prominent example is the transition from Python 2 to Python
+3, which is still an ongoing process. Python 3 was released in 2008 with a
+plan\cite{pysunset} to drop support for Python 2 in 2015. This was later
+extended to 2020 since a lot of codebase in 2015 was not transitioned to Python
+3. However, legcay codebase continues to run on Python 2 till date. Python 3
+introduced many incompatible changes without any tooling support for transition.
+py2to3 script only handles a selection of superficial changes. TODO.
+
+
+
+
+Similar to our attempts to modify R's semantics are the transition from Python 2
+to Python 3, PHP to Hack, introduction of Javascript's strict mode and 
+
+
+
 
 
 %%\section*{Acknowledgments}
