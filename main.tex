@@ -245,21 +245,39 @@ these choices result in many possible signature configurations.
 argument can be evaluated eagerly is The ``features'' supported by R introduce
 many challenges
 
+\subsection{missingness}
+
+A function in R can be called with fewer arguments than expected. These
+argumentless parameters are treated as missing if they don't have a default
+value. The function can check for missing arguments using the \code{missing}
+function. Since missing arguments can be forwarded to callees, \code{missing}
+performs this check transitively. The strictness signatures we compute reflect
+the function's strictness with respect to its arguments when they are not
+missing.
+
+\subsection{metaprogramming}
+
 \subsection{vararg}
 varargs, or $...$ paramaters, accept an arbitrary number of arguments, including
 missing arguments. The function can materialize $...$ into a list using the
-\code{list(...)} pattern. It can also forward $...$ to a callee. This lets the
-function expose its callee's interface to the callers. A combination of $...$
-and other arguments passed by a caller can match against a callee's $...$ and
-this could go on transitively until the $...$ arguments are unpacked against the
-parameter list of the final function in the chain. Assigning a single strictness
-annotation to $...$ is tricky because a function can have different
-strictness behavior for the individual arguments. Assigning a unique strictness
-signature to $...$ is tricky because the outer function may use them in a strict
-setting but the callees may metaprogram on the promises packaged inside $...$.
-The presence of missing arguments inside $...$ introduces another challenge.
-We treat $...$ parameters as lazy in our signatures.
-
+\code{list(...)} pattern. This saves the user from packaging the arguments into
+a list. The function can also forward its $...$ to a callee. This enables the
+function to expose its callee's interface to the callers without listing
+callee's parameters and their default values. Assigning a single strictness
+annotation to $...$ is tricky because a function can have different strictness
+behavior for the individual arguments. One solution is to treat the function
+strict in $...$, if it is strict in all of its constituents. However, assigning
+a unique strictness signature to $...$ is difficult because a function may use
+them in a strict setting but the callees may metaprogram on the promises
+packaged inside $...$. This is possible because unlike normal argument promises,
+promises inside $...$ are forwarded as-is to callees. Normal promise arguments
+are packaged in a new promise before being passed to a callee. In general, a
+combination of $...$ and other arguments passed by a caller can match against a
+callee's $...$ and the callee could pass this further resulting in a long chain
+of functions having access to the same argument promise. Since the callees can
+directly affect these arguments, their strictness signature assignment becomes
+quite brittle. The presence of missing arguments inside $...$ introduces another
+quirk. In light of all these oddities, we treat $...$ as lazy.
 
  
 
