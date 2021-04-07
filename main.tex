@@ -193,20 +193,37 @@ them.
 \section{Strictness Signatures}
 
 A function's strictness signature is a tuple $\langle p, f, s_1, ..., s_n
-\rangle$, where $p$ is the package in which the function is defined, $f$ is the
-function's name and $s_i$ are positions of arguments that can be evaluted
-strictly.
+\rangle$, where $f$ is the function's qualified name and $s_i$ are positions of
+arguments that can be evaluted strictly. We synthesize these strictness
+signatures for functions from dynamically generated traces. The choice of making
+a function strict in a particular argument is condititioned on many aspects of
+its evaluation, not just on that fact that it is evaluated. The combination of
+these choices result in many possible signature configurations.
+argument can be evaluated eagerly is The ``features'' supported by R introduce
+many challenges
 
-However, the intricacies of R introduce many challenges. The first challenge is
-treatment of $...$, or varargs. $...$ paramaters accept arbitrary number of
-arguments including zero. These are typically used for two reasons: \emph{(a)
-   }
-number of arguments for 
-strictness signatures.
-strict.
-...
-effect
-as.environment
+\subsection{vararg}
+varargs, or $...$ paramaters, accept an arbitrary number of arguments, including
+missing arguments. The function can materialize $...$ into a list using the
+\code{list(...)} pattern. It can also forward $...$ to a callee. This lets the
+function expose its callee's interface to the callers. A combination of $...$
+and other arguments passed by a caller can match against a callee's $...$ and
+this could go on transitively until the $...$ arguments are unpacked against the
+parameter list of the final function in the chain. Assigning a single strictness
+annotation to $...$ is tricky because a function can have different
+strictness behavior for the individual arguments. Assigning a unique strictness
+signature to $...$ is tricky because the outer function may use them in a strict
+setting but the callees may metaprogram on the promises packaged inside $...$.
+The presence of missing arguments inside $...$ introduces another challenge.
+We treat $...$ parameters as lazy in our signatures.
+
+
+ 
+
+
+for
+\emph{(a)} to forward the arguments to a callee \emph{(b)} to number of
+arguments for strictness signatures. strict. ... effect as.environment
 
 Firstly, 
 The first source of laziness is when an argument is not
@@ -247,10 +264,9 @@ parallel\cite{tange2011a}.
 
 \subsection{Synthesizing Strictness Signatures}
 
-A function's strictness signature is a tuple $\langle p, f, s_1, ..., s_n
-\rangle$, where $p$ is the package in which the function is defined, $f$ is the
-function's name and $s_i$ are one based positions of arguments that can be
-evaluted strictly. We synthesize strictness signatures for functions by
+A function's strictness signature is a tuple $\langle f, s_1, ..., s_n
+\rangle$, where $f$ is the function's qualified name and $s_i$ are positions of arguments that can be
+evaluted strictly. We synthesize these strictness signatures for functions by
 observing the evaluation of their arguments at runtime. For this, we use three
 tools that enable us to dynamically inspect a function call's arguments.
 
@@ -338,6 +354,8 @@ objects provided by the following instrumentr event: \emph{function entry and
 \emph{fst} library. Analysis scripts provided by \emph{lazr} use this data to
 synthesize strictness signatures.
 
+zoo::merge.zoo redefines f with different number of parameters.
+
 \subsection{Applying Strictness Signatures}
 
 To apply a function's strictness signature, we force the corresponding
@@ -359,6 +377,15 @@ files avoids the need to modify the source code of programs. This also enables
 easy experimentation with different signature configurations by providing a
 different directory location.
 
+Talk about  \code{is_same_body <<- is_reference}
+
+%%% TODO:
+%%% \begin{lstlisting}[language=R]
+%%% 
+%%% 
+%%% 
+%%% \end{lstlisting}
+
 \section{Corpus of R Programs}
 
 -- number of R packges
@@ -377,9 +404,12 @@ different directory location.
 
 \subsection{Robustness}
 
+\subsection{Performance}
+
 \section{Discussion}
 
-\section{Conclusion}
+TODO: move to beginning
+\section{Related Work}
 The foundation for our work is \cite{oopsla19b}'s work on the design,
 implementation, and use of laziness in R. They provide a detailed account of R's
 call-by-need evaluation strategy with a small-step operational semantics and an
@@ -415,14 +445,20 @@ extended to 2020 since a lot of codebase in 2015 was not transitioned to Python
 introduced many incompatible changes without any tooling support for transition.
 py2to3 script only handles a selection of superficial changes. TODO.
 
-
-
+TODO: Autobahn (haskell strictness signature).
 
 Similar to our attempts to modify R's semantics are the transition from Python 2
 to Python 3, PHP to Hack, introduction of Javascript's strict mode and 
 
 
 
+\section{Migration Strategy}
+- py2to3 does not do a good job
+- hack has a simple migration tool
+- scala 2 to 3 has migration tools
+
+- If we have signatures for every test on CRAN.
+- 
 
 
 %%\section*{Acknowledgments}
