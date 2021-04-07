@@ -187,8 +187,49 @@ possible to imagine using macros instead, the number of libraries that use
 meta-programming is sufficiently large that it would be non-trivial to refactor
 them.
 
-\section{The R Language}
+\section{Background}
+\subsection{The R Language}
 
+\subsection{Related Work}
+The foundation for our work is \cite{oopsla19b}'s work on the design,
+implementation, and use of laziness in R. They provide a detailed account of R's
+call-by-need evaluation strategy with a small-step operational semantics and an
+empirical evaluation of 16,707 R packages. Their study shows that R is rather
+strict for a lazy language, with most R code written without reliance on
+laziness. In their corpus of 388.3K functions, they identify 83.7\% functions as
+strict, i.e., these functions evaluate all of their arguments in a single order
+across all calls. The authors find that R programmers ``force'' arguments at the
+beginning of a function for a deterministic evaluation order. The authors
+identify only one instance of lazy data structure and find that meta-programming
+is the only dominant use of R's laziness.
+
+\cite{oopsla20b}'s work on empirically inferring type signatures for R functions
+is very similar to our work in spirit. They synthesize function type signatures
+by dynamically observing the type of function arguments and return values. They
+validate these signatures by inserting type checking code inside functions and
+monitor type contract failure by running client programs. Failed type contracts
+can be detected at a function's boundary by comparing a value's actual type
+against its expected type. However, evaluating an argument on function entry
+does not prohibit it from being used in a non-strict setting such as
+metaprogramming. A side-effecting argument which would otherwise not have been
+evaluated by the function could still be evaluated according to our strictness
+signature without an observable error. This makes validation of strictness
+signatures hard.
+
+With this work, we are trying to propose a change in the semantics of R. There
+are many other instances of mainstream languages incorporating a major change in
+semantics. The most prominent example is the transition from Python 2 to Python
+3, which is still an ongoing process. Python 3 was released in 2008 with a
+plan\cite{pysunset} to drop support for Python 2 in 2015. This was later
+extended to 2020 since a lot of codebase in 2015 was not transitioned to Python
+3. However, legcay codebase continues to run on Python 2 till date. Python 3
+introduced many incompatible changes without any tooling support for transition.
+py2to3 script only handles a selection of superficial changes. TODO.
+
+TODO: Autobahn (haskell strictness signature).
+
+Similar to our attempts to modify R's semantics are the transition from Python 2
+to Python 3, PHP to Hack, introduction of Javascript's strict mode and 
 
 \section{Strictness Signatures}
 
@@ -407,48 +448,6 @@ Talk about  \code{is_same_body <<- is_reference}
 \subsection{Performance}
 
 \section{Discussion}
-
-TODO: move to beginning
-\section{Related Work}
-The foundation for our work is \cite{oopsla19b}'s work on the design,
-implementation, and use of laziness in R. They provide a detailed account of R's
-call-by-need evaluation strategy with a small-step operational semantics and an
-empirical evaluation of 16,707 R packages. Their study shows that R is rather
-strict for a lazy language, with most R code written without reliance on
-laziness. In their corpus of 388.3K functions, they identify 83.7\% functions as
-strict, i.e., these functions evaluate all of their arguments in a single order
-across all calls. The authors find that R programmers ``force'' arguments at the
-beginning of a function for a deterministic evaluation order. The authors
-identify only one instance of lazy data structure and find that meta-programming
-is the only dominant use of R's laziness.
-
-\cite{oopsla20b}'s work on empirically inferring type signatures for R functions
-is very similar to our work in spirit. They synthesize function type signatures
-by dynamically observing the type of function arguments and return values. They
-validate these signatures by inserting type checking code inside functions and
-monitor type contract failure by running client programs. Failed type contracts
-can be detected at a function's boundary by comparing a value's actual type
-against its expected type. However, evaluating an argument on function entry
-does not prohibit it from being used in a non-strict setting such as
-metaprogramming. A side-effecting argument which would otherwise not have been
-evaluated by the function could still be evaluated according to our strictness
-signature without an observable error. This makes validation of strictness
-signatures hard.
-
-With this work, we are trying to propose a change in the semantics of R. There
-are many other instances of mainstream languages incorporating a major change in
-semantics. The most prominent example is the transition from Python 2 to Python
-3, which is still an ongoing process. Python 3 was released in 2008 with a
-plan\cite{pysunset} to drop support for Python 2 in 2015. This was later
-extended to 2020 since a lot of codebase in 2015 was not transitioned to Python
-3. However, legcay codebase continues to run on Python 2 till date. Python 3
-introduced many incompatible changes without any tooling support for transition.
-py2to3 script only handles a selection of superficial changes. TODO.
-
-TODO: Autobahn (haskell strictness signature).
-
-Similar to our attempts to modify R's semantics are the transition from Python 2
-to Python 3, PHP to Hack, introduction of Javascript's strict mode and 
 
 
 
