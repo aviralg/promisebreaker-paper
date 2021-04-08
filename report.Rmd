@@ -17,11 +17,24 @@ library(tibble)
 ```
 
 ```{r echo=TRUE, warning=FALSE, message=FALSE}
+read_any <- function(filepath) {
+    ext <- path_ext(filepath)
+    if(ext == "fst") {
+        read_fst(filepath)
+    }
+    else {
+        read_lines(filepath)
+    }
+}
+
 read_lazy <- function(var, filename) {
     filepath <- path_join(c(params$datadir, filename))
     eval_env <- environment()
     assign_env <- parent.frame()
-    delayedAssign(as.character(substitute(var)), read_fst(print(filepath)), eval_env, assign_env) 
+    delayedAssign(as.character(substitute(var)),
+                  read_any(print(filepath)),
+                  eval_env,
+                  assign_env)
 }
 
 compute_percentage <- function(n, precision) {
@@ -34,11 +47,51 @@ show_table <- function(df) {
 
 read_lazy(extract_index, "extract-index.fst")
 read_lazy(package_info, "package-info.fst")
-read_lazy(sloc_corpus, "sloc-corpus.fst")
+read_lazy(sloc_script, "sloc-corpus.fst")
 read_lazy(sloc_package, "sloc-package.fst")
+read_lazy(corpus, "corpus")
+read_lazy(client, "client")
 ```
 
-## Functions per Package
+## Corpus
+
+```{r echo=FALSE, warning=FALSE, message=FALSE, eval=TRUE}
+cat("Corpus size: ", length(corpus))
+cat("Client size: ", length(client))
+
+summarize_programs_sloc <- function(df, packages, types = c("test", "example", "testthat", "vignette")) {
+    df %>%
+        filter(package %in% packages) %>%
+        filter(type %in% types) %>%
+        filter(language %in% c("R", "C/C++ Header", "C", "C++", "Fortran 77")) %>%
+        mutate(language = case_when(language == "R" ~ "R", TRUE ~ "Native")) %>%
+        group_by(language, type) %>%
+        summarize(count = n(), code = sum(code)) %>%
+        ungroup()
+}
+```
+
+### Runnable Code
+
+```{r echo=FALSE, warning=FALSE, message=FALSE, eval=TRUE}
+runnable_code <-
+   add_column(summarize_programs_sloc(sloc_script, corpus), kind = "corpus", .before = 1) %>%
+   bind_rows(add_column(summarize_programs_sloc(sloc_script, client), kind = "client", .before = 1))
+   
+runnable_code %>% show_table()
+```
+
+### Package Code
+
+```{r echo=FALSE, warning=FALSE, message=FALSE, eval=TRUE}
+package_code <-
+   add_column(summarize_programs_sloc(sloc_package, corpus, c("R", "src")), kind = "corpus", .before = 1) %>%
+   bind_rows(add_column(summarize_programs_sloc(sloc_package, client, c("R", "src")), kind = "client", .before = 1))
+
+package_code %>% show_table()
+```
+
+### Functions
 
 ```{r echo=FALSE, warning=FALSE, message=FALSE, eval=TRUE}
 package_count <- length(unique(package_info$package))
@@ -110,12 +163,12 @@ show_table(corpus_count_by_package_type)
 
 ```{r echo=FALSE, warning=FALSE, message=FALSE, eval=TRUE}
 sloc_count_by_type <-
-    sloc_corpus %>%
+    sloc_script %>%
         count(type, name = "count") %>%
         mutate(perc = compute_percentage(count))
 
 sloc_count_by_package_type <-
-    sloc_corpus %>%
+    sloc_script %>%
         count(package, type, name = "count") %>%
         mutate(perc = compute_percentage(count))
 
