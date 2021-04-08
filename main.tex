@@ -64,7 +64,8 @@
 
 \newcommand{\code}[1]{\lstinline[style=R]|#1|\xspace}
 \renewcommand{\c}[1]{\lstinline[style=R]|#1|\xspace}
-
+\newcommand{\lazr}{\emph{lazr}}
+\newcommand{\strictr}{\emph{strictr}}
 %%% \setcopyright{rightsretained}
 %%% \acmPrice{}
 %%% \acmDOI{10.1145/3360579}
@@ -510,6 +511,71 @@ Talk about  \code{is_same_body <<- is_reference}
 %%% \end{lstlisting}
 
 \section{Corpus of R Programs}
+
+For synthesizing strictness signatures, we run code from a corpus of packages
+using \lazr. For validation, we insert strictness contracts in the corpus
+functions and run their client programs using \strictr.
+
+We selected corpus packages and client programs from CRAN and Bioconductor, two
+official package repositories for R. CRAN and Bioconductor have 17,388 and 3,344
+packages each, of which, we were able to install 17,142 CRAN and 2,733
+Bioconductor packages. Some packages could not be installed because of missing
+native dependencies and compilation errors in our Docker image. We chose to
+discard those packages. Code submitted to CRAN and Bioconductor is curated by
+subjecting it to a battery of tests to ensure quality. Packages submitted to
+these repositories have runnable code in the form of tests, examples, and
+vignettes. Vignettes are typically long examples which demonstrate a packages
+functionality.
+
+We synthesized signatures for functions from 500 packages. The criterion was to
+select packages with the maximum number of client packages. This requirement
+enabled us to evaluate the strictness signatures of those packages from the
+runnable code of their clients. The chosen packages have a total of 15,362
+dependent client packages, ranging from maximum 2,669 dependents for
+\emph{ggplot2} to minimum 5 for \emph{spatstat.linnet} with an average 125.4
+dependents.
+
+The selected 500 packages have 2.2M lines of R code and 2.7M lines of native (C,
+C++, and Fortran) code. For synthesizing signatures for their functions, we
+analyzed the execution traces obtained from their examples, tests, and
+vignettes.
+
+\begin{wraptable}{r}{7cm}
+  \vspace{-3mm}
+  \small
+  \caption{Corpus}\label{table:corpus}
+  \vspace{-3mm}
+  \begin{tabular}{l|rrrl} %{@{}l|r@{~~}r@{~}r@{~~}l@{}}
+    &\bf Tests&\bf Examples&\bf Vignettes&\\\hline
+    \multirow{2}{*}
+    {Scripts}&5.8K&20.2K&631&\it Corpus\\
+    &9.8K&41.1K&1.7K&\it Client\\\hline
+    \multirow{2}{*}
+    {LOC}&406.4K&207.0K&48.7K&\it Corpus \\
+    &751.2K&348.8K&112.3K&\it Client \\\hline
+  \end{tabular}
+\end{wraptable}
+
+For validation, we selected 2000 dependent packages of the synthesis
+corpus. They have 4.5M lines of R code and 4.7M lines of native (C, C++, and
+Fortran) code. We run their examples, tests, and vignettes to exercise the
+functions with signatures.
+
+Table ~\ref{table:corpus} gives the number of scripts of each kind that were run
+and lines of code exercised.
+
+The 412 selected packages contain 385.8K lines of runnable code in examples
+(98.9K), tests (258K) and vignettes (28.9K). Running this code results on
+average in 80.8% package code coverage (the
+average for all of CRAN is
+65.6%). Together, there is 18.8K (on average 45.5, median 12; CRAN
+average is 12.8, median 2) reverse dependencies with 11.2M runnable lines of
+code resulting in
+45.9% coverage (on average) of the corpus packages. Together there are 38.2K defined R functions
+(17.4K are from the packages’ public APIs). 11.8K are S3 functions, either S3
+generics or S3 methods. Packages in the corpus define 81 S3 classes.
+
+
 
 -- number of R packges
 -- number of programs
