@@ -564,17 +564,52 @@ functions with signatures.
 Table ~\ref{table:corpus} gives the number of scripts of each kind that were run
 and lines of code exercised.
 
-The 412 selected packages contain 385.8K lines of runnable code in examples
-(98.9K), tests (258K) and vignettes (28.9K). Running this code results on
-average in 80.8% package code coverage (the
-average for all of CRAN is
-65.6%). Together, there is 18.8K (on average 45.5, median 12; CRAN
-average is 12.8, median 2) reverse dependencies with 11.2M runnable lines of
-code resulting in
-45.9% coverage (on average) of the corpus packages. Together there are 38.2K defined R functions
-(17.4K are from the packages’ public APIs). 11.8K are S3 functions, either S3
-generics or S3 methods. Packages in the corpus define 81 S3 classes.
+We generate signatures for 50,435 functions from 500 packages. Table
+~\ref{table:packfundist} shows the distribution of functions across packages. We
+observe that majority of packages have 25 functions or less. There is a steady
+decrease in packages as functions increase. Package \emph{spatstat.geom} has the
+maximum number of functions, 886.
 
+\begin{table}[!h]
+  \vspace{-12mm}
+  \caption{Package function distribution} \label{table:packfundist}
+  \small
+  \begin{tabular}{lr}
+    \hline
+    1--25&148\\26--50&98\\51--75&52\\76--100&33\\101--125&34\\126--150&20\\
+    \hline
+  \end{tabular}
+  \quad
+  \begin{tabular}{lr}
+    \hline
+    151--175&20\\176--200&14\\201--225&19\\226--250&9\\251--275&8\\276--300&8\\
+    \hline
+  \end{tabular}
+  \quad
+  \begin{tabular}{lr}
+    \hline
+    301--325&8\\326--350&0\\351--375&4\\376--400&2\\401--425&2\\426--450&1\\
+    \hline
+  \end{tabular}
+  \quad
+  \begin{tabular}{lr}
+    \hline
+    451--475&2\\476--500&2\\501--525&2\\526--550&0\\551--575&1\\576--600&2\\
+    \hline
+  \end{tabular}
+  \quad
+  \begin{tabular}{lr}
+    \hline
+    601--625&1\\626--650&0\\651--675&0\\676--700&0\\701--725&1\\ 726--750&1\\
+    \hline
+  \end{tabular}
+  \quad
+  \begin{tabular}{lr}
+    \hline
+    751--775&1\\ 776--800&1\\801--825&0\\826--850&0\\851--875&1\\ 876--900&1\\
+    \hline
+  \end{tabular}
+\end{table}
 
 
 -- number of R packges

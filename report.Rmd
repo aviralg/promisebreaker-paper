@@ -51,6 +51,7 @@ read_lazy(sloc_script, "sloc-corpus.fst")
 read_lazy(sloc_package, "sloc-package.fst")
 read_lazy(corpus, "corpus")
 read_lazy(client, "client")
+read_lazy(parameters, "parameters.fst")
 ```
 
 ## Corpus
@@ -90,6 +91,45 @@ package_code <-
 
 package_code %>% show_table()
 ```
+
+### Package Functions
+```{r echo=FALSE, warning=FALSE, message=FALSE, eval=TRUE}
+functions <-
+    parameters %>% 
+    distinct(pack_name, fun_name) %>%
+    filter(pack_name %in% corpus)
+
+cat("Total functions: ", nrow(functions))
+
+
+functions %>%
+    count(pack_name, name = "function_count") %>%
+    arrange(desc(function_count)) %>%
+    datatable()
+
+
+function_distribution <-
+    functions %>%
+    count(pack_name, name = "count") %>%
+    mutate(min_range = floor(count/25),
+           max_range = ceiling(count/25)) %>%
+    mutate(min_range = if_else(min_range == max_range, min_range - 1, min_range)) %>%
+    mutate(functions = paste0(min_range * 25 + 1, " - ", max_range * 25)) %>% 
+    count(min_range, functions, name = "packages") %>%
+    arrange(min_range) %>%
+    select(functions, packages)
+    
+    
+
+latex <- pmap_chr(function_distribution, function(functions, packages) {
+    paste0(functions, "&", packages, "\\")
+})
+
+function_distribution %>% datatable()
+
+cat(latex)
+```
+
 
 ### Functions
 
