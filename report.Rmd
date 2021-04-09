@@ -14,6 +14,12 @@ library(fst)
 library(fs)
 library(DT)
 library(tibble)
+library(scales)
+library(tikzDevice)
+library(viridis)
+library(RColorBrewer)
+
+old_theme <- theme_set(theme_minimal(base_size = 8) + theme(panel.border = element_blank()))
 ```
 
 ```{r echo=TRUE, warning=FALSE, message=FALSE}
@@ -45,6 +51,15 @@ show_table <- function(df) {
     datatable(df)
 }
 
+save_graph <- function(plot, filename, width = 5.4, height = 1.8, ...) {
+    dir_create(params$graphdir)
+    filepath <- path_ext_set(path_join(c(params$graphdir, filename)), "tex")
+    tikz(file = filepath, sanitize=TRUE, width=width, height=height, ...)
+    print(plot)
+    dev.off()
+    plot
+}
+
 read_lazy(extract_index, "extract-index.fst")
 read_lazy(package_info, "package-info.fst")
 read_lazy(sloc_script, "sloc-corpus.fst")
@@ -52,6 +67,7 @@ read_lazy(sloc_package, "sloc-package.fst")
 read_lazy(corpus, "corpus")
 read_lazy(client, "client")
 read_lazy(parameters, "parameters.fst")
+read_lazy(functions, "functions.fst")
 ```
 
 ## Corpus
@@ -94,22 +110,21 @@ package_code %>% show_table()
 
 ### Package Functions
 ```{r echo=FALSE, warning=FALSE, message=FALSE, eval=TRUE}
-functions <-
+fun_dist <-
     parameters %>% 
     distinct(pack_name, fun_name) %>%
     filter(pack_name %in% corpus)
 
-cat("Total functions: ", nrow(functions))
+cat("Total functions: ", nrow(fun_dist))
 
 
-functions %>%
+fun_dist %>%
     count(pack_name, name = "function_count") %>%
     arrange(desc(function_count)) %>%
     datatable()
 
-
-function_distribution <-
-    functions %>%
+fun_dist <-
+    fun_dist %>%
     count(pack_name, name = "count") %>%
     mutate(min_range = floor(count/25),
            max_range = ceiling(count/25)) %>%
@@ -118,100 +133,137 @@ function_distribution <-
     count(min_range, functions, name = "packages") %>%
     arrange(min_range) %>%
     select(functions, packages)
-    
-    
 
-latex <- pmap_chr(function_distribution, function(functions, packages) {
+latex <- pmap_chr(fun_dist, function(functions, packages) {
     paste0(functions, "&", packages, "\\")
 })
 
-function_distribution %>% datatable()
+fun_dist %>% datatable()
 
 cat(latex)
 ```
-
-
-### Functions
+### Calls
 
 ```{r echo=FALSE, warning=FALSE, message=FALSE, eval=TRUE}
-package_count <- length(unique(package_info$package))
 
-function_count <- nrow(distinct(package_info, package, funname))
+call_dist <-
+    parameters %>%
+    filter(pack_name %in% corpus) %>%
+    group_by(pack_name, fun_name) %>%
+    summarize(call_count = first(call_count)) %>%
+    ungroup()
+    
+called_once_packs <-
+    call_dist %>%
+    filter(call_count == 1) %>%
+    pull(pack_name) %>%
+    unique() %>%
+    length()
+    
+cat("Total number of calls:", sum(call_dist$call_count))
+cat("Packages whose functions are called only once:", called_once_packs)
+    
+call_dist <-
+    call_dist %>%
+    count(call_count, name = "fun_count") %>%
+    arrange(desc(fun_count)) %>%
+    mutate(cumperc = round(100 * cumsum(fun_count) / sum(fun_count), 2))
+    
+datatable(call_dist)
 
-function_count_by_package <-
+call_dist_plot <-
+    call_dist %>%
+    mutate(call_count = if_else(call_count <= 10, as.character(call_count), "> 10")) %>%
+    count(call_count, wt = fun_count, name = "fun_count") %>%
+    mutate(relative_fun_count = fun_count/sum(fun_count))
+    
+datatable(call_dist_plot)
+
+total_function_count <- sum(call_dist_plot$fun_count)
+
+call_dist_plot <-
+    call_dist_plot %>%
+    ggplot(aes(call_count, relative_fun_count)) + 
+    geom_col(fill = "black") +
+    scale_y_continuous(sec.axis = sec_axis(~ . * total_function_count,
+                                           labels = label_number_si()),
+                       labels = label_percent()) +
+    scale_x_discrete(limits = c(1:10, "> 10")) +
+    coord_flip()+
+    labs(x = "Calls", y = "Functions")
+
+save_graph(call_dist_plot, "call_dist")
+```
+
+### Parameters
+
+```{r echo=FALSE, warning=FALSE, message=FALSE, eval=TRUE}
+
+corpus_params <-
+    parameters %>%
+    filter(pack_name %in% corpus)
+    
+str(corpus_params)
+
+package_info <- 
     package_info %>%
-    mutate(exported = c("private", "public")[ as.integer(exported) + 1 ] ) %>%
-    group_by(package, exported) %>%
-    summarize(count = length(unique(funname))) %>%
+    group_by(package, funname) %>%
+    summarize(param_count = n()) %>%
+    mutate(funname = paste0("`", funname, "`")) %>%
+    ungroup()
+    
+param_dist <-
+    functions %>%
+    filter(pack_name %in% corpus) %>%
+    left_join(package_info, by = c("pack_name" = "package", "fun_name" = "funname")) %>%
+    select(pack_name, fun_name, param_count, fun_def)
+
+datatable(param_dist %>% select(!fun_def))
+
+## TODO: not all functions with NA param_count are 0 argument functions
+param_dist <-
+    param_dist %>%
+    mutate(param_count = if_else(is.na(param_count), 0L, param_count))
+
+param_dist %>%
+filter(param_count > 50) %>%
+select(pack_name, fun_name, param_count) %>%
+pmap_chr(function(pack_name, fun_name, param_count) paste0(pack_name, "::", fun_name, "->", param_count)) %>%
+print()
+
+param_dist %>%
+    group_by(param_count) %>%
+    summarize(package_count = length(unique(pack_name)), packages = paste(unique(pack_name), collapse = ",")) %>%
     ungroup() %>%
-    pivot_wider(names_from = exported, values_from = count, values_fill = 0) %>%
-    mutate(all = public + private, perc = compute_percentage(all))
+    datatable()
+
+param_dist <-
+    param_dist %>%
+    count(param_count, name = "fun_count") %>%
+    arrange(desc(fun_count)) %>%
+    mutate(cumperc = round(100 * cumsum(fun_count) / sum(fun_count), 2))
     
-show_table(function_count_by_package)
-```
+datatable(param_dist)
 
-### Function Distribution
-
-```{r eval = TRUE}
-function_count_by_package_count <-
-    function_count_by_package %>%
-    count(all, name = "package_count") %>%
-    mutate(function_count = all) %>%
-    select(package_count, function_count)
+param_dist <-
+    param_dist %>%
+    mutate(param_count = if_else(param_count <= 10, as.character(param_count), "> 10")) %>%
+    count(param_count, wt = fun_count, name = "fun_count") %>%
+    mutate(relative_fun_count = fun_count/sum(fun_count))
     
-tail_package_count <- 
-    function_count_by_package_count %>%
-    dplyr::filter(function_count > 250) %>%
-    pull(package_count) %>%
-    sum()
-    
-function_count_by_package_count <-
-    function_count_by_package_count %>%
-    dplyr::filter(function_count <= 250) %>%
-    mutate(function_count = ceiling(function_count / 5) * 5) %>%
-    group_by(function_count) %>%
-    summarize(package_count = sum(package_count)) %>%
-    ungroup() %>%
-    add_row(package_count = tail_package_count, function_count = 251)
+datatable(param_dist)
 
-show_table(function_count_by_package_count)
+total_function_count <- sum(param_dist$fun_count)
 
-ggplot(function_count_by_package_count, aes(x = function_count, y = package_count)) +
-    geom_col() +
-    scale_x_binned(n.breaks = nrow(function_count_by_package_count))
-```
-## Corpus
+param_dist_plot <-
+    ggplot(param_dist, aes(param_count, relative_fun_count)) + 
+    geom_col(fill = "black") +
+    scale_y_continuous(sec.axis = sec_axis(~ . * total_function_count,
+                                           labels = label_number_si()),
+                       labels = label_percent()) +
+    scale_x_discrete(limits = c(0:10, "> 10")) +
+    coord_flip()+
+    labs(x = "Parameters", y = "Functions")
 
-### Programs
-
-```{r echo=FALSE, warning=FALSE, message=FALSE, eval=TRUE}
-corpus_count_by_type <-
-    extract_index %>%
-        count(type, name = "count") %>%
-        mutate(perc = compute_percentage(count))
-
-corpus_count_by_package_type <-
-    extract_index %>%
-        count(package, type, name = "count") %>%
-        mutate(perc = compute_percentage(count))
-
-show_table(corpus_count_by_type)
-show_table(corpus_count_by_package_type)
-```
-
-### SLOC
-
-```{r echo=FALSE, warning=FALSE, message=FALSE, eval=TRUE}
-sloc_count_by_type <-
-    sloc_script %>%
-        count(type, name = "count") %>%
-        mutate(perc = compute_percentage(count))
-
-sloc_count_by_package_type <-
-    sloc_script %>%
-        count(package, type, name = "count") %>%
-        mutate(perc = compute_percentage(count))
-
-show_table(sloc_count_by_type)
-show_table(sloc_count_by_package_type)
+save_graph(param_dist_plot, "param_dist")
 ```

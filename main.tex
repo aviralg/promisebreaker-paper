@@ -564,61 +564,88 @@ functions with signatures.
 Table ~\ref{table:corpus} gives the number of scripts of each kind that were run
 and lines of code exercised.
 
-We generate signatures for 50,435 functions from 500 packages. Table
-~\ref{table:packfundist} shows the distribution of functions across packages. We
-observe that majority of packages have 25 functions or less. There is a steady
-decrease in packages as functions increase. Package \emph{spatstat.geom} has the
-maximum number of functions, 886.
-
-\begin{table}[!h]
-  \vspace{-12mm}
-  \caption{Package function distribution} \label{table:packfundist}
+\begin{wraptable}{l}{8cm}
+  \vspace{-3mm}
   \small
+  \caption{Package Size} \label{table:packsize}
+  \centering
   \begin{tabular}{lr}
+    \bf Functions&\bf Packages\\
     \hline
-    1--25&148\\26--50&98\\51--75&52\\76--100&33\\101--125&34\\126--150&20\\
+    1--25&148\\
+    26--50&98\\
+    51--75&52\\
+    76--100&33\\
+    101--150&54\\
+    151--200&34\\
+    201--250&28\\
     \hline
   \end{tabular}
   \quad
   \begin{tabular}{lr}
+    \bf Functions&\bf Packages\\
     \hline
-    151--175&20\\176--200&14\\201--225&19\\226--250&9\\251--275&8\\276--300&8\\
-    \hline
-  \end{tabular}
-  \quad
-  \begin{tabular}{lr}
-    \hline
-    301--325&8\\326--350&0\\351--375&4\\376--400&2\\401--425&2\\426--450&1\\
-    \hline
-  \end{tabular}
-  \quad
-  \begin{tabular}{lr}
-    \hline
-    451--475&2\\476--500&2\\501--525&2\\526--550&0\\551--575&1\\576--600&2\\
+    251--300&16\\
+    301--400&14\\
+    401--500&7\\
+    501--600&5\\
+    601--700&1\\
+    701--800&4\\
+    801--900&2\\
     \hline
   \end{tabular}
-  \quad
-  \begin{tabular}{lr}
-    \hline
-    601--625&1\\626--650&0\\651--675&0\\676--700&0\\701--725&1\\ 726--750&1\\
-    \hline
-  \end{tabular}
-  \quad
-  \begin{tabular}{lr}
-    \hline
-    751--775&1\\ 776--800&1\\801--825&0\\826--850&0\\851--875&1\\ 876--900&1\\
-    \hline
-  \end{tabular}
-\end{table}
+\end{wraptable}
 
+We generate signatures for 50,435 functions from 500 packages. These are
+top-level package functions. We ignore anonymous and inner functions. Table
+~\ref{table:packsize} shows the distribution of these functions across packages.
+We observe that 148 packages have 25 functions or less. As expected, there is a
+steady decrease in packages with more functions. There are 12 packages with more
+than 500 functions. Package \emph{spatstat.geom} has the maximum number of
+functions, 886.
 
--- number of R packges
--- number of programs
--- number of loc
--- number of R functions
+\begin{figure}[!h]
+  \centering
+  \input{graphs/call_dist.tex}
+  \caption{Call Distribution}
+  \label{fig:callDist}
+\end{figure}
+
+We observe 137.2M calls to these functions. Figure ~\ref{fig:callDist} shows the
+number of distribution of calls across functions called in the synthesis
+phase. 49.5\% functions are called more than 10 times. 16.4\% functions are
+called only once, leading to low coverage. These functions are spread across 414
+packages.
+
+\begin{figure}[!h]
+  \centering
+  \input{graphs/param_dist.tex}
+  \caption{Parameter Distribution}
+  \label{fig:paramDist}
+\end{figure}
+
+We observe XXX arguments created in our execution traces. Of those XXX are $...$
+arguments, XXX are missing, XXX are promises, and XXX are R values. R values are
+seen rarely, they are an artifact of R's internal implementation. These
+arguments correspond to XXX parameter positions fo the XXX functions for which
+we generate signatures. Figure ~\ref{fig:paramDist} shows the distribution of
+these parameters per function. 7.3\% functions have 0 parameters, 19.6\% have 1,
+and 5.0\% have over 10. There are 15 functions with over 50 parameters that come
+from 10 packages. \emph{ComplexHeatmap::pheatmap} (51),
+\emph{network::plot.network.default} (52), \emph{rpart.plot::get.layout} (53),
+\emph{sna::gplot} (54), \emph{Hmisc::latex.default} (55),
+\emph{VennDiagram::draw.quintuple.venn} (57) \emph{pROC::plot.roc.roc} (58),
+\emph{rpart.plot::draw.node.numbers} (60), \emph{gplots::heatmap.2} (63),
+\emph{Hmisc::event.chart} (66), \emph{ComplexHeatmap::Heatmap} (83),
+\emph{ggplot2::theme} (95), \emph{ergm::control.ergm} (117),
+\emph{rpart.plot::prp} (119), and
+\emph{rpart.plot::check.if.dot.arg.supported.by.rpart.rules} (122).
+
+Function \emph{rpart.plot::check.if.dot.arg.supported.by.rpart.rules} has the
+the highest, 122 parameters.
+
 -- number of parameters
 -- number of promises
--- functions per package
 -- distribution of calls
 -- distribution of arguments
 
