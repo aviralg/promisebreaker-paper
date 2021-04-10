@@ -617,6 +617,12 @@ phase. 49.5\% functions are called more than 10 times. 16.4\% functions are
 called only once, leading to low coverage. These functions are spread across 414
 packages.
 
+We observe 294.45M arguments created in our execution traces. Of those 3.9M are
+missing, 18.9M are $...$ arguments, and 271.6M are promises. These arguments
+correspond to 185.9K parameter positions of the 50,435 functions for which we
+generate signatures. Figure ~\ref{fig:paramDist} shows the distribution of these
+parameters per function.
+
 \begin{figure}[!h]
   \centering
   \input{graphs/param_dist.tex}
@@ -624,11 +630,7 @@ packages.
   \label{fig:paramDist}
 \end{figure}
 
-We observe 294.45M arguments created in our execution traces. Of those 3.9M are
-missing, 18.9M are $...$ arguments, and 271.6M are promises. These arguments
-correspond to 185.9K parameter positions of the 50,435 functions for which we
-generate signatures. Figure ~\ref{fig:paramDist} shows the distribution of these
-parameters per function. 7.3\% functions have 0 parameters, 19.6\% have 1, and
+7.3\% functions have 0 parameters, 19.6\% have 1, and
 5.0\% have over 10. There are 15 functions with over 50 parameters that come
 from 10 packages. \emph{ComplexHeatmap::pheatmap} (51),
 \emph{network::plot.network.default} (52), \emph{rpart.plot::get.layout} (53),
@@ -638,15 +640,8 @@ from 10 packages. \emph{ComplexHeatmap::pheatmap} (51),
 \emph{Hmisc::event.chart} (66), \emph{ComplexHeatmap::Heatmap} (83),
 \emph{ggplot2::theme} (95), \emph{ergm::control.ergm} (117),
 \emph{rpart.plot::prp} (119), and
-\emph{rpart.plot::check.if.dot.arg.supported.by.rpart.rules} (122).
-
-Function \emph{rpart.plot::check.if.dot.arg.supported.by.rpart.rules} has the
-the highest, 122 parameters.
-
--- number of parameters
--- number of promises
--- distribution of calls
--- distribution of arguments
+\emph{rpart.plot::check.if.dot.arg.supported.by.rpart.rules} (122) with the
+highest number of parameters.
 
 \section{Evaluation}
 

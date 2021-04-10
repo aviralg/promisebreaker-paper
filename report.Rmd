@@ -19,7 +19,12 @@ library(tikzDevice)
 library(viridis)
 library(RColorBrewer)
 
-old_theme <- theme_set(theme_minimal(base_size = 8) + theme(panel.border = element_blank()))
+new_theme <-
+    theme_minimal(base_size = 8) +
+    theme(plot.margin = margin(0.1,0.25,0.1,0.2, "cm"))
+          #plot.background = element_rect(colour = "black", fill=NA, size=1))
+
+old_theme <- theme_set(new_theme)
 ```
 
 ```{r echo=TRUE, warning=FALSE, message=FALSE}
