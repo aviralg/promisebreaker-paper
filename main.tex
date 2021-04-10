@@ -8,7 +8,7 @@
 \usepackage{fontenc}
 \usepackage{microtype}
 \usepackage{listings,array,multirow,wrapfig,xspace,booktabs,subcaption}
-\usepackage{xcolor,tikz, graphicx}
+\usepackage{xcolor,tikz, graphicx, pifont}
 \usetikzlibrary{positioning}
 
 \newcommand{\authorcomment}[3]{\xspace\textcolor{#1}{{\bf #2} #3}\xspace} % start by defining an authorcomment
@@ -25,6 +25,8 @@
 \newcommand{\isit}[1]{\authorcomment{cyan}{Check}{#1}}
 \newcommand{\todo}[1]{\authorcomment{red}{TODO}{#1}}
 
+\newcommand{\xmark}{\ding{55}}
+\newcommand{\cmark}{\ding{51}}
 
 \lstset{language=R}
 
@@ -646,6 +648,25 @@ highest number of parameters.
 \section{Evaluation}
 
 \subsection{Strictness}
+
+\begin{table}[!h]
+  \vspace{-3mm}
+  \caption{Strictness Distribution} \label{table:strictdist}
+  \centering
+  \begin{tabular}{lcccrrr}
+    \bf Row & \bf Unevaluted & \bf Side-Effecting & \bf Reflective & \bf Parameters& \bf Functions& \bf Packages\\
+    \hline
+    0&\xmark{}&\xmark{}&\xmark{}&128,305&44,377&489\\
+    1&\xmark{}&\xmark{}&\cmark{}&134&124&47\\
+    2&\xmark{}&\cmark{}&\xmark{}&7,871&5,805&399\\
+    3&\xmark{}&\cmark{}&\cmark{}&408&385&93\\
+    4&\cmark{}&\xmark{}&\xmark{}&27,050&11,333&453\\
+    5&\cmark{}&\xmark{}&\cmark{}&13&12&11\\
+    6&\cmark{}&\cmark{}&\xmark{}&1,213&813&199\\
+    7&\cmark{}&\cmark{}&\cmark{}&25&24&15\\
+    \hline
+  \end{tabular}
+\end{table}
 
 \subsection{Robustness}
 
