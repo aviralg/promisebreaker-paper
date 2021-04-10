@@ -624,13 +624,12 @@ packages.
   \label{fig:paramDist}
 \end{figure}
 
-We observe XXX arguments created in our execution traces. Of those XXX are $...$
-arguments, XXX are missing, XXX are promises, and XXX are R values. R values are
-seen rarely, they are an artifact of R's internal implementation. These
-arguments correspond to XXX parameter positions fo the XXX functions for which
-we generate signatures. Figure ~\ref{fig:paramDist} shows the distribution of
-these parameters per function. 7.3\% functions have 0 parameters, 19.6\% have 1,
-and 5.0\% have over 10. There are 15 functions with over 50 parameters that come
+We observe 294.45M arguments created in our execution traces. Of those 3.9M are
+missing, 18.9M are $...$ arguments, and 271.6M are promises. These arguments
+correspond to 185.9K parameter positions of the 50,435 functions for which we
+generate signatures. Figure ~\ref{fig:paramDist} shows the distribution of these
+parameters per function. 7.3\% functions have 0 parameters, 19.6\% have 1, and
+5.0\% have over 10. There are 15 functions with over 50 parameters that come
 from 10 packages. \emph{ComplexHeatmap::pheatmap} (51),
 \emph{network::plot.network.default} (52), \emph{rpart.plot::get.layout} (53),
 \emph{sna::gplot} (54), \emph{Hmisc::latex.default} (55),

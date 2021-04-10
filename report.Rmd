@@ -68,6 +68,7 @@ read_lazy(corpus, "corpus")
 read_lazy(client, "client")
 read_lazy(parameters, "parameters.fst")
 read_lazy(functions, "functions.fst")
+read_lazy(argument_type, "argument_type.fst")
 ```
 
 ## Corpus
@@ -199,6 +200,15 @@ save_graph(call_dist_plot, "call_dist")
 
 ```{r echo=FALSE, warning=FALSE, message=FALSE, eval=TRUE}
 
+corpus_argument_type <-
+    argument_type %>%
+    filter(pack_name %in% corpus) %>%
+    count(vararg, missing, arg_type, wt = argument_count, name = "argument_count")
+
+datatable(corpus_argument_type)
+
+cat("Total arguments: ", sum(corpus_argument_type$argument_count), "\n")
+
 corpus_params <-
     parameters %>%
     filter(pack_name %in% corpus)
@@ -244,6 +254,8 @@ param_dist <-
     mutate(cumperc = round(100 * cumsum(fun_count) / sum(fun_count), 2))
     
 datatable(param_dist)
+
+cat("Total parameter positions: ", sum(param_dist$param_count * param_dist$fun_count), "\n")
 
 param_dist <-
     param_dist %>%
