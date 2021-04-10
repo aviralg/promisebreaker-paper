@@ -25,8 +25,8 @@
 \newcommand{\isit}[1]{\authorcomment{cyan}{Check}{#1}}
 \newcommand{\todo}[1]{\authorcomment{red}{TODO}{#1}}
 
-\newcommand{\xmark}{\ding{55}}
-\newcommand{\cmark}{\ding{51}}
+\newcommand{\xmark}{\color{red} \ding{55}}
+\newcommand{\cmark}{\color{green} \ding{51}}
 
 \lstset{language=R}
 
@@ -651,19 +651,20 @@ highest number of parameters.
 
 \begin{table}[!h]
   \vspace{-3mm}
+  \small
   \caption{Strictness Distribution} \label{table:strictdist}
   \centering
-  \begin{tabular}{lcccrrr}
-    \bf Row & \bf Unevaluted & \bf Side-Effecting & \bf Reflective & \bf Parameters& \bf Functions& \bf Packages\\
+  \begin{tabular}{l|cccr|lr|lr}
+    &\bf Unevaluted & \bf Side-Effecting & \bf Reflective & \multicolumn{2}{c}{\textbf{Parameters}} & \multicolumn{2}{c}{\textbf{Functions}}& \bf Packages\\
     \hline
-    0&\xmark{}&\xmark{}&\xmark{}&128,305&44,377&489\\
-    1&\xmark{}&\xmark{}&\cmark{}&134&124&47\\
-    2&\xmark{}&\cmark{}&\xmark{}&7,871&5,805&399\\
-    3&\xmark{}&\cmark{}&\cmark{}&408&385&93\\
-    4&\cmark{}&\xmark{}&\xmark{}&27,050&11,333&453\\
-    5&\cmark{}&\xmark{}&\cmark{}&13&12&11\\
-    6&\cmark{}&\cmark{}&\xmark{}&1,213&813&199\\
-    7&\cmark{}&\cmark{}&\cmark{}&25&24&15\\
+    0&\xmark{}&\xmark{}&\xmark{}&128305&65.25\%&44377&85.93\%&489\\
+    1&\xmark{}&\xmark{}&\cmark{}&134&0.07\%&124&0.24\%&47\\
+    2&\xmark{}&\cmark{}&\xmark{}&7871&4\%&5805&11.24\%&399\\
+    3&\xmark{}&\cmark{}&\cmark{}&408&0.21\%&385&0.75\%&93\\
+    4&\cmark{}&\xmark{}&\xmark{}&27050&13.76\%&11333&21.95\%&453\\
+    5&\cmark{}&\xmark{}&\cmark{}&13&0.01\%&12&0.02\%&11\\
+    6&\cmark{}&\cmark{}&\xmark{}&1213&0.62\%&813&1.57\%&199\\
+    7&\cmark{}&\cmark{}&\cmark{}&25&0.01\%&24&0.05\%&15\\
     \hline
   \end{tabular}
 \end{table}
