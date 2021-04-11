@@ -28,9 +28,15 @@
 \newcommand{\xmark}{\color{red} \ding{55}}
 \newcommand{\cmark}{\color{green} \ding{51}}
 
+\newcommand{\always}{\emph{Always}\xspace}
+\newcommand{\sometimes}{\emph{Sometimes}\xspace}
+\newcommand{\sometimesStar}{\emph{Sometimes*}\xspace}
+\newcommand{\never}{\emph{Never}\xspace}
+\newcommand{\neverStar}{\emph{Never*}\xspace}
+
 \lstset{language=R}
 
-\definecolor{LightGray}{rgb}{.92,.92,.92}
+\definecolor{LightGray}{RGB}{247, 247, 247}
 \definecolor{Gray}{rgb}{.3,.3,.3}
 \definecolor{DarkGray}{rgb}{.5,.5,.5}
 
@@ -39,8 +45,8 @@
   captionpos=b,
   frame=single,
   framerule=0pt,
-  framexleftmargin=-1mm,
-  framexrightmargin=-1mm,
+  framexleftmargin=1mm,
+  framexrightmargin=1mm,
   tabsize=2,
   belowskip=0pt,
   basicstyle=\small\ttfamily,
@@ -663,6 +669,142 @@ of those, XX functions evaluate all of their arguments. Evaluation orders
 greater than 5 are rare and are found only in XX functions.
 
 
+\subsubsection{...}
+
+\subsubsection{Metaprogramming}
+There are XX $...$ parameters which make XXX functions non-strict. R's
+metaprogramming support introduces another source of laziness. XX parameters are
+metaprogrammed in our corpus.
+
+\subsubsection{Unevaluated Arguments}
+Of the 294.45M total arguments in our corpus, 30.4M argument promises were not
+evaluated. They correspond to 52,083 parameters of 26,398 functions from 473
+packages. These functions are non-strict in the corresponding parameters.
+
+Based on argument evaluation, we can classify parameter positions into three
+categories.\always parameters are those whose arguments are evaluated in all
+calls. \sometimes parameters are those whose arguments are evaluated at least
+once but not always. \never parameters are those whose arguments are never
+evaluated. Table~\ref{table:argeval} shows the number and proportion of
+parameters that belong to these categories.
+
+\begin{table}[!h]
+  \vspace{-3mm}
+  \caption{Argument Evaluation}\label{table:argeval}
+  \vspace{-3mm}
+  \begin{tabular}{lr|lr|lr}
+    \toprule
+    \textbf{Type}&\multicolumn{2}{c}{\textbf{Parameters}}&\multicolumn{2}{c}{\textbf{Functions}}&\textbf{Packages}\\
+    \midrule
+    Always&144565&73.51\%&48456&96.08\%&490\\
+    Sometimes&16411&8.35\%&7070&14.02\%&410\\
+    Never&10637&5.41\%&5907&11.71\%&405\\
+    \midrule
+    Sometimes*&15130&7.69\%&6609&13.1\%&406\\
+    Never*&9251&4.7\%&5121&10.15\%&400\\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+Majority of parameters are \always parameters, suggesting that arguments passed
+to functions are evaluated in most of the cases. This is followed by 8.35\%
+\sometimes parameters. Their presence indicates use of metaprogramming or
+unexplored control flow paths in the function. Lastly, we have 5.41\% \never
+arguments whose presence indicates lack of coverage, metaprogramming, or dummy
+parameter. The \textbf{Functions} field gives the number of functions with
+\always, \sometimes, and \never arguments. The same function can appear in
+multiple columns since different parameters can have different evaluation
+classification. The \textbf{Packages} field of Table~\ref{table:areval} tells us
+that \never and \sometimes functions are spread across many packages.
+
+
+\sometimesStar and \neverStar in Table~\ref{table:argeval} are the number of
+\sometimes and \never cases without metaprogrammed. The different is small which
+suggests that metaprogramming is not the primary reason for arguments remaining
+unevaluated. Turning to the number of calls, we find that 78.33\% of functions
+with \never parameters are called more than once. This suggests that a lack of
+call diversity could be one of factors for \never arguments' existence. With
+better call diversity, the \never parameters will turn into \sometimes.
+
+\paragraph{Qualitative Analysis}
+
+We analyzed a sample of functions with \never parameters to identify usage
+patterns.
+
+The most common case is when an argument is not used in some branch of the
+function. Due to lack of call diversity, the branch in which the argument is
+used is never taken and the parameter is classified as \never. For example,
+\code{discretize} function of package \code{actuar} only uses \code{xlim} if
+\code{from} and \code{to} parameters are missing.
+\begin{lstlisting}
+actuar:::discretize <- function (cdf, from, to, ..., xlim = NULL) {
+    ...
+    if (missing(from)) from <- xlim[1];
+    if (missing(to)) to <- xlim[2];
+    ...
+}
+\end{lstlisting}
+
+
+Another pattern leading to \never parameters is when a function is called with a
+certain interface even if it does not use those arguments. R calls a package's
+\code{.onLoad} function with arguments \code{libname} and \code{pkgname} when
+the package is loaded. The \code{.onLoad} hook of \code{assertive.base} package
+ignores them.
+\begin{lstlisting}
+assertive.base::.onLoad <- function(libname, pkgname) {
+    options(assertive.severity = "stop")
+}
+\end{lstlisting}
+
+The \code{proxy} package defines over a dozen methods with the interface
+\code{function(a, b, c, d, n) ...} that implement different proximity metrics by
+using only a subset of the arguments.
+This also happens in method dispatch when the generic method defines a parameter
+which is not used by the specific method. For example \code{bit64} package
+defines \code{unipos} generic method with a parameter \code{incomparables} which
+is not used by its only concrete implementation \code{unipos.integer64}
+
+
+Sometimes arguments don't need to be used by design.
+The \code{tail} operation in package \code{dbplyr} is not defined for
+\code{tbl_lazy} objects. So the function throws an error when called without
+using any of its arguments.
+\begin{lstlisting}
+dbplyr::tail.tbl_lazy <- function(x, n = 6L, ...) {
+    stop("tail() is not supported by sql sources", call. = FALSE)
+}
+\end{lstlisting}
+
+Sometimes packages implement a specialized compatible wrapper.
+\code{jsonlite} package implements \code{stop} function with the same interface
+as R's \code{base} package's \code{stop} function but ignores its \code{call.}
+argument.
+\begin{lstlisting}
+jsonlite::stop <- function(..., call. = FALSE) {
+    base::stop(..., call. = FALSE)
+}
+\end{lstlisting}
+
+\never parameters can also represent an erroneous condition that would not
+happen in a correct program. In \code{codetools} package, function
+\code{checkSymOrString} fails if the argument does not have the correct type. In
+all the calls we observed, the \code{signal} argument was not used because
+\code{e} had the correct type.
+\begin{lstlisting}
+codetools::checkSymOrString <- function(e, signal = stop) {
+    type <- typeof(e)
+    if (type == "symbol" || type == "character") e
+    else signal("not a symbol or string")
+}
+\end{lstlisting}
+
+\subsubsection{Side-Effects}
+
+\subsubsection{Reflection}
+
+\subsection{Robustness}
+
 \begin{table}
   \vspace{-3mm}
   \small
@@ -683,8 +825,6 @@ greater than 5 are rare and are found only in XX functions.
     \bottomrule
   \end{tabular}
 \end{table}
-
-\subsection{Robustness}
 
 \subsection{Performance}
 
