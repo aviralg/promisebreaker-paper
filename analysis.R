@@ -53,6 +53,10 @@ save_graph <- function(plot, filename, width = 5.4, height = 1.8, ...) {
     plot
 }
 
+as_perc <- function(col) {
+    paste(col, "\\%", sep = "")
+}
+
 read_lazy(extract_index, "extract-index.fst")
 read_lazy(package_info, "package-info.fst")
 read_lazy(sloc_script, "sloc-corpus.fst")

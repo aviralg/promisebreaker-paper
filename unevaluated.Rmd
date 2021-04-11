@@ -1,0 +1,184 @@
+---
+title: "Unevaluated Arguments"
+output:
+    html_document:
+        toc: true
+        toc_depth: 3
+        toc_float: true
+        number_sections: true
+        theme: cerulean
+        highlight: pygments
+        code_folding: hide
+        fig_width: 9
+        fig_height: 3
+        css: style.css
+params:
+    datadir: "./data"
+    graphdir: "./graphs"
+    macrodir: "./macros"
+---
+
+```{r echo = FALSE, warning=FALSE, message=FALSE}
+## https://bookdown.org/yihui/rmarkdown-cookbook/source-script.html
+source("analysis.R", local = knitr::knit_global())
+```
+
+```{r echo = FALSE, warning=FALSE, message=FALSE}
+parameters <-
+    parameters %>%
+    filter(pack_name %in% corpus)
+    
+functions <-
+    functions %>%
+    filter(pack_name %in% corpus)
+    
+total_param_count <- nrow(parameters)
+total_fun_count <- nrow(distinct(functions, pack_name, fun_name))
+
+laziness <-
+    parameters %>%
+    group_by(vararg_lazy, meta_lazy, force_lazy, effect_lazy, ref_lazy) %>%
+    summarize(param = n(),
+              fun = length(unique(fun_name)),
+              pack= length(unique(pack_name))) %>%
+    ungroup() %>%
+    mutate(order = 4 * force_lazy + 2 * effect_lazy + 1 * ref_lazy) %>%
+    arrange(order) %>%
+    mutate(param_perc = round(100 * param / total_param_count, 2),
+           fun_perc = round(100 * fun / total_fun_count, 2)) %>%
+    filter(!vararg_lazy & !meta_lazy) %>%
+    select(-vararg_lazy, -meta_lazy) %>%
+    mutate(param_cumperc = cumsum(param_perc))
+    
+
+datatable(laziness)
+
+laziness %>%
+pmap_chr(function(force_lazy, effect_lazy, ref_lazy, param, fun, pack, order, param_perc, fun_perc, param_cumperc) {
+    marks <- c("\\xmark{}", "\\cmark{}")[c(force_lazy + 1, effect_lazy + 1, ref_lazy + 1)]
+    param_perc <- paste0(round(param_perc, 2), "\\%")
+    fun_perc <- paste0(round(fun_perc, 2), "\\%")
+    paste(order, paste(marks, collapse = "&"), param, param_perc, fun, fun_perc, pack, sep = "&")
+}) %>%
+paste(collapse = "\\\\\n") %>%
+paste0("\\\\\n") %>%
+cat()
+```
+
+```{r echo = FALSE, warning=FALSE, message=FALSE}
+parameters <-
+    parameters %>%
+    filter(pack_name %in% corpus)
+    
+unevaluated <-
+    parameters %>%
+    filter(force_lazy) %>%
+    distinct(pack_name, fun_name, formal_pos)
+    
+datatable(unevaluated)
+
+tot_uneval_arg <-
+    parameters %>% 
+    filter(!vararg & !missing) %>%
+    mutate(diff = call_count - force_tot) %>%
+    pull(diff) %>%
+    sum()
+    
+cat("Total unevaluated arguments", tot_uneval_arg)
+
+cat("Total unevaluated parameter positions", 
+    nrow(unevaluated))
+
+cat("Total unevaluated argument functions", 
+    nrow(unevaluated %>% distinct(pack_name, fun_name)))
+    
+cat("Total unevaluated argument packages", 
+    nrow(unevaluated %>% distinct(pack_name)))
+    
+
+
+promise_params <-
+    parameters %>%
+    filter(!vararg & !missing)
+
+## NOTE: here we don't take ... and missing into account
+##       because we are talking of actual arguments.
+##       missing arguments are missing and ... are ignored. 
+tot_arg <-
+    promise_params %>%
+    pull(call_count) %>%
+    sum()
+    
+## NOTE: here we need to take even ... and missing into account
+##        because we are talking of all parameter positions
+tot_param <-
+    parameters %>%
+    distinct(pack_name, fun_name, formal_pos) %>%
+    nrow()
+    
+tot_fun <-
+    parameters %>%
+    distinct(pack_name, fun_name) %>%
+    nrow()
+
+uneval_params <-
+    promise_params %>%
+    mutate(uneval_type = case_when(force_tot == 0 ~ "Never",
+                                   force_tot == call_count ~ "Always",
+                                   TRUE ~ "Sometimes"))
+                                   
+uneval_meta_params <-
+    uneval_params %>%
+    filter(uneval_type %in% c("Sometimes", "Never")) %>%
+    filter(meta_tot == 0) %>%
+    mutate(uneval_type = paste0(uneval_type, "*"))
+    
+uneval_summary <-
+    uneval_params %>%
+    bind_rows(uneval_meta_params) %>%
+    group_by(uneval_type) %>%
+    summarize(param = n(),
+              fun = length(unique(paste0(pack_name, "::", fun_name))),
+              pack = length(unique(pack_name))) %>%
+    ungroup() %>%
+    mutate(param_perc = round(100 * param / tot_param, 2),
+           fun_perc = round(100 * fun / tot_fun, 2))
+
+
+    
+
+datatable(uneval_summary)
+
+uneval_summary %>%
+pmap_chr(function(uneval_type, param, fun, pack, param_perc, fun_perc) {
+    paste(uneval_type, 
+          param, as_perc(param_perc),
+          fun, as_perc(fun_perc),
+          pack, sep = "&")
+}) %>%
+paste(collapse = "\\\\\n") %>%
+paste0("\\\\\n") %>%
+cat()
+```
+
+```{r echo = FALSE, warning=FALSE, message=FALSE}
+uneval_params %>%
+    filter(uneval_type == "Never" & meta_tot == 0) %>%
+    group_by(pack_name, fun_name) %>%
+    summarize(formal_pos = paste(formal_pos, collapse=",")) %>%
+    ungroup() %>%
+    left_join(functions, by = c("pack_name", "fun_name")) %>%
+    select(pack_name, fun_name, formal_pos, fun_def) %>%
+    datatable()
+    
+uneval_params %>%
+    filter(uneval_type == "Never") %>%
+    group_by(pack_name, fun_name) %>%
+    summarize(call_count = first(call_count)) %>%
+    ungroup() %>%
+    count(call_count, name = "fun_count") %>%
+    mutate(fun_perc = compute_percentage(fun_count, 2)) %>%
+    arrange(desc(fun_perc)) %>%
+    mutate(fun_cumperc = round(100 * cumsum(fun_count) / sum(fun_count), 2)) %>%
+    datatable()
+```

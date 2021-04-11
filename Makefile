@@ -25,6 +25,9 @@ clean:
 report:
 	$(R) --slave -e "rmarkdown::render('report.Rmd', 'html_document', params = list(datadir = '$(DATADIR)', graphdir = '$(GRAPHDIR)', macrodir = '$(MACRODIR)'))"
 
+unevaluated:
+	$(R) --slave -e "rmarkdown::render('unevaluated.Rmd', 'html_document', params = list(datadir = '$(DATADIR)', graphdir = '$(GRAPHDIR)', macrodir = '$(MACRODIR)'))"
+
 .PHONY: all open clean pdf
 
 # Include auto-generated dependencies
