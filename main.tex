@@ -296,15 +296,13 @@ evaluated by the function could still be evaluated according to our strictness
 signature without an observable error. This makes validation of strictness
 signatures hard.
 
-With this work, we are trying to propose a change in the semantics of R. There
-are many other instances of mainstream languages incorporating a major change in
-semantics. The most prominent example is the transition from Python 2 to Python
-3, which is still an ongoing process. Python 3 was released in 2008 with a
-plan\cite{pysunset} to drop support for Python 2 in 2015. This was later
-extended to 2020 since a lot of codebase in 2015 was not transitioned to Python
-3. However, legcay codebase continues to run on Python 2 till date. Python 3
-introduced many incompatible changes without any tooling support for transition.
-py2to3 script only handles a selection of superficial changes. TODO.
+With this work, we are trying to propose a change in the semantics of R. The
+most prominent contemporary example is the transition from Python 2 to Python 3,
+which is still ongoing. Python 3 was released in 2008 with many incompatible
+changes. The plan \cite{pysunset} to drop support for Python 2 was postponed
+from 2015 to 2020 since a lot of codebase was not transitioned to Python 3.
+Currently, the translation has been mostly automated by tools such as
+\emph{Futurize}, and \emph{py2to3}.
 
 TODO: Autobahn (haskell strictness signature).
 
