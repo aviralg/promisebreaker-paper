@@ -28,6 +28,12 @@ report:
 unevaluated:
 	$(R) --slave -e "rmarkdown::render('unevaluated.Rmd', 'html_document', params = list(datadir = '$(DATADIR)', graphdir = '$(GRAPHDIR)', macrodir = '$(MACRODIR)'))"
 
+side-effects:
+	$(R) --slave -e "rmarkdown::render('side-effects.Rmd', 'html_document', params = list(datadir = '$(DATADIR)', graphdir = '$(GRAPHDIR)', macrodir = '$(MACRODIR)'))"
+
+reflection:
+	$(R) --slave -e "rmarkdown::render('reflection.Rmd', 'html_document', params = list(datadir = '$(DATADIR)', graphdir = '$(GRAPHDIR)', macrodir = '$(MACRODIR)'))"
+
 .PHONY: all open clean pdf
 
 # Include auto-generated dependencies
