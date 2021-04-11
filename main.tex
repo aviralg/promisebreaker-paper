@@ -233,8 +233,6 @@ function to expose its callee's interface to the callers without listing
 callee's parameters and their default values. 
 
 
-
-
 \subsection{Related Work}
 Lazy functional programming languages like Haskell have traditionally suffered
 from memory leaks and performance issues due to laziness.Allocating huge number
@@ -244,21 +242,33 @@ Haskell programs benefit from GHC's strictness analyzer, it misses opportunities
 for optimization because it performs a conservative analysis to avoid
 non-termination. Haskell also allows programmers to manually insert strictness
 annotations to control laziness but identifying the locations in the program to
-insert them is challenging. \emph{Autobahn}~\cite{autobahn} is a tool that
-automatically infers strictness annotations for Haskell programs using a genetic
-algorithm. Unlike GHC's strictness analyzer, \emph{Autobahn} relies on a dynamic
-analysis, it does not approximate and cannot guarantee termination on all
-inputs. It generates a set of strictness annotations and requires the user to
-infer their soundness. The authors report that their annotations improve runtime
-performance by an average of 8.5\% and upto 89\%.
+insert them is challenging.
 
-Our approach is similar to \emph{Autobahn}. We synthesize annotations
-dynamically and we don't guarantee soundness of our annotations. We expect the
-user to validate the annotations. Our work differs from \emph{Autobahn} in that
-we don't rely on a genetic algorithm, but a direct measurement of argument's
-evaluation on a function call. Furthermore, R's semantics allow metaprogramming
-on, and side-effects and reflective operations in, function arguments. This
-introduces extra complexity for our synthesis algorithm.
+
+\emph{Autobahn}~\cite{autobahn} is a tool that automatically infers strictness
+annotations for Haskell programs using a genetic algorithm. Unlike GHC's
+strictness analyzer, \emph{Autobahn} relies on a dynamic analysis, it does not
+approximate and cannot guarantee termination on all inputs. It generates a set
+of strictness annotations and requires the user to infer their soundness. The
+authors report that their annotations improve runtime performance by an average
+of 8.5\% and upto 89\%.Our approach is similar to \emph{Autobahn}. We synthesize
+annotations dynamically and we don't guarantee soundness of our annotations. We
+expect the user to validate the annotations. Our work differs from
+\emph{Autobahn} in that we don't rely on a genetic algorithm, but a direct
+measurement of argument's evaluation on a function call. Furthermore, R's
+semantics allow metaprogramming on, and side-effects and reflective operations
+in, function arguments. This introduces extra complexity for our synthesis
+algorithm.
+
+~\cite{lazyprof} solve the complementary problem of suggesting laziness
+annotations for call-by-value $\lambda$ calculus using a dynamic analysis. They
+introduce the notion of laziness potential, a predictor of the benefit obtained
+by making an expression lazy. They use this as a guide to insert laziness
+annotations. They demonstrate the usefulness of their technique on Racket
+implementations of Okasaki's purely functional data structures, monadic parser
+combinators, and an AI game. Their profiler suggests identical amount of
+laziness, and in some cases, even better than expected.
+
 
 The foundation for our work is \cite{oopsla19b}'s work on the design,
 implementation, and use of laziness in R. They provide a detailed account of R's
