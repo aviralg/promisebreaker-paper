@@ -909,10 +909,7 @@ the environment of \code{f} which is the parent of \code{id} inside of which
 
 \begin{lstlisting}
 id <- function(a) a
-f <- function(x, y) {
-    x;     print(x);
-    id(y); print(y);
-}
+f <- function(x, y) { x; id(y); }
 f(x = as.environment(-1), y = as.environment(-1))
 \end{lstlisting}
 
