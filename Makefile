@@ -34,7 +34,12 @@ side-effects:
 reflection:
 	$(R) --slave -e "rmarkdown::render('reflection.Rmd', 'html_document', params = list(datadir = '$(DATADIR)', graphdir = '$(GRAPHDIR)', macrodir = '$(MACRODIR)'))"
 
-.PHONY: all open clean pdf
+
+watch: pdf
+	evince main.pdf&
+	while true; do inotifywait main.tex $(GRAPHDIR); make; done
+
+.PHONY: all open clean pdf watch
 
 # Include auto-generated dependencies
 -include *.d
