@@ -906,8 +906,7 @@ Clearly, in this case we have to make \code{g} non-strict in \code{u} and
 
 We identified 2710 arguments which directly call \code{as.environment(-1)} and
 \code{pos.to.env(-1)} in our corpus. They correspond to 2 parameters from 2
-functions, \code{R.oo::.getFunctionByName}, and \code{backports::bp_get0}.
-
+functions, \code{R.oo::.getFunctionByName}, and \code{backports:::get0}.
 
 \code{R.oo:::.getFunctionByName} is a private function of \code{R.oo} package
 which searches for a function by name in different scopes, configured by its
@@ -950,9 +949,18 @@ function (x, envir = pos.to.env(-1L), mode = "any",
 }
 \end{lstlisting}
 
+Calls to \code{R.oo:::.getFunctionByName} result in transitively making 18
+parameters from 15 functions of 3 packages lazy. We manually analyzed the call
+sites and found that they are identified lazy because our algorithm is
+conservative. When it finds a reflective call from an argument promise, it
+taints all the function arguments on the stack. None of these functions pass
+their arguments containing calls to \code{as.environment(-1)} or
+\code{pos.to.env(-1)} to \code{R.oo:::.getFunctionByName}.
+
+
 \subsubsection{Side-Effects}
 
-\subsubsection{Reflection}
+
 
 \subsection{Robustness}
 
