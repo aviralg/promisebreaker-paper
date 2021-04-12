@@ -318,36 +318,44 @@ to Python 3, PHP to Hack, introduction of Javascript's strict mode and
 A function's strictness signature is a tuple $\langle f, s_1, ..., s_n \rangle$,
 where $f$ is the function's qualified name and $s_i$ are positions of arguments
 that can be evaluted strictly. We synthesize these signatures from dynamically
-generated traces. The decision to make a function strict in a particular
-argument is conditioned on the aspects discussed below.
+generated traces. There are many language ``features'' the affect the decision
+to evaluate an argument eagerly.
 
 Arguments used for metaprogramming using \code{substitute} and \code{PREXPR} are
-never strict. These argument promises cannot be eliminated without breaking
-code.
+never strict. The code is reflectively accessing the unevaluated argument text
+from these argument promises. Eliminating these promises will break this part of
+the code.
 
 $...$ arguments are always treated as lazy. Assigning a single strictness
 annotation to $...$ is tricky because a function can have different strictness
 behavior for the individual arguments of $...$. One solution is to treat the
-function strict in $...$, if it is strict in all of its constituents. However,
-assigning a unique strictness signature to $...$ is difficult because a function
-may itself use them in a strict setting but its callees may use metaprogramming
-on the promises inside $...$. This is possible because unlike normal argument
-promises, promises inside $...$ are not packaged in a new promise but rather
-forwarded as-is to callees. Furthermore, a $...$ passed to a callee could be
-forwarded further down resulting in a long chain of functions having access to
-the same argument promises. All these functions in the chain can directly affect
-these arguments. The presence of missing arguments inside $...$ introduces
-another wrinkle.
+function strict in $...$ if it is strict in all of its constituents. However,
+this signature may still not be unique. Unlike normal argument promises,
+promises inside $...$ are not packaged in a new promise but rather forwarded
+as-is to callees. A function's callees may use metaprogramming on the promises
+inside $...$ even if the function itself does not . Furthermore, a $...$ passed
+to a callee could be forwarded further down resulting in a long chain of
+functions having access to the same argument promises. All these functions in
+the chain can directly affect these arguments. The presence of missing arguments
+inside $...$ introduces another wrinkle.
+
+An argument may not be evaluated in all calls to the function. This means the
+function function is not strict in that argument. Unless the documentation
+dictates that this argument is evaluated in special cases where it is expected
+to perform a reflective or effectful operation, we could still evaluate it
+without any observable consequence except a performance penalty.
 
 Functions \code{as.environment} and \code{pos.to.env} when invoked with argument
-\code{-1} return the environment of the current call on the stack. Calling them
+\code{-1} return the environment of the parent call on the stack. Calling them
 directly from inside a promise makes the promise's result sensitive to the frame
-of its evaluation. This makes the function lazy in that argument even if its
-implementation does not require this argument to be lazy. This code has an
-accidental reliance on laziness. If the function's documentation does not make
-any commitment about the frame in which this argument will be evaluated, this
-code will be susceptible to breakage due to change in the function's
-implementation.
+of its evaluation. Forcing this argument promise eagerly on function entry could
+result in a different result if the promise was being passed down to callees for
+evaluation in the original program. This makes the function lazy in that
+argument even if its implementation does not require this argument to be lazy.
+This code has an accidental reliance on laziness. If the function's
+documentation does not make any commitment about the frame in which this
+argument will be evaluated, this code will be susceptible to breakage due to
+change in the function's implementation.
 
 Arguments can perform side-effects. Many argument promises will contain a symbol
 referring to the value being passed as the argument, so they will at least
@@ -359,57 +367,27 @@ However, if a promise writes to the caller's environment, or more generally, to
 any environment that is not created during its evaluation, then that write is
 observable by code outside the promise. Also, if a promise reads from an
 environment that is modified after the promise is created and before it is
-evaluated, then that argument can also be treated lazily. Arguments that perform
-these reads and writes depend on the evaluation order implemented by the
+evaluated, then that argument should also be treated lazily. Arguments that
+perform these reads and writes depend on the evaluation order implemented by the
 function to which they are passed. Unless the function's documentation describes
 this order, these uses are wrong. A change in function's implementation could
 cause the reads and writes to happen in a different order, or not at all,
-leading to incorrect results.
+leading to incorrect results. Similarly, errors are another source of effect
+inside promises. They can either stop the program execution or be captured by an
+enclosing exception handler.
 
-Errors are another source of effect inside promises. They can either stop the
-program execution or captured by an enclosing exception handler. Just like
-TODO.
-
-
-Finally, if an argument is not evaluated in all calls to the function, the
-function is not strict in that argument. We could still evaluate the argument.
-Unless the documentation dictates that this argument is evaluated in special
-cases where it could be reflective or side-effecting, we could still evaluated
-it without any observable consequence except a performance penalty.
-
-
-In summary, $...$ and arguments that are metaprogrammed are always lazy. In
-contrast to side-effecting and reflective promises these are genuine uses of
-laziness as they are not affected by the client. To get rid of promises
-aggressively, We could try evaluating the arguments it strictly, but it could either throw an
-error, perform a side-effect, or just affect performance.
-
-
-
-
-
-
-
-for
-\emph{(a)} to forward the arguments to a callee \emph{(b)} to number of
-arguments for strictness signatures. strict. ... effect as.environment
-
-Firstly, 
-The first source of laziness is when an argument is not
-used in a call to the function. Such arguments could still be evaluated strictly
-but there might be a significant performance penalty, or worse, a side-effect.
-Even reads performed by the argument could trigger evaluation of promises that
-could lead to side-effects.
-
-There are 2 internal sources of
-laziness in R: metaprogramming, and unused arguments.
-
-A combination of these choices results in many
-possible signature configurations.
-
-
-
-
+Use of metaprogramming and $...$ arguments are \emph{intrinsic} factors
+affecting a function's strictness. On the other hand, passing side-effecting
+arguments or arguments with reflective calls, especially in argument positions
+that may not be always evaluated makes the function's strictness dependent on
+how it is used. These are \emph{extrinsic} factors with an accidental reliance
+on laziness. In our experiments $...$ and metaprogrammed arguments are always
+treated as non-strict. In contrast to side-effecting and reflective promises
+these are genuine uses of laziness as they are not affected by the client. With
+this as the base amount of laziness, we could try to evaluate the rest of
+arguments in different combinations. A combination of these choices results in
+many possible signature configurations. We discuss them in detail in the
+\nameref{Evaluation:Robustness} section.
 
 \subsection{Synthesizing Signatures}
 
@@ -980,7 +958,7 @@ spurious transitive laziness.
 
 \subsubsection{Side-Effects}
 
-\subsection{Robustness (H2)}
+\subsection{Robustness (H2)} \label{Evaluation:Robustness}
 
 \begin{table}
   \vspace{-3mm}
