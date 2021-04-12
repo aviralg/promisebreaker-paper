@@ -949,14 +949,17 @@ function (x, envir = pos.to.env(-1L), mode = "any",
 }
 \end{lstlisting}
 
-Calls to \code{R.oo:::.getFunctionByName} result in transitively making 18
-parameters from 15 functions of 3 packages lazy. We manually analyzed the call
-sites and found that they are identified lazy because our algorithm is
-conservative. When it finds a reflective call from an argument promise, it
-taints all the function arguments on the stack. None of these functions pass
+Calls to \code{R.oo:::.getFunctionByName} result in transitively making 1821
+argument lazy. They correspond to 18 parameters from 15 functions of 3 packages.
+We manually analyzed these cases but found that none of these functions pass
 their arguments containing calls to \code{as.environment(-1)} or
-\code{pos.to.env(-1)} to \code{R.oo:::.getFunctionByName}.
+\code{pos.to.env(-1)} to \code{R.oo:::.getFunctionByName}. They are identified
+as lazy because our dynamic analyzer is conservative. When a reflective call
+happens from an argument promise, it taints all the function arguments on the
+stack. This has the effect of making more arguments lazy than needed.
 
+\code{backports::get0} is invoked from the top-level so it does not result in
+spurious transitive laziness.
 
 \subsubsection{Side-Effects}
 

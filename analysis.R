@@ -66,3 +66,17 @@ read_lazy(client, "client")
 read_lazy(parameters, "parameters.fst")
 read_lazy(functions, "functions.fst")
 read_lazy(argument_type, "argument_type.fst")
+read_lazy(arg_ref, "arg_ref.fst")
+
+arg_ref <-
+    arg_ref %>%
+    filter(pack_name %in% corpus) %>%
+    filter(is.na(source_pack_name) | source_pack_name %in% corpus)
+
+parameters <-
+    parameters %>%
+    filter(pack_name %in% corpus)
+
+functions <-
+    functions %>%
+    filter(pack_name %in% corpus)

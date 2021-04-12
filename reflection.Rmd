@@ -23,34 +23,61 @@ params:
 source("analysis.R", local = knitr::knit_global())
 ```
 
-```{r echo = FALSE, warning=FALSE, message=FALSE}
-parameters <-
-    parameters %>%
-    filter(pack_name %in% corpus)
-    
-functions <-
-    functions %>%
-    filter(pack_name %in% corpus)
-    
-```
+# Direct
 
 ```{r echo = FALSE, warning=FALSE, message=FALSE}
-parameters %>%
-    filter(as_env_tot != 0) %>%
-    distinct(pack_name, fun_name, formal_pos) %>%
+arg_ref %>%
+    filter(!transitive) %>%
+    count(self_ref_seq, wt = count, name = "count") %>%
+    mutate(perc = compute_percentage(count, 2)) %>%
+    arrange(desc(perc)) %>%
     datatable()
     
-parameters %>%
-    filter(pos_env_tot != 0) %>%
-    distinct(pack_name, fun_name, formal_pos) %>%
+    
+arg_ref %>%
+    filter(!transitive) %>%
+    distinct(ref_type, pack_name, fun_name, formal_pos, call_expr, count) %>%
+    count(ref_type, pack_name, fun_name, formal_pos, call_expr, wt = count, name = "count") %>%
     datatable()
 ```
- 
--- number of arguments
--- number of parameters
--- number of functions
--- number of packages
--- sequence diagram
--- transitivity
--- call expression
--- examples
+
+# Transitive
+
+```{r echo = FALSE, warning=FALSE, message=FALSE}
+transitive_arg_ref <-
+    arg_ref %>%
+    filter(transitive) %>%
+    distinct(source_pack_name, source_fun_name, source_formal_pos,
+             pack_name, fun_name, formal_pos)
+
+datatable(transitive_arg_ref)
+
+transitive_arg_count <- 
+    arg_ref %>%
+    filter(transitive) %>%
+    pull(count) %>%
+    sum()
+
+cat("Transitive arguments: ", transitive_arg_count)
+cat("Transitive positions: ", nrow(transitive_arg_ref))
+cat("Transitive functions: ", length(unique(transitive_arg_ref$fun_name)))
+cat("Transitive packages: ", length(unique(transitive_arg_ref$pack_name)))
+```
+
+
+# Backtrace
+
+```{r echo = FALSE, warning=FALSE, message=FALSE}
+arg_ref %>%
+    filter(transitive) %>%
+    select(source_pack_name, source_fun_name, source_formal_pos, pack_name, fun_name, formal_pos, backtrace) %>%
+    pmap(function(source_pack_name, source_fun_name, source_formal_pos, pack_name, fun_name, formal_pos, backtrace) {
+        cat(source_pack_name, "\n") 
+        cat(source_fun_name, "\n")
+        cat(source_formal_pos, "\n")
+        cat(pack_name,"\n") 
+        cat(fun_name, "\n")
+        cat(formal_pos, "\n")
+        cat(backtrace, "\n")
+    })
+```
