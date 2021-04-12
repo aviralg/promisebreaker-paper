@@ -847,6 +847,109 @@ codetools::checkSymOrString <- function(e, signal = stop) {
 }
 \end{lstlisting}
 
+\subsubsection{Reflection}
+
+R allows reflective access to parent scope through \code{as.environment} and
+\code{pos.to.env} functions when called with argument \code{-1}.
+They return the environment of the caller with respect to call in which they are
+
+evaluated. Consider the following example in which function f is called with the
+same argument \code{as.environment(-1)} for both \code{x} and \code{y}
+parameters. The first argument \code{x} is evaluated immediately inside
+function \code{f} and the second argument \code{y} is evaluated inside the
+\code{id} function. \code{x} evaluates to the environment of the parent of
+\code{f} which is the \code{global} environment, whereas \code{y} evaluates to
+the environment of \code{f} which is the parent of \code{id} inside of which
+\code{y} is evaluated.
+
+\begin{lstlisting}
+id <- function(a) a
+f <- function(x, y) {
+    x;     print(x);
+    id(y); print(y);
+}
+f(x = as.environment(-1), y = as.environment(-1))
+\end{lstlisting}
+
+There are two points to note here. First, the strictness of \code{f} with
+respect to \code{x} and \code{y} depends on how \code{f} is called. Second,
+\code{f} will now be lazy in argument \code{y}, otherwise we will end up
+evaluating inside \code{f}. Erroneously evaluating \code{y} strictly would
+result in an incorrect environment, but not an error, which could turn into a
+debugging nightmare.
+
+\code{as.environment} is internally implemented using \code{pos.to.env} so the
+two functions have same semantics when called with \code{-1} as the argument.
+
+It is interesting to note that there are other functions providing reflective
+access to call stack frames such as \code{parent.frame}, \code{sys.frame}, etc.
+However, these take into account the current evaluation environment to identify
+the parent caller. A promise evaluates the argument expression inside the
+caller's environment. So, a call to \code{parent.frame()} directly inside the
+argument will use the caller's environment to identify the parent dynamic scope.
+This makes its result independent of the point at which the promise is
+evaluated.
+
+Another wrinkle introduced by this setup is that it can transitively affect the
+strictness of other function arguments. Imagine \code{f} is called from \code{g}
+as shown below.
+
+\begin{lstlisting}
+g <- function(u, v) {
+    f(u, v)
+}
+g(as.environment(-1), as.environment(-1))
+\end{lstlisting}
+
+Clearly, in this case we have to make \code{g} non-strict in \code{u} and
+\code{v}. Their results depend upon how they are evaluated inside \code{f}.
+
+We identified 2710 arguments which directly call \code{as.environment(-1)} and
+\code{pos.to.env(-1)} in our corpus. They correspond to 2 parameters from 2
+functions, \code{R.oo::.getFunctionByName}, and \code{backports::bp_get0}.
+
+
+\code{R.oo:::.getFunctionByName} is a private function of \code{R.oo} package
+which searches for a function by name in different scopes, configured by its
+arguments. Its fourth parameter, \code{callEnvir}, has a default value of
+\code{as.environment(-1)}. It is called 2707 times. The relevant part of its
+definition is that \code{callEnvir} is evaluated by assigning it to
+\code{envirT} before it is passed down to the \code{exists} function.
+
+\begin{lstlisting}
+function(name, where = c("ns", "search", "ns*"),
+         envir = NULL, callEnvir = as.environment(-1L),
+         class = "function", mustExist = TRUE, ...) {
+    ...
+    envirT <- callEnvir
+    if (exists(name, mode = "function", envir = envirT, inherits = TRUE))
+    ...
+}
+\end{lstlisting}
+
+\code{backports::get0} is a private function of \code{backports} package which
+looks up a variable in a scope, similar in spirit to
+\code{R.oo:::.getFunctionByName}. This function is called 3 times, always with
+the default value \code{pos.to.env(-1)} for \code{envir} argument. Unlike
+\code{R.oo:::.getFunctionByName}, \code{backports:::get0} passes \code{envir}
+unevaluated to \code{mget}. \code{mget} in turn evaluates \code{envir} and looks
+up variable referred to by \code{x} in \code{envir}. Clearly, with the default
+value of \code{envir}, lookup will happen in the environment of
+\code{backports::get0} which only has bindings for its parameters. What makes
+this work is that it is only called from the top-level, with the argument
+\code{inherits} set to \code{TRUE}. This causes \code{mget} to search
+recursively in enclosing scopes beginning from \code{envir} until lookup
+succeeds in the \code{global} environment used for top-level bindings.
+
+\begin{lstlisting}
+function (x, envir = pos.to.env(-1L), mode = "any",
+          inherits = TRUE, ifnotfound = NULL)  {
+    ....
+    mget(x[1L], envir = envir, mode = mode,
+         inherits = inherits, ifnotfound = list(ifnotfound))[[1L]]
+}
+\end{lstlisting}
+
 \subsubsection{Side-Effects}
 
 \subsubsection{Reflection}
