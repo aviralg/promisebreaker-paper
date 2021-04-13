@@ -38,6 +38,9 @@ side-effects:
 reflection:
 	make analysis ANALYSIS=reflection
 
+validation:
+	make analysis ANALYSIS=validation
+
 watch: pdf
 	evince main.pdf&
 	while true; do inotifywait main.tex $(GRAPHDIR); make; done

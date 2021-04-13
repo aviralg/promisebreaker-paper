@@ -1,0 +1,114 @@
+---
+title: "Unevaluated Arguments"
+output:
+    html_document:
+        toc: true
+        toc_depth: 3
+        toc_float: true
+        number_sections: true
+        theme: cerulean
+        highlight: pygments
+        code_folding: hide
+        fig_width: 9
+        fig_height: 3
+        css: style.css
+params:
+    datadir: "./data"
+    graphdir: "./graphs"
+    macrodir: "./macros"
+---
+
+```{r echo = FALSE, warning=FALSE, message=FALSE}
+## https://bookdown.org/yihui/rmarkdown-cookbook/source-script.html
+source("analysis.R", local = knitr::knit_global())
+```
+
+```{r echo = FALSE, warning=FALSE, message=FALSE}
+all_programs <- 
+    bind_rows(distinct(exitval_raw, type, package, filename),
+              distinct(stdout_raw, type, package, filename)) %>%
+    distinct()
+
+exitval_raw <-
+    exitval_raw %>%
+    pivot_longer(cols = c(`lazy-1`,
+                          `lazy-2`,
+                          `signature+force+effect+reflection`,
+                          `signature+force+effect-reflection`,
+                          `signature+force-effect+reflection`,
+                          `signature+force-effect-reflection`,
+                          `signature-force+effect+reflection`,
+                          `signature-force+effect-reflection`,
+                          `signature-force-effect+reflection`,
+                          `signature-force-effect-reflection`),
+                 names_to = "signature",
+                 values_to = "exitval")
+
+stdout_raw <-
+    stdout_raw %>%
+    pivot_longer(cols = c(`lazy-1`,
+                          `lazy-2`,
+                          `signature+force+effect+reflection`,
+                          `signature+force+effect-reflection`,
+                          `signature+force-effect+reflection`,
+                          `signature+force-effect-reflection`,
+                          `signature-force+effect+reflection`,
+                          `signature-force+effect-reflection`,
+                          `signature-force-effect+reflection`,
+                          `signature-force-effect-reflection`),
+                 names_to = "signature",
+                 values_to = "stdout")
+                 
+                 
+validation_tab <-
+    exitval_raw %>%
+    left_join(stdout_raw, by = c("type", "package", "filename", "signature"))
+    
+lazy_1_validation_tab <-
+    validation_tab %>%
+    filter(signature == "lazy-1") %>%
+    select(-signature) %>%
+    rename(lazy_1_exitval = exitval, lazy_1_stdout = stdout)
+    
+validation_tab <-
+    validation_tab %>%
+    left_join(lazy_1_validation_tab, by = c("type", "package", "filename"))
+    
+    
+validation_summary <-
+    validation_tab %>%
+    mutate(exitval = exitval == 0 & exitval == lazy_1_exitval,
+           stdout = stdout == lazy_1_stdout) %>%
+    group_by(signature) %>%
+    summarize(both = sum(exitval & stdout),
+              exitval = sum(exitval),
+              stdout = sum(stdout))
+    
+lazy_2_both <-
+    validation_summary %>%
+    filter(signature == "lazy-2") %>%
+    pull("both")
+    
+lazy_2_exitval <-
+    validation_summary %>%
+    filter(signature == "lazy-2") %>%
+    pull("exitval")
+
+lazy_2_stdout <-
+    validation_summary %>%
+    filter(signature == "lazy-2") %>%
+    pull("stdout")
+
+validation_summary <-
+    validation_summary %>%
+    mutate(both = lazy_2_both - both,
+           exitval = lazy_2_exitval - exitval,
+           stdout = lazy_2_stdout - stdout)
+    
+    #t() %>%
+    #as_tibble(rownames = "row_names")
+
+validation_summary %>% datatable()
+
+cat(lazy_2_both)
+```
