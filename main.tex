@@ -74,6 +74,7 @@
 \newcommand{\strictr}{{\sf StrictR}\xspace}
 \newcommand{\lazr}{{\sf LazR}\xspace}
 \renewcommand{\Rsh}{{\sf\u R}\xspace}
+\newcommand{\Rshstrict}{{\sf\u R-strict}\xspace}
 
 \include{results}
 
@@ -260,10 +261,10 @@ the following contributions:
   code from vignettes, examples and tests, and infers signatures for all
   functions defined by the package. The process is shown to scale to the 500
   most widely used packages in the R ecosystem.
-\item We extend the \Rsh optimizing just-in-time compiler with support for
-  strictness signatures, and evaluate the benefits of unboxing and inlining
+\item We conducted an experiment using the \Rsh optimizing just-in-time compiler
+  to evaluate the benefits of unboxing and inlining
   delayed evaluation on a benchmark suite of small computational tasks. We show
-  a median 1.12x speed up on those benchmarks.
+  a median \speedupRshStrict speed up on those benchmarks.
 \item We evaluate the robustness of the inferred signatures by testing them with
   2,000 packages that are transitive clients of the packages for which
   signatures were inferred. We report 0.3\% error rate, \emph{i.e.}~signatures
@@ -840,9 +841,17 @@ the highest number of parameters.
 
 \section{Compiling the Lazy Away}
 
-In this section we report on our implementation of strictness annotations in
-\Rsh an optimizing just-in-time compiler for R.
-
+In this section we report on our experiments to evaluate the implications of
+eagerness on implementations of R. To that end we modified \Rsh, a just-in-time
+compiler for the language. \Rsh features a two tier compilation strategy. The
+first tier is realized by a naive bytecode interpreter, the second tier
+by an optimizing native compiler. This optimizer employs
+speculative inlining of R functions and promises. We changed the first-tier
+compiler to eagerly evaluate all arguments at all call-sites, except for a
+manually curated list of exceptions. Additionally, we changed the optimizing
+compiler to inline the expressions of default arguments, which are normally also
+wrapped in promises and evaluated by need. In the following we will refer
+to this modified implementation as \Rshstrict.
 
 Our main hypothesis regarding performance is that eager semantics lead to faster
 execution of R programs. This hypothesis might seem unexpected to some readers,
@@ -853,12 +862,12 @@ allocations of promises used to represent the delayed computation. Second, in
 combination with effects potentially originating from promises, it obstructs
 more advanced compiler analysis and optimizations. Especially the later point
 means that we expect the hypothesis to hold even for a just-in-time compiler,
-that uses advanced optimizations. To evaluate the hypothesis we extend the Ř
-virtual machine for R, such that all promises are inlined at the call-site. In
-the following we call this modified implementation Ř-strict. We evaluate the
-effects on the Ř benchmark suite. As predicted by (H2) only a handful of
-functions, such as \lstinline{tryCatch} had to be kept lazy for all the
-benchmarks to compute the correct results. Based on the observations so far we
+that uses advanced optimizations.
+
+We evaluate the effects of our modifications on the Ř benchmark suite.
+As predicted by (H2) only a handful of functions, such as
+\lstinline{tryCatch} had to be kept lazy for all the benchmarks to compute
+the correct results. Based on the observations so far we
 pose the following predictions: eager semantics should improve performance of
 most benchmarks; a significant portion of the speedup is due to reduced garbage
 collection pressure; and the remaining speedup is due to improved compiler
