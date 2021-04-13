@@ -11,10 +11,8 @@
 \usepackage{xcolor,tikz, graphicx, pifont}
 \usetikzlibrary{positioning}
 
-\newcommand{\authorcomment}[3]{\xspace\textcolor{#1}{{\bf #2} #3}\xspace} % start by defining an authorcomment
-
+\newcommand{\authorcomment}[3]{\xspace\textcolor{#1}{{\bf #2} #3}\xspace}
 % For author notes:
-%
 \newcommand{\AG}[1]{\authorcomment{orange}{AG}{#1}}
 \newcommand{\JV}[1]{\authorcomment{red}{JV}{#1}}
 \newcommand{\JJ}[1]{\authorcomment{green}{JJ}{#1}}
@@ -22,10 +20,8 @@
 \newcommand{\OF}[1]{\authorcomment{magenta}{OF}{#1}}
 
 % For meta comments:
-%
 \newcommand{\isit}[1]{\authorcomment{cyan}{Check}{#1}}
 \newcommand{\todo}[1]{\authorcomment{red}{TODO}{#1}}
-
 \newcommand{\xmark}{\color{red} \ding{55}}
 \newcommand{\cmark}{\color{green} \ding{51}}
 
@@ -206,6 +202,78 @@ meta-programming is sufficiently large that it would be non-trivial to refactor
 them.
 
 \section{Background}
+
+This section sets the stage by introducing related work and giving a brief
+overview of R.
+
+\subsection{Related Work}
+
+There are three clusters of related results: research on adding and removing
+laziness in functional languages, research on the R language, and approaches to
+language migration.
+
+\paragraph{Call by need}  Functional languages with
+a call by need evaluation strategy must contend with memory pressure and
+associated performance issues due to allocation of substantial numbers of thunks
+(suspended computations)~\cite{transformopt,stricteffective,opteval}. While most
+Haskell programs benefit from the strictness analysis pass performed by the
+compiler. Due to its conservative nature, this pass misses some opportunities
+for optimizations. To recover performance programmers can manually insert
+strictness annotations to control evaluation but identifying where to put them
+can be challenging. \citet{autobahn} proposed, Autobahn, a tool that
+automatically infers strictness annotations using a genetic algorithm. The
+approach relies on a dynamic analysis, as it does not approximate and cannot
+guarantee termination on all inputs. As the annotations are based on a
+heuristic, developers must manually validate their soundness. The authors report
+an average 8.5\% speedup (with a maximum speed up of 89\%). \citet{lazyprof}
+solve the complementary problem of suggesting laziness annotations for
+call-by-value $\lambda$ calculus using a dynamic analysis. They introduce the
+notion of laziness potential, a predictor of the benefit obtained by making an
+expression lazy. They use this as a guide to insert laziness annotations. They
+demonstrate benefits on Racket implementations of Okasaki's purely functional
+data structures, monadic parser combinators, and an AI game. The present paper
+is similar to Autobahn in that we infer annotations dynamically and we do not
+guarantee soundness. Where our work departs from Autobahn is that we use
+execution traces to determine strictness. Furthermore, we have to deal with
+side-effects and reflective operations, they introduce extra complexity for our
+synthesis algorithm.
+
+\paragraph{The R language} \citet{oopsla19b} investigated the design and use of
+laziness in R. They provide a detailed account of the language's evaluation
+strategy with a small-step operational semantics and an empirical evaluation of
+laziness in 16,707 packages. Their study shows that most R code is written
+without reliance on, or awareness of, laziness. Out of 388K functions, 83\%
+evaluate all of their arguments in a single order across all calls. The authors
+found that programmers sometime force evaluation of arguments at the beginning
+of a function to protect their code from non-deterministic effects. Only a
+single instance of a lazy data structure could be found. The main \emph{raison
+d'\^etre} for delayed evaluation seems to be meta-programming. \citet{oopsla20b}
+empirically inferred type signatures for functions by dynamically observing the
+type of arguments and return values. The authors validated these signatures by
+inserting type checking code inside functions and monitor type failures on
+client programs. This approach inspired our strictness inference, but types are
+easier to check for soundness than strictness. For types, one simply inserts
+code that checks that, if an argument is eventually evaluated, it evaluates to
+the expected type. For strictness, we have to worry about the interplay of
+side-effects and changes to the order of evaluation of arguments. This makes
+validation of strictness signatures hard.
+
+\paragraph{Language migration}
+With this work, we are trying to propose a change in the semantics of R. The
+most prominent contemporary example is the transition from Python 2 to Python 3,
+which is still ongoing. Python 3 was released in 2008 with many incompatible
+changes. The plan \cite{pysunset} to drop support for Python 2 was postponed
+from 2015 to 2020 since a lot of codebase was not transitioned to Python 3.
+Currently, the translation has been mostly automated by tools such as
+\emph{Futurize}, and \emph{py2to3}.
+
+\AG{Do we want to talk about PHP-Hack and JS strict mode?}
+
+ADD: Gradual typing
+
+ADD: Typescript
+
+
 \subsection{The R Language}
 
 \subsection{Missingness}
@@ -239,79 +307,6 @@ a list. The function can also forward its $...$ to a callee. This enables the
 function to expose its callee's interface to the callers without listing
 callee's parameters and their default values.
 
-
-\subsection{Related Work}
-Lazy functional programming languages like Haskell have traditionally suffered
-from memory leaks and performance issues due to laziness.Allocating huge number
-of thunks accrues runtime cost and memory
-usage~\cite{transformopt}~\cite{stricteffective}~\cite{opteval}. While most
-Haskell programs benefit from GHC's strictness analyzer, it misses opportunities
-for optimization because it performs a conservative analysis to avoid
-non-termination. Haskell also allows programmers to manually insert strictness
-annotations to control laziness but identifying the locations in the program to
-insert them is challenging.
-
-
-\emph{Autobahn}~\cite{autobahn} is a tool that automatically infers strictness
-annotations for Haskell programs using a genetic algorithm. Unlike GHC's
-strictness analyzer, \emph{Autobahn} relies on a dynamic analysis, it does not
-approximate and cannot guarantee termination on all inputs. It generates a set
-of strictness annotations and requires the user to infer their soundness. The
-authors report that their annotations improve runtime performance by an average
-of 8.5\% and upto 89\%.Our approach is similar to \emph{Autobahn}. We synthesize
-annotations dynamically and we don't guarantee soundness of our annotations. We
-expect the user to validate the annotations. Our work differs from
-\emph{Autobahn} in that we don't rely on a genetic algorithm, but a direct
-measurement of argument's evaluation on a function call. Furthermore, R's
-semantics allow metaprogramming on, and side-effects and reflective operations
-in, function arguments. This introduces extra complexity for our synthesis
-algorithm.
-
-~\cite{lazyprof} solve the complementary problem of suggesting laziness
-annotations for call-by-value $\lambda$ calculus using a dynamic analysis. They
-introduce the notion of laziness potential, a predictor of the benefit obtained
-by making an expression lazy. They use this as a guide to insert laziness
-annotations. They demonstrate the usefulness of their technique on Racket
-implementations of Okasaki's purely functional data structures, monadic parser
-combinators, and an AI game. Their profiler suggests identical amount of
-laziness, and in some cases, even better than expected.
-
-
-The foundation for our work is \cite{oopsla19b}'s work on the design,
-implementation, and use of laziness in R. They provide a detailed account of R's
-call-by-need evaluation strategy with a small-step operational semantics and an
-empirical evaluation of 16,707 R packages. Their study shows that R is rather
-strict for a lazy language, with most R code written without reliance on
-laziness. In their corpus of 388.3K functions, they identify 83.7\% functions as
-strict, i.e., these functions evaluate all of their arguments in a single order
-across all calls. The authors find that R programmers ``force'' arguments at the
-beginning of a function for a deterministic evaluation order. The authors
-identify only one instance of lazy data structure and find that meta-programming
-is the only dominant use of R's laziness.
-
-
-\cite{oopsla20b}'s work on empirically inferring type signatures for R functions
-is very similar to our work in spirit. They synthesize function type signatures
-by dynamically observing the type of function arguments and return values. They
-validate these signatures by inserting type checking code inside functions and
-monitor type contract failure by running client programs. Failed type contracts
-can be detected at a function's boundary by comparing a value's actual type
-against its expected type. However, evaluating an argument on function entry
-does not prohibit it from being used in a non-strict setting such as
-metaprogramming. A side-effecting argument which would otherwise not have been
-evaluated by the function could still be evaluated according to our strictness
-signature without an observable error. This makes validation of strictness
-signatures hard.
-
-With this work, we are trying to propose a change in the semantics of R. The
-most prominent contemporary example is the transition from Python 2 to Python 3,
-which is still ongoing. Python 3 was released in 2008 with many incompatible
-changes. The plan \cite{pysunset} to drop support for Python 2 was postponed
-from 2015 to 2020 since a lot of codebase was not transitioned to Python 3.
-Currently, the translation has been mostly automated by tools such as
-\emph{Futurize}, and \emph{py2to3}.
-
-\AG{Do we want to talk about PHP-Hack and JS strict mode?}
 
 \section{Strictness Signatures}
 
