@@ -69,45 +69,59 @@ lazy_1_validation_tab <-
     filter(signature == "lazy-1") %>%
     select(-signature) %>%
     rename(lazy_1_exitval = exitval, lazy_1_stdout = stdout)
-    
+
+lazy_2_validation_tab <-
+    validation_tab %>%
+    filter(signature == "lazy-2") %>%
+    select(-signature) %>%
+    rename(lazy_2_exitval = exitval, lazy_2_stdout = stdout)
+
 validation_tab <-
     validation_tab %>%
-    left_join(lazy_1_validation_tab, by = c("type", "package", "filename"))
+    left_join(lazy_1_validation_tab, by = c("type", "package", "filename")) %>%
+    left_join(lazy_2_validation_tab, by = c("type", "package", "filename")) %>%
+    mutate(keep = (lazy_1_exitval == 0) & (lazy_1_exitval == lazy_2_exitval) & lazy_2_stdout)
     
+datatable(validation_tab %>% slice(1:100))
+
+validation_tab <-
+    validation_tab %>%
+    mutate(exitval = !is.na(exitval) & exitval == 0 & exitval == lazy_1_exitval,
+           stdout = stdout)
+           
+## remove all programs whose lazy-1 and lazy-2 don't match
+validation_tab <-
+    validation_tab %>%
+    mutate(exitval = !exitval, stdout = !stdout) %>%
+    filter(keep)
     
 validation_summary <-
     validation_tab %>%
-    mutate(exitval = exitval == 0 & exitval == lazy_1_exitval,
-           stdout = stdout == lazy_1_stdout) %>%
     group_by(signature) %>%
     summarize(both = sum(exitval & stdout),
+              either = sum(exitval | stdout),
               exitval = sum(exitval),
-              stdout = sum(stdout))
+              stdout = sum(stdout)) %>%
+    ungroup()
     
-lazy_2_both <-
-    validation_summary %>%
-    filter(signature == "lazy-2") %>%
-    pull("both")
-    
-lazy_2_exitval <-
-    validation_summary %>%
-    filter(signature == "lazy-2") %>%
-    pull("exitval")
+validation_summary %>%
+datatable()
 
-lazy_2_stdout <-
-    validation_summary %>%
+
+baseline_programs <-
+    validation_tab %>%
     filter(signature == "lazy-2") %>%
-    pull("stdout")
+    distinct(type, package, filename) %>%
+    nrow()
 
 validation_summary <-
     validation_summary %>%
-    mutate(both = lazy_2_both - both,
-           exitval = lazy_2_exitval - exitval,
-           stdout = lazy_2_stdout - stdout) %>%
-    mutate(both_perc = round(100 * both / lazy_2_both, 2),
-           exitval_perc = round(100 * exitval / lazy_2_exitval, 2),
-           stdout_perc = round(100 * stdout / lazy_2_stdout, 2)) %>%
-    mutate(both_perc = as_perc(both_perc),
+    mutate(either_perc = round(100 * either / baseline_programs, 2),
+           both_perc = round(100 * both / baseline_programs, 2),
+           exitval_perc = round(100 * exitval / baseline_programs, 2),
+           stdout_perc = round(100 * stdout / baseline_programs, 2)) %>%
+    mutate(either_perc = as_perc(either_perc),
+           both_perc = as_perc(both_perc),
            exitval_perc = as_perc(exitval_perc),
            stdout_perc = as_perc(stdout_perc)) %>%
     mutate(signature = str_replace(signature, fixed("signature"), ""),
@@ -118,17 +132,15 @@ validation_summary <-
                    2 * str_detect(signature, fixed("-E")) +
                    1 * str_detect(signature, fixed("-R"))) %>%
     arrange(order)
-    #t() %>%
-    #as_tibble(rownames = "row_names")
 
 validation_summary %>% datatable()
 
-cat(lazy_2_both)
+cat(baseline_programs)
 
 validation_summary %>%
 filter(!(signature %in% c("lazy-1", "lazy-2"))) %>%
-pmap_chr(function(signature, both, exitval, stdout, both_perc, exitval_perc, stdout_perc, order) {
-     res <- paste(order, signature, both, both_perc, exitval, exitval_perc, stdout, stdout_perc, sep = "&")
+pmap_chr(function(signature, either, both, exitval, stdout, either_perc, both_perc, exitval_perc, stdout_perc, order) {
+     res <- paste(order, signature, exitval, exitval_perc, stdout, stdout_perc, either, either_perc, both, both_perc, sep = "&")
 }) %>%
 paste(collapse = "\\\\\n") %>%
 cat()
