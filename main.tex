@@ -55,10 +55,10 @@
 }
 \lstdefinestyle{R}{ %
   language=R,
-  deletekeywords={new, env, equal, c, runif, trace, args, exp, t, all, get,
+  deletekeywords={new, env, equal, c, runif, trace, args, exp, t, all, get,body,
     names, is, environment, class, substitute, expression, list, null, Internal,
-    sample, diag, length, rep, nrow, stop, offset, pmax, Machine,
-    double, parent, frame, par, methods, end, dir, apply, deparse, missing,
+    sample, diag, length, rep, nrow, stop, offset, pmax, Machine,check,names,merge,all,
+    double, parent, frame, par, methods, end, dir, apply, deparse, missing,any,
     plot, as, integer, character, inherits, numeric, paste, eval, quote, call,
     formula, df, log, sum, c, local, legend, file, scale, round, title, order,
     drop, which, grid, print, ncol, dim, max, format, sort, rug, matrix, start,
@@ -468,19 +468,113 @@ evaluate both \code a and \code b, assignment \code{x<-a} evaluates \code a, and
 strict.
 
 
+\section{StrictR: R with Strictness Signatures}
 
-\section{Strictness Signatures}
+We refer to the R language extended with strictness signatures are \strictr to
+differentiate with from the GNUR reference implementation. To obtain the
+expected semantics, we have implemented an R package, also named \strictr,
+which, when loaded, causes strictness signatures to be applied to all loaded
+code.
 
-A function's strictness signature is a tuple $\langle f, s_1, ..., s_n \rangle$,
-where $f$ is the function's qualified name and $s_i$ are positions of arguments
-that can be evaluted strictly. We synthesize these signatures from dynamically
-generated traces. There are many language ``features'' the affect the decision
-to evaluate an argument eagerly.
+\paragraph{Signature files.}
+A signature file contains strictness signatures for functions of one or more
+packages. The format is straightforward, a sequence of signature \emph{sig}
+such that each function strictness signature is of the form
 
-Arguments used for metaprogramming using \code{substitute} and \code{PREXPR} are
-never strict. The code is reflectively accessing the unevaluated argument text
-from these argument promises. Eliminating these promises will break this part of
-the code.
+\[
+\mathit{sig}~~::=~~\mathsf{strict}~\mathsf{`package}::\mathsf{function`}~~\langle i, j, k, \dots\rangle
+\]
+
+Here {\sf package} is the name of the package in which the function occurs and
+{\sf function} is the name of the function. The sequence of integers specify
+which argument positions must be evaluated lazily.
+
+One drawback of this external approach is that it does not deal with inner
+functions. This is difficult in to do in R because of function objects are
+anonymous values. Their ``names'' are binding in some enclosing environment,
+bindings that can be overwritten at that. Some packages also dynamically set up
+methods for object dispatch in their package load hooks. The dynamic nature of
+this operation makes it hard to identify the correct qualified name of the
+function. For example, the function \code{zoo::merge.zoo} shown below
+conditionally defines its inner function \code{f} first with two parameters and
+then redefines it with a single parameter.
+
+\begin{lstlisting}
+function(..., all=TRUE) {
+    f <- if (any(all)) function(a, ret.zoo=TRUE) # { ... }
+         else            function(a, ret.zoo=TRUE) # { ... }
+    f <- function(i) # { ... }
+}
+\end{lstlisting}
+
+
+\paragraph{Applying signatures.}
+To apply signatures in the GNUR interpreter, \strictr performs source-to-source
+rewriting of functions as they are loaded. The rewriting is simple, each
+function must \c{force} every argument that was not declared lazy. The
+implementation uses a feature of R that allows to register callbacks when
+packages are loaded. \strictr registers a callback which reads the signature
+file in the current directory or on the load path. Then, as functions are
+defined \strictr injects code in the function in accordance with the signature.
+The injected code checks argument for missingness, and if they are not missing
+or if they have a default value, it calls \c{force} on the argument. Signature
+files are usually in directory containing one file per package. Providing
+signatures in external files avoids the need to modify the source code of
+programs. This also enables easy experimentation with different signature
+configurations.
+
+An interesting implementation detail is related to signatures are injected.
+Earlier approaches mutated the function's body. This resulted in failures.
+Investigation revealed that the same function object could be bound with a
+different name with different signatures. For instance, in the \code{rlang}
+package, \code{is_same_body <<- is_reference} assigns the definition of
+\code{is_reference} to \code{is_same_body}. Mutating \code{is_reference} to make
+arguments strict inadvertently also makes the function \code{is_same_body}
+strict. Further discussion will clarify why this is undesirable. It suffice to
+say that \strictr now copies function objects as it rewrites them.
+
+\paragraph{Extended signature.}
+As an option, which we do not pursue in this paper, we have implemented an
+annotation package for R which allows us to define the following annotation:
+\c{@lazy.file} to say that a file defaults to full lazy, \c{@strict.file} to
+denote all functions should be strict, \c{@lazy.param} to denote that an
+argument must be lazy, \c{@strict.param} for the converse, and \c{lazy(exp)} to
+request that an expression be packed into a promise and evaluated lazily. While
+these inline annotations allow to deal with inner functions, they require code
+source changes. For the rest of the paper we assume only external annotations.
+
+
+\paragraph{Intrinsic laziness.} When should a function argument be lazy?
+We have not found significant (barely any) use of functional programming idioms
+related to call-by-need such as infinite data structures. In fact, most code
+seem to be written as if R was strict. There is one significant exception to
+this. That is when some form of meta-programming will be applied to an argument.
+Consider the following definition for an example:
+\begin{lstlisting}
+ f <- function(a,b) {  print(unparse(substitute(a)));   x <- eval(substitute(b));  x + a }
+\end{lstlisting}
+
+\noindent
+A call of \c{f(1+2, 3+4)} creates two promises. The first is accessed by
+\c{substitute}, turned into a string by \c{deparse} and printed. The code of the
+second is accessed by \c{substitute} and evaluated by \c{eval}. Then expression
+\c{x+a} forces the first promise. The second promise is never forced. Both
+arguments are intrinsically lazy. Intrinsic laziness is transitive as arguments
+are passed from one function to the next. In C code, the argument to
+\code{PREXPR} are never strict for similar reasons.
+
+An argument may not be evaluated in all calls to the function. This means the
+function function is not strict in that argument. Unless the documentation
+dictates that this argument is evaluated in special cases where it is expected
+to perform a reflective or effectful operation, we could still evaluate it
+without any observable consequence except a performance penalty.
+
+
+
+\paragraph{Accidental laziness.} In order to preserve behavior of legacy code
+some parameters may be labeled as lazy even if the called function does not
+really require them to be.
+
 
 $...$ arguments are always treated as lazy. Assigning a single strictness
 annotation to $...$ is tricky because a function can have different strictness
@@ -495,11 +589,6 @@ functions having access to the same argument promises. All these functions in
 the chain can directly affect these arguments. The presence of missing arguments
 inside $...$ introduces another wrinkle.
 
-An argument may not be evaluated in all calls to the function. This means the
-function function is not strict in that argument. Unless the documentation
-dictates that this argument is evaluated in special cases where it is expected
-to perform a reflective or effectful operation, we could still evaluate it
-without any observable consequence except a performance penalty.
 
 Functions \code{as.environment} and \code{pos.to.env} when invoked with argument
 \code{-1} return the environment of the parent call on the stack. Calling them
@@ -532,20 +621,12 @@ leading to incorrect results. Similarly, errors are another source of effect
 inside promises. They can either stop the program execution or be captured by an
 enclosing exception handler.
 
-Use of metaprogramming and $...$ arguments are \emph{intrinsic} factors
-affecting a function's strictness. On the other hand, passing side-effecting
-arguments or arguments with reflective calls, especially in argument positions
-that may not be always evaluated makes the function's strictness dependent on
-how it is used. These are \emph{extrinsic} factors with an accidental reliance
-on laziness. In our experiments $...$ and metaprogrammed arguments are always
-treated as non-strict. In contrast to side-effecting and reflective promises
-these are genuine uses of laziness as they are not affected by the client. With
-this as the base amount of laziness, we could try to evaluate the rest of
-arguments in different combinations. A combination of these choices results in
-many possible signature configurations. We discuss them in detail in the
-\nameref{Evaluation:Robustness} section.
 
-\section{Analysis Infrastructure}
+
+\section{Inferring Strictness with LazR}
+
+
+\subsection{Infrastructure }
 In this section, we describe our analysis pipeline that \emph{(a)} synthesizes
 strictness signatures from execution traces, \emph{(b)} validates them by
 enforcing strict argument evaluation, and \emph{(c)} analyzes execution traces
@@ -563,7 +644,7 @@ which has rules for every step. This makes it easy to administer the experiments
 on multiple machines. Whenever possible, we parallelize the steps using GNU
 parallel\cite{tange2011a}.
 
-\subsection{Synthesizing Strictness Signatures}
+\paragraph{Synthesizing Strictness Signatures}
 
 For synthesizing strictness signatures, we observe the evaluation of arguments
 from dynamically generated execution tracer. For this, we use an instrumented R
@@ -660,69 +741,8 @@ strict `abort_data_pronoun` <1>;
 ...
 \end{verbatim}
 
-\subsection{Applying Strictness Signatures}
 
-To apply a function's strictness signature, we force the corresponding arguments
-on every call to that function. For this, we developed \emph{strictr}, an R
-package that adds code to force arguments at the top of a function's definition.
-R allows a loaded package to register callbacks against other packages which are
-invoked when those packages are loaded by the program. \emph{strictr} is loaded
-at the top of the program of interest and it sets up a package load callback for
-all the packages for which we generate signatures. When a program loads a
-package, \emph{strictr}'s callback is invoked. \emph{strictr} reads the
-signatures for functions of the loaded package from a file, and injects code in
-the function's definition in accordance with the signature. The injected code
-first checks for missingness and evaluates the argument only if it is supplied
-by the user or has a default value. The arguments are evaluated in the order
-specified by the signature. Signatures are made available to \emph{strictr} as a
-directory containing one file per package. Providing signatures in external
-files avoids the need to modify the source code of programs. This also enables
-easy experimentation with different signature configurations by providing a
-different directory location.
-
-\emph{strictr} also provides support for handling signatures for nested
-functions by recursively descending into the parent function's definitions until
-it finds the inner function binding. However, the extreme dynamism of R
-introduces many challenges for this to work correctly, so we didn't support
-inner functions. Firstly, functions are always anonymous in R so tracking their
-names is hard. This is especially tricky when packages dynamically set up
-methods for object dispatch in their package load hooks. The dynamic nature of
-this operation makes it hard to identify the correct qualified name of the
-function. Secondly, the same inner function name can be conditionally bound to
-different anonymous functions. This means we will have multiple sets of
-signatures for the same function name. Identifying which signature corresponds
-to which anonymous function is technically challenging. Thirdly, inner functions
-can be redefined with a different set of parameters. For example, the function
-\code{zoo::merge.zoo} shown below conditionally defines its inner function
-\code{f} first with two parameters and then redefines it with a single
-parameter.
-
-\begin{lstlisting}
-function(..., all = TRUE, fill = NA, suffixes = NULL, check.names = FALSE,
-         retclass = c("zoo", "list", "data.frame"), drop = TRUE) {
-    ...
-    f <- if (any(all)) function(a, ret.zoo = TRUE) { ... }
-         else          function(a, ret.zoo = TRUE) { ... }
-    ...
-    f <- function(i) { ... }
-    ...
-}
-\end{lstlisting}
-
-Another interesting implementation detail is related to how we inject
-signatures. Our earlier approach consisted of mutating a function's body to
-insert code for forcing arguments. This resulted in many failures. Investigation
-revealed that the same function object could be bound with a different name and
-could have a different signature due to a different usage scenario.
-Specifically, in the \code{rlang} package, \code{is_same_body <<- is_reference}
-assigns the definition of \code{is_reference} to \code{is_same_body}. Mutating
-the body of \code{is_reference} to make arguments strict inadvertently also
-makes the function \code{is_same_body} strict in the same argument. This forced
-us to change our approach for inserting signatures. Instead of mutating the
-function object by reference, \emph{strictr} now modifies a copy of the function
-object and updates the binding to this new object.
-
-\subsection{Analysis and Data Visualization}
+\paragraph{Analysis and Data Visualization}
 
 The execution traces we generate from our corpus are 1.2TB in size. To analyze
 them for insights and data visualization, we designed a simple map-reduce style
@@ -739,7 +759,7 @@ inclusion in the paper.
 
 \AG{TODO: add data size for each step and LOC for analysis scripts.}
 
-\section{Corpus of R Programs}
+\subsection{Corpus}
 
 For synthesizing strictness signatures, we run code from a corpus of packages
 using \lazr. For validation, we insert strictness contracts in the corpus
@@ -877,7 +897,73 @@ from 10 packages. \emph{ComplexHeatmap::pheatmap} (51),
 \emph{rpart.plot::check.if.dot.arg.supported.by.rpart.rules} (122) with the
 highest number of parameters.
 
-\section{Evaluation}
+
+\section{Compiling Away the Lazy}
+
+Our main hypothesis regarding performance is that eager semantics lead to faster
+execution of R programs. This hypothesis might seem unexpected to some readers,
+as call-by-need is sometimes used to avoid unnecessary computation in a program.
+On the other hand, delaying computations is more complex to implement and we
+observed it to obstruct performance in two ways: First, it leads to more
+allocations of promises used to represent the delayed computation. Second, in
+combination with effects potentially originating from promises, it obstructs
+more advanced compiler analysis and optimizations. Especially the later point
+means that we expect the hypothesis to hold even for a just-in-time compiler,
+that uses advanced optimizations. To evaluate the hypothesis we extend the Ř
+virtual machine for R, such that all promises are inlined at the call-site. In
+the following we call this modified implementation Ř-strict. We evaluate the
+effects on the Ř benchmark suite. As predicted by (H2) only a handful of
+functions, such as \lstinline{tryCatch} had to be kept lazy for all the
+benchmarks to compute the correct results. Based on the observations so far we
+pose the following predictions:
+
+\begin{itemize}
+  \item[{\bf H3.1}] Eager semantics improves performance of almost all benchmarks
+    in the Ř suite.
+  \item[{\bf H3.2}] A significant portion of the speedup is due to reduced
+    garbage collection pressure.
+  \item[{\bf H3.3}] Another significant portion of the speedup is due to improved
+    compiler optimizations.
+\end{itemize}
+
+\paragraph{Speedup (H3.1)}
+
+To evaluate the effect of eager semantics on performance we use the Ř virtual
+machine and its benchmark suite. We implement a mode where all possible promises
+are inlined in the first-tier compiler of Ř. Overal we observe a mean speedup of
+\speedupRshStrict, ranging from \speedupRshStrictMin to \speedupRshStrictMax.
+
+\paragraph{GC Pressure (H3.2)}
+
+Even an optimizing compiler has to allocate many promises for R
+code. We measure the number of promises allocated in the Ř benchmark suite
+in GNU R, in Ř and in Ř-strict. The first step from a naive interpreter to an
+optimizing compiler leads to an \promiseAlocationReductionGnurRsh
+reduction in allocations. The second step
+from lazy to eager semantics leads to \promiseAlocationReductionRshStrictToZero
+benchmarks not allocating any promises at all. On the remainder we see an additional
+\promiseAlocationReductionRshStrict reduction.
+Overal, \promiseAlocationReductionRshStrictToZero benchmarks reduce to zero
+allocations, the rest reduce on average by \promiseAlocationReductionGnurRshStrict.
+Surprisingly the number of remaining promises is
+still relatively high in some cases. The lowest reduction observed is
+\promiseAlocationReductionGnurRshStrictMin.
+\OF{TODO: where do they come from?} Also, overall xx\% of the
+speedup reported in (H3.2) is attributed to shorter GC pauses.
+
+\paragraph{Compiler Optimizations (H3.3)}
+
+Our intuition is that inlining promises leads to code that is easier to analyze.
+Therefore we expect an optimizing compiler to provide performance gains that go
+beyond what can be explained by the reduction in GC pressure. We compare the
+speedup of Ř-strict from (H3.1), with the same configuration, but having the
+optimizing compiler disabled. Thhus all code is executed by the first-tier
+bytecode interpreter. In this configuration the speedup is xx\%.
+
+
+
+
+\section{Robustness}
 
 \OF{We probably need some proper research questions we list earlier, that go along with
 the evaluation...}
@@ -1238,69 +1324,6 @@ spurious transitive laziness.
     \bottomrule
   \end{tabular}
 \end{table}
-
-\subsection{Performance (H3)}
-
-Our main hypothesis regarding performance is that eager semantics lead to faster
-execution of R programs. This hypothesis might seem
-unexpected to some readers, as call-by-need is sometimes used to avoid
-unnecessary computation in a program. On the other hand, delaying computations
-is more complex to implement and we observed it to obstruct performance
-in two ways: First, it leads to more allocations of promises used to represent
-the delayed computation. Second, in combination with effects potentially
-originating from promises, it obstructs more advanced compiler analysis and
-optimizations. Especially the later point means that we expect the hypothesis to
-hold even for a just-in-time compiler, that uses advanced optimizations.
-To evaluate the hypothesis we extend the Ř virtual machine for R, such that all
-promises are inlined at the call-site. In the following we call this modified
-implementation Ř-strict. We evaluate the effects on the Ř benchmark
-suite. As predicted by (H2) only a handful of functions, such as
-\lstinline{tryCatch} had to be kept lazy for all the benchmarks to compute the
-correct results. Based on the observations so far we pose the following predictions:
-
-\begin{itemize}
-  \item[{\bf H3.1}] Eager semantics improves performance of almost all benchmarks
-    in the Ř suite.
-  \item[{\bf H3.2}] A significant portion of the speedup is due to reduced
-    garbage collection pressure.
-  \item[{\bf H3.3}] Another significant portion of the speedup is due to improved
-    compiler optimizations.
-\end{itemize}
-
-\paragraph{Speedup (H3.1)}
-
-To evaluate the effect of eager semantics on performance we use the Ř virtual
-machine and its benchmark suite. We implement a mode where all possible promises
-are inlined in the first-tier compiler of Ř. Overal we observe a mean speedup of
-\speedupRshStrict, ranging from \speedupRshStrictMin to \speedupRshStrictMax.
-
-\paragraph{GC Pressure (H3.2)}
-
-Even an optimizing compiler has to allocate many promises for R
-code. We measure the number of promises allocated in the Ř benchmark suite
-in GNU R, in Ř and in Ř-strict. The first step from a naive interpreter to an
-optimizing compiler leads to an \promiseAlocationReductionGnurRsh
-reduction in allocations. The second step
-from lazy to eager semantics leads to \promiseAlocationReductionRshStrictToZero
-benchmarks not allocating any promises at all. On the remainder we see an additional
-\promiseAlocationReductionRshStrict reduction.
-Overal, \promiseAlocationReductionRshStrictToZero benchmarks reduce to zero
-allocations, the rest reduce on average by \promiseAlocationReductionGnurRshStrict.
-Surprisingly the number of remaining promises is
-still relatively high in some cases. The lowest reduction observed is
-\promiseAlocationReductionGnurRshStrictMin.
-\OF{TODO: where do they come from?} Also, overall xx\% of the
-speedup reported in (H3.2) is attributed to shorter GC pauses.
-
-\paragraph{Compiler Optimizations (H3.3)}
-
-Our intuition is that inlining promises leads to code that is easier to analyze.
-Therefore we expect an optimizing compiler to provide performance gains that go
-beyond what can be explained by the reduction in GC pressure. We compare the
-speedup of Ř-strict from (H3.1), with the same configuration, but having the
-optimizing compiler disabled. Thhus all code is executed by the first-tier
-bytecode interpreter. In this configuration the speedup is xx\%.
-
 
 
 
