@@ -1,0 +1,635 @@
+---
+title: "Performance"
+output:
+    html_document:
+        toc: true
+        toc_depth: 3
+        toc_float: true
+        number_sections: true
+        theme: cerulean
+        highlight: pygments
+        code_folding: hide
+        fig_width: 9
+        fig_height: 3
+        css: style.css
+params:
+    datadir: "./data"
+    graphdir: "./graphs"
+    macrodir: "./macros"
+---
+
+```{r echo = FALSE, warning=FALSE, message=FALSE}
+## https://bookdown.org/yihui/rmarkdown-cookbook/source-script.html
+source("analysis.R", local = knitr::knit_global())
+```
+
+```{r echo=FALSE, warning=FALSE, message=FALSE, eval=FALSE}
+url <- "https://rir-benchmarks.prl.fit.cvut.cz/job/"
+```
+
+# H3.1: Peformance of base Ř vs. Ř strict
+
+This experiment shows the comparison of performance on our benchmarks
+for the base version of Ř and Ř strict.
+
+```{r echo=FALSE, warning=FALSE, message=FALSE, eval=TRUE}
+performanceExperiment <- list(
+  `Ř` = "rsh-perf",
+  `Ř strict` = "rsh-strict-perf")
+```
+
+# H3.2: Promise allocations
+
+This experiment compares the number of promise allocations in Ř and Ř strict;
+the baseline is GNUR.
+
+```{r echo=FALSE, warning=FALSE, message=FALSE, eval=TRUE}
+promiseReductionExperiment <- list(
+  `GNU R` = "gnur-promises",
+  `Ř` = "rsh-promises",
+  `Ř strict` = "rsh-strict-promises")
+```
+
+This experiment shows the impact on GC of base Ř and Ř strict, and the percentage
+speedup due to GC.
+We reuse the performanceExperiment data.
+
+```{r echo=FALSE, warning=FALSE, message=FALSE, eval=TRUE}
+gcExperiment <- list(
+  `Ř` = "rsh-gc",
+  `Ř strict` = "rsh-strict-gc")
+```
+
+# H3.3: Optimizer impact comparing Ř strict and Ř strict w/o optimizer
+
+Here we compare strict Ř performance running with and without the optimizer.
+Without, all code is executed in the first tier bytecode interpreter.
+
+```{r echo=FALSE, warning=FALSE, message=FALSE, eval=TRUE}
+optimizerExperiment <- list(
+  `Ř` = "rsh-perf",
+  `Ř no-opt` = "rsh-perf-noopt",
+  `Ř strict` = "rsh-strict-perf",
+  `Ř strict no-opt` = "rsh-strict-perf-noopt")
+```
+
+# Benchmark selection
+
+```{r echo=FALSE, warning=FALSE, message=FALSE, eval=TRUE}
+selection <- c(
+  "Bounce",
+  "Mandelbrot",
+  "Storage",
+  "Flexclust",
+  "Binarytrees",
+  "Fasta",
+  "Fastaredux",
+  "Knucleotide",
+  "Nbody",
+  "Pidigits",
+  "Regexdna",
+  "Reversecomplement",
+  "Spectralnorm"
+)
+```
+
+# Helpers
+
+```{r echo=FALSE, warning=FALSE, message=FALSE, eval=TRUE}
+# fetch <- function(job, addWarm) {
+#   dir.create("data", showWarnings=F)
+#   setwd("data")
+#   file <- paste0(job, ".csv")
+#   if (!file.exists(file))
+#     download.file(paste0(url, file), file)
+#   res <- read.csv(file, header=TRUE, strip.white=TRUE)
+#   if (addWarm)
+#     res$warm <- c(rep(0L, COLD_RUNS), rep(1L, WARM_RUNS))
+#   res$row <- 1:nrow(res)
+#   setwd("..")
+#   res
+# }
+
+fetch <- function(job, addWarm, warmup, iterations) {
+  dir.create("data", showWarnings=F)
+  setwd("data")
+  file <- paste0(job, ".csv")
+  if (!file.exists(file))
+    stop("file not found")
+  res <- read.csv(file, header=TRUE, strip.white=TRUE)
+  if (addWarm)
+    res$warm <- c(rep(0L, warmup), rep(1L, iterations - warmup))
+  res$row <- 1:nrow(res)
+  setwd("..")
+  res
+}
+
+geometric.mean <- function(x, na.rm=TRUE) {
+  if (is.null(nrow(x))) {
+    exp(mean(log(x), na.rm=TRUE))
+  } else {
+    exp(apply(log(x), 2, mean, na.rm=na.rm))
+  }
+}
+
+printResult <- function(name, result, digits=3, space=F) {
+  name = gsub("μ", "mu", name)
+  r = format(result, digits=digits)
+  cat(paste0("\\newcommand{\\result",name,"}{",r))
+  if (space)
+    cat("\\xspace")
+  cat("}\n")
+}
+
+remove_warmup <- function(data) {
+  data[data$warm == 1,]
+}
+
+fetch_jobs <- function(jobs, addWarm = FALSE, warmup, iterations) {
+  data <- NULL
+  for (i in seq_along(jobs)) {
+    job <- jobs[i]
+    ex = names(job)
+    d <- fetch(job, addWarm, warmup, iterations)
+    d$experiment = ex
+    if (is.null(data))
+      data <- d
+    else
+      data <- merge(data, d, all=TRUE)
+  }
+  data
+}
+
+normalize <- function(data, removeNormalized, baseline) {
+  data$speedup = 1
+  for (b in unique(data$benchmark)) {
+    if (missing(baseline))
+      e1 = unique(data$experiment)[1]
+    else
+      e1 = baseline
+    m = median(data[data$benchmark == b & data$experiment == e1 & data$warm == 1, ]$ms)
+    data[data$benchmark == b, ]$speedup <-
+      m/data[data$benchmark == b, ]$ms
+    if (removeNormalized)
+      data = data[-which(data$benchmark == b & data$experiment == e1), ]
+  }
+  data
+}
+
+shorten_suite <- function(s) {
+  switch(s,
+         "are-we-fast-r"="awf",
+         "real_thing"="re",
+         "real_thing_annotations"="reA",
+         "shootout"="sht",
+         "shootout_annotations"="shA",
+         "simple"="μ")
+}
+
+printable_name <- function(s) {
+  s <- gsub("_", " ", s)
+  substr(s, 1, 1) <- toupper(substr(s, 1, 1))
+  s
+}
+
+```
+
+
+
+```{r echo=FALSE, warning=FALSE, message=FALSE, eval=TRUE}
+H3.1 <- function() {
+  perf <- fetch_jobs(performanceExperiment)
+  perf$experiment = factor(perf$experiment, c("Ř", "Ř strict"))
+  perf$benchmark_ = perf$benchmark
+  perf$suite_short = lapply(perf$suite, shorten_suite)
+  perf$benchmark = paste0(lapply(perf$benchmark, printable_name), "")
+  sss <<- perf
+  perf <- normalize(perf, T, "Ř")
+  perf_ <- perf[perf$benchmark %in% selection & perf$warm == 1, ]
+
+  perf_plot <-
+    ggplot(perf_, aes(benchmark, speedup)) +
+    geom_boxplot() +
+    geom_hline(yintercept=1) +
+    labs(y = "Speedup", x = "") +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+  save_graph(perf_plot, "rshStrictPerf")
+}
+H3.1()
+```
+
+
+
+```{r echo=FALSE, warning=FALSE, message=FALSE, eval=TRUE}
+H3.2a <- function() {
+  perf <- fetch_jobs(performanceExperiment)
+  perf$experiment = factor(perf$experiment, c("Ř", "Ř-strict"))
+  perf$benchmark_ = perf$benchmark
+  perf$suite_short = lapply(perf$suite, shorten_suite)
+  perf$benchmark = paste0("[",perf$suite_short,"] ", perf$benchmark)
+  perf <- normalize(perf, T, "Ř")
+  perf_ <- perf[perf$benchmark %in% selection & perf$warm == 1, ]
+
+  ss <<- perf_  # TODO debugging, remove
+  
+  perf_plot <-
+    ggplot(perf_, aes(benchmark, speedup, fill=experiment)) +
+    geom_boxplot() +
+    geom_hline(yintercept=1) +
+    labs(y = "Speedup") +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+  save_graph(perf_plot, "perf")
+}
+H3.2a()
+```
+
+
+
+```{r echo=FALSE, warning=FALSE, message=FALSE, eval=FALSE}
+H3.2b <- function() {
+  perf <- fetch_jobs(performanceExperiment)
+  perf$experiment = factor(perf$experiment, c("Ř", "Ř-strict"))
+  perf$benchmark_ = perf$benchmark
+  perf$suite_short = lapply(perf$suite, shorten_suite)
+  perf$benchmark = paste0("[",perf$suite_short,"] ", perf$benchmark)
+  perf <- normalize(perf, T, "Ř")
+  perf_ <- perf[perf$benchmark %in% selection & perf$warm == 1, ]
+
+  ss <<- perf_  # TODO debugging, remove
+  
+  perf_plot <-
+    ggplot(perf_, aes(benchmark, speedup, fill=experiment)) +
+    geom_boxplot() +
+    geom_hline(yintercept=1) +
+    labs(y = "Speedup") +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+  save_graph(perf_plot, "perf")
+}
+H3.2b()
+```
+
+
+
+```{r echo=FALSE, warning=FALSE, message=FALSE, eval=FALSE}
+H3.3 <- function() {
+  perf <- fetch_jobs(performanceExperiment)
+  perf$experiment = factor(perf$experiment, c("Ř", "Ř-strict"))
+  perf$benchmark_ = perf$benchmark
+  perf$suite_short = lapply(perf$suite, shorten_suite)
+  perf$benchmark = paste0("[",perf$suite_short,"] ", perf$benchmark)
+  perf <- normalize(perf, T, "Ř")
+  perf_ <- perf[perf$benchmark %in% selection & perf$warm == 1, ]
+
+  ss <<- perf_  # TODO debugging, remove
+  
+  perf_plot <-
+    ggplot(perf_, aes(benchmark, speedup, fill=experiment)) +
+    geom_boxplot() +
+    geom_hline(yintercept=1) +
+    labs(y = "Speedup") +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+  save_graph(perf_plot, "perf")
+}
+H3.3()
+```
+
+
+
+
+```{r echo=FALSE, warning=FALSE, message=FALSE, eval=FALSE}
+plot_bm <- function(title, d, warmup, trend=FALSE, log=TRUE, relative=FALSE, ncol=6, hide_legend=F, baseline=relative, scales="free") {
+  multipleBm <- length(unique(d$benchmark)) > 1
+  sz <- if (multipleBm) 0.8 else 1.5
+  
+  nwarm = WARM_RUNS
+  ncold = COLD_RUNS
+  cold_position <- position_var_nudge(l_off = nwarm)
+  warm_position <- if (warmup)
+    position_var_nudge(r_off = ncold)
+  else
+    position_var_nudge()
+  
+  experiments = length(unique(d$experiment))
+  
+  
+  print(ggplot(d, if (relative) aes(experiment, speedup) else aes(experiment, ms)) +
+          (if (multipleBm) facet_wrap(~benchmark, ncol=ncol, strip.position="left", scales=scales)) +
+          # (if (!multipleBm) theme_minimal()) +
+          
+          #  (if (experiments == 2)
+          #    scale_color_manual(values = scales::viridis_pal()(10)[c(1,9)])
+          #  else
+          #    scale_colour_viridis_d()) +
+          
+          theme(axis.title.x=element_blank(),
+                axis.text.x=element_blank(),
+                axis.title.y=element_blank(),
+                axis.ticks=element_blank(),
+                legend.position=(if (hide_legend) "none" else "right"),
+                (if (multipleBm) panel.grid.minor=element_blank())) +
+          
+          ggtitle(title) +
+          (if (log) scale_y_continuous(trans = "log10")) +
+          (if (baseline) geom_hline(yintercept=1, color="red", linetype="dashed", size=1)) +
+          
+          (if (warmup)
+            geom_point(position=cold_position,
+                       shape=4,
+                       size=sz,
+                       color="black",
+                       aes(row=row),
+                       data=subset(d, warm == 0))) +
+          geom_point(position=warm_position,
+                     size=sz,
+                     aes(color=experiment, row=row),
+                     data=subset(d, warm == 1)) +
+          geom_boxplot(outlier.shape = NA, aes(color=experiment), data=subset(d, warm == 1)) +
+          
+          (if (trend != F && !multipleBm) {
+            # TODO find out how to draw trend on multiple ones
+            st = trend[trend$benchmark == d$benchmark_, ]$prediction_start[1]
+            ed = trend[trend$benchmark == d$benchmark_, ]$prediction_end[1]
+            printResult(paste0("TrendLineEnds", d$benchmark_[1]), (ed-1)*100, 2)
+            geom_segment(aes(x = 1, y = st, xend = 7, yend = ed), size=0.01, color="blue")
+          })
+        # theme(axis.text.x = element_text(angle=90))
+  )
+}
+
+plot_all_bms <- function(name, data, warmup, trend=FALSE, relative=F) {
+  dir.create(name, showWarnings=F)
+  setwd(name)
+  for (b in unique(data$benchmark)) {
+    d <- data[data$benchmark == b,]
+    bm_file_name <- paste0(d$suite[1], "-", b, ".pdf")
+    bm_title <- paste0("[", d$suite[1], "] ", b)
+    cairo_pdf(bm_file_name)
+    plot_bm(bm_title, d, warmup=warmup, trend=trend, log=T, relative=relative)
+    dev.off()
+  }
+  setwd("..")
+}
+
+plot_by_suite <- function(name, data, warmup, trend=FALSE, removeNormalized=F) {
+  dir.create(name, showWarnings=F)
+  setwd(name)
+  data <- normalize(data, removeNormalized)
+  for (s in unique(data$suite)) {
+    d <- data[data$suite == s,]
+    bm_file_name <- paste0(s, ".pdf")
+    cairo_pdf(bm_file_name, width=12, height=12)
+    bm_title <- paste0("[", s, "]")
+    plot_bm(bm_title, d, warmup, trend, log=T, relative=T)
+    dev.off()
+  }
+  setwd("..")
+}
+
+s <- fetch_jobs(specializationExperiment, "Ř")
+cmp <- fetch_jobs(vmCompare)
+cmp$experiment = factor(cmp$experiment, c("Ř", "FastR", "GNU R"))
+
+shorten_suite = function(s) switch(s, "are-we-fast-r"="awf", "real_thing"="re", "shootout"="sht", "simple"="μ")
+pl <- function(models) {
+  dir.create("final", showWarnings=F)
+  setwd("final")
+
+  cmp$benchmark_ = cmp$benchmark
+  s$benchmark_ = s$benchmark
+  s$suite_short = lapply(s$suite, shorten_suite)
+  s$benchmark = paste0("[",s$suite_short,"] ",s$benchmark)
+  cmp$suite_short = lapply(cmp$suite, shorten_suite)
+  cmp$benchmark = paste0("[",cmp$suite_short,"] ",cmp$benchmark)
+
+  ncol=4
+
+  s <- normalize(s, F, "level 0")
+  cmp <- normalize(cmp, T, "GNU R")
+
+  for (b in c("[sht] spectralnorm")) {
+    d <- cmp[cmp$benchmark == b,]
+    bm_title <- d$benchmark
+    cairo_pdf(paste0(d$benchmark_, ".pdf"), width=4, height=4)
+    plot_bm(bm_title, d, warmup=T, trend=F, log=T, relative=T)
+    dev.off()
+
+    d <- s[s$benchmark == b,]
+    bm_title <- d$benchmark
+    cairo_pdf(paste0(d$benchmark_, "-specialization.pdf"), width=4, height=4)
+    plot_bm(bm_title, d, warmup=F, trend=models, log=F, relative=T)
+    dev.off()
+  }
+
+  s_ = s[s$benchmark %in% selection, ]
+  cmp_ = cmp[cmp$benchmark %in% selection, ]
+
+  bms = length(unique(s$benchmark))
+  bms_ = length(unique(s_$benchmark))
+
+  cairo_pdf("performance.pdf", width=ncol*2, height=2*bms_/ncol)
+  plot_bm(NULL, cmp_, warmup=F, relative=T, ncol=ncol, hide_legend=T)
+  dev.off()
+
+  cairo_pdf("specialization.pdf", width=ncol*2.5, height=2.5*bms_/ncol)
+  plot_bm(NULL, s_, warmup=F, trend=F, log=F, relative=T, ncol=ncol, hide_legend=T, baseline=F)
+  dev.off()
+
+  ncol=3
+  nrow=4
+  pages = (bms / (ncol*nrow))
+
+  for (page in 0:pages) {
+    pos = ncol*nrow*page + 1
+    npos = ncol*nrow*(page+1)
+    sel = unique(cmp$benchmark)[pos:npos]
+    d = cmp[cmp$benchmark %in% sel, ]
+    bms = length(unique(d$benchmark))
+    filename = paste0("performance-appendix-",page,".pdf")
+    cairo_pdf(filename, width=ncol*2, height=2.1*bms/ncol)
+    plot_bm(NULL, d,
+            warmup=T, relative=T, ncol=ncol, hide_legend=T)
+    dev.off()
+  }
+
+  for (page in 0:pages) {
+    pos = ncol*nrow*page + 1
+    npos = ncol*nrow*(page+1)
+    sel = unique(s$benchmark)[pos:npos]
+    d = s[s$benchmark %in% sel, ]
+    bms = length(unique(d$benchmark))
+    filename = paste0("specialization-appendix-",page,".pdf")
+    cairo_pdf(filename, width=ncol*2, height=2.1*bms/ncol)
+    plot_bm(NULL, d,
+            warmup=F, trend=F, relative=T, log=F, ncol=ncol, hide_legend=T, baseline=F)
+    dev.off()
+  }
+
+  setwd("..")
+}
+
+sumaryCmp <- function(cmp) {
+  sumary <- data.frame()
+  sumary$suite = character()
+  sumary$benchmark = character()
+  sumary$vm = character()
+  sumary$time = numeric()
+
+  d1 = cmp
+  for (su in unique(d1$suite)) {
+    d2 <- d1[d1$suite == su, ]
+    for (b in unique(d2$benchmark)) {
+      d3 <- d2[d2$benchmark == b, ]
+      for (e in unique(d3$experiment)) {
+        m = median(d3[d3$experiment == e, ]$ms)
+        sumary[nrow(sumary)+1,] = list(
+          suite=su, benchmark=b, vm=e, time=m)
+      }
+    }
+  }
+  sumary$speedup_gnur = NA
+  sumary$speedup_fastr = NA
+
+  for (b in unique(cmp$benchmark)) {
+    sumary[sumary$vm == "Ř" & sumary$benchmark == b,]$speedup_gnur =
+      sumary[sumary$vm == "GNU R" & sumary$benchmark == b,]$time /
+      sumary[sumary$vm == "Ř" & sumary$benchmark == b,]$time
+    if (nrow(sumary[sumary$vm == "FastR" & sumary$benchmark == b,]))
+      sumary[sumary$vm == "Ř" & sumary$benchmark == b,]$speedup_fastr =
+        sumary[sumary$vm == "FastR" & sumary$benchmark == b,]$time /
+        sumary[sumary$vm == "Ř" & sumary$benchmark == b,]$time
+  }
+  sumary = sumary[sumary$vm == "Ř",]
+
+  cat("% Performance comparison GNU R\n")
+  for (su in unique(cmp$suite)) {
+    mi_g = min(sumary[sumary$suite == su,]$speedup_gnur)
+    ma_g = max(sumary[sumary$suite == su,]$speedup_gnur)
+    me_g = geometric.mean(sumary[sumary$suite == su,]$speedup_gnur)
+    mi_f = min(sumary[sumary$suite == su,]$speedup_fastr, na.rm=T)
+    ma_f = max(sumary[sumary$suite == su,]$speedup_fastr, na.rm=T)
+    me_f = geometric.mean(sumary[sumary$suite == su,]$speedup_fastr, na.rm=T)
+    printResult(paste0(shorten_suite(su),"GnurMin"), mi_g)
+    printResult(paste0(shorten_suite(su),"GnurMax"), ma_g)
+    printResult(paste0(shorten_suite(su),"GnurMed"), me_g)
+  }
+  mi_g = min(sumary[sumary$suite != "simple",]$speedup_gnur)
+  ma_g = max(sumary[sumary$suite != "simple",]$speedup_gnur)
+  me_g = geometric.mean(sumary[sumary$suite != "simple",]$speedup_gnur)
+  printResult("overallGnurMin", mi_g)
+  printResult("overallGnurMax", ma_g)
+  printResult("overallGnurMed", me_g)
+  printResult("overallGnurMinRounded", mi_g, 1)
+  printResult("overallGnurMaxRounded", ma_g, 1)
+  printResult("overallGnurMedRounded", me_g, 2)
+
+  cat("% Performance comparison FastR\n")
+  for (su in unique(cmp$suite)) {
+    mi_g = min(sumary[sumary$suite == su,]$speedup_gnur)
+    ma_g = max(sumary[sumary$suite == su,]$speedup_gnur)
+    me_g = geometric.mean(sumary[sumary$suite == su,]$speedup_gnur)
+    mi_f = min(sumary[sumary$suite == su,]$speedup_fastr, na.rm=T)
+    ma_f = max(sumary[sumary$suite == su,]$speedup_fastr, na.rm=T)
+    me_f = geometric.mean(sumary[sumary$suite == su,]$speedup_fastr, na.rm=T)
+    printResult(paste0(shorten_suite(su),"FastrMin"), mi_f)
+    printResult(paste0(shorten_suite(su),"FastrMax"), ma_f)
+    printResult(paste0(shorten_suite(su),"FastrMed"), me_f)
+  }
+  mi_f = min(sumary[sumary$suite != "simple",]$speedup_fastr, na.rm=T)
+  ma_f = max(sumary[sumary$suite != "simple",]$speedup_fastr, na.rm=T)
+  me_f = geometric.mean(sumary[sumary$suite != "simple",]$speedup_fastr, na.rm=T)
+  printResult("overallFastrMin", mi_f)
+  printResult("overallFastrMax", ma_f)
+  printResult("overallFastrMed", me_f)
+  printResult("overallFastrMinRounded", mi_f, 1)
+  printResult("overallFastrMaxRounded", ma_f, 1)
+  printResult("overallFastrMedRounded", me_f, 2)
+}
+
+sumarySpecialization <- function(s, kind) {
+  cat(paste0("% contextual dispatch experiment H0 ",kind,"\n"))
+  data = normalize(s, removeNormalized=F, "level 0")
+  data = data[data$warm == 1,]
+  data$speedup = data$speedup - 1.0
+  data$experiment = factor(data$experiment,
+                           levels=c("level 0", "level 1", "level 2", "level 3", "level 4", "level 5", "level 6"))
+  data$experiment = as.integer(data$experiment)-1
+
+  sumary2 <- data.frame()
+  sumary2$speedup=numeric()
+  sumary2$accept =numeric()
+  sumary2$reject =numeric()
+  sumary2$avg =numeric()
+
+  models = data.frame(benchmark=unique(data$benchmark))
+  models$prediction_start = 0
+  models$prediction_end = 0
+
+  speedups <- c(0.95, 0.98, 1.0, 1.02, 1.05, 1.1, 1.2)
+  for (speedup_ in speedups)
+    sumary2[nrow(sumary2)+1,]=list(
+      speedup=speedup_, accept=0, reject=0, avg=0)
+
+  hypothesisTest <- function(simple) {
+    d1 <- data
+    for (su in unique(d1$suite)) {
+      if (su == "simple" && !simple)
+        next()
+      if (su != "simple" && simple)
+        next()
+      d2 <- d1[d1$suite == su, ]
+      for (b in unique(d2$benchmark)) {
+        d3 = d2[d2$benchmark == b, ]
+        lm_ <- lm(speedup ~ experiment, data = d3)
+        prediction_start = predict(lm_, list(experiment=0), interval="confidence")
+        prediction_end = predict(lm_, list(experiment=6), interval="confidence")
+        models[models$benchmark == b,]$prediction_start = prediction_start[2] +1
+        models[models$benchmark == b,]$prediction_end = prediction_end[2] +1
+        p = summary(lm_)$coefficients[,4]
+        for (speedup_ in speedups) {
+          prediction = 1+predict(lm_, list(experiment=6), interval="confidence")
+          h = prediction[2] > speedup_
+          avg = prediction[1] > speedup_
+          if (speedup_ == 0.95 && !h)
+            cat(paste0("% Bad slowdown in :", b, "\n"))
+          if (speedup_ == 1.1 && h)
+            cat(paste0("% Large speedup in :", b, "\n"))
+          if (avg) {
+            sumary2[sumary2$speedup == speedup_,]$avg =
+              sumary2[sumary2$speedup == speedup_,]$avg+1
+          }
+          if (h) {
+            sumary2[sumary2$speedup == speedup_,]$reject =
+              sumary2[sumary2$speedup == speedup_,]$reject+1
+          } else {
+            sumary2[sumary2$speedup == speedup_,]$accept =
+              sumary2[sumary2$speedup == speedup_,]$accept + 1
+          }
+        }
+      }
+    }
+    for (speedup_ in speedups) {
+      r = sumary2[sumary2$speedup == speedup_,]
+      s = switch(as.character(speedup_),
+                 "0.95"="MinusFive", "0.98"="MinusTwo", "1"="One", "1.02"="PlusTwo", "1.05"="PlusFive", "1.1"="PlusTen", "1.2"="PlusTwenty")
+      printResult(paste0("HReject", s, (if (simple) "Mu" else ""), kind), r$reject)
+    }
+    invisible(models)
+  }
+  cat("% for mu\n")
+  hypothesisTest(T)
+  cat("% for others\n")
+  hypothesisTest(F)
+}
+
+printResult("BenchmarksInTotal",      length(unique(s$benchmark)), space=T)
+printResult("BenchmarksInTotalMu",    length(unique(s[s$suite == "simple",]$benchmark)), space=T)
+printResult("BenchmarksInTotalNonMu", length(unique(s[s$suite != "simple",]$benchmark)), space=T)
+sumaryCmp(cmp)
+m = sumarySpecialization(s, "")
+cat("% some key numbers from the plots\n")
+pl(m)
+```
