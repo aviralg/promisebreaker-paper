@@ -21,6 +21,9 @@ read_any <- function(filepath) {
     if(ext == "fst") {
         read_fst(filepath)
     }
+    else if(ext == "csv") {
+        read_csv(filepath)
+    }
     else {
         read_lines(filepath)
     }
@@ -67,6 +70,8 @@ read_lazy(parameters, "parameters.fst")
 read_lazy(functions, "functions.fst")
 read_lazy(argument_type, "argument_type.fst")
 read_lazy(arg_ref, "arg_ref.fst")
+read_lazy(exitval_raw, "exitval_raw.csv")
+read_lazy(stdout_raw, "stdout_raw.csv")
 
 arg_ref <-
     arg_ref %>%
