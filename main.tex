@@ -30,6 +30,8 @@
 \newcommand{\sometimesStar}{\emph{Sometimes*}\xspace}
 \newcommand{\never}{\emph{Never}\xspace}
 \newcommand{\neverStar}{\emph{Never*}\xspace}
+\newcommand{\rdyn}{{\sf R-dyntrace}\xspace}
+\newcommand{\instr}{{\sf InstrumentR}\xspace}
 
 \lstset{language=R}
 
@@ -70,6 +72,8 @@
 \newcommand{\code}[1]{\lstinline[style=R]|#1|\xspace}
 \renewcommand{\c}[1]{\lstinline[style=R]|#1|\xspace}
 \newcommand{\strictr}{{\sf StrictR}\xspace}
+\newcommand{\lazr}{{\sf LazR}\xspace}
+\renewcommand{\Rsh}{{\sf\u R}\xspace}
 
 \include{results}
 
@@ -207,8 +211,6 @@ limit involvement of legacy developers; ({\bf T3}) the migration should have
 measurable benefits; and ({\bf T4}) the migration should be testable with
 discrepancies easily attributed to a specific change.
 %
-\newcommand{\lazr}{{\sf LazR}\xspace}
-\renewcommand{\Rsh}{{\sf\u R}\xspace}
 %
 We propose a migration path that will lead to a mostly strict ecosystem based on
 an augmented semantics for R, an performant implementation of that semantics in
@@ -246,31 +248,31 @@ this paper we propose to evaluate the proposed migration path. We make
 the following contributions:
 
 \begin{itemize}
-\item We propose a non-invasive extension of the R language where optional
-  signature files specify, for individual functions, which of their arguments
-  are strict. The proposal is integrated in the R environment and compatible
-  with the package loading model. In GNUR, the reference implementation of the
-  language, the new semantics is implemented by source-to-source rewriting of
-  functions as they created in the interpreter.
+\item We propose \strictr, a non-invasive extension of the R language, where
+  optional signature files specify, for individual functions, which of their
+  arguments are strict. The proposal is integrated in the R environment and
+  compatible with the package loading model. In GNUR, the reference
+  implementation of the language, the new semantics is implemented by
+  source-to-source rewriting of functions as they created in the interpreter.
 \item We implement \lazr, an infrastructure for large-scale inference of
   strictness signatures for legacy libraries. We evaluate \lazr on packages
   hosted in the CRAN repository. For each package \lazr extracts all executable
   code from vignettes, examples and tests, and infers signatures for all
-  functions defined by the package. The process is shown to scale to 5,000?
-  packages.
+  functions defined by the package. The process is shown to scale to the 500
+  most widely used packages in the R ecosystem.
 \item We extend the \Rsh optimizing just-in-time compiler with support for
   strictness signatures, and evaluate the benefits of unboxing and inlining
-  delayed evaluation on a benchmark suite of small computational tasks. We
-  show a median 1.25x? speed up on those benchmarks.
+  delayed evaluation on a benchmark suite of small computational tasks. We show
+  a median 1.12x speed up on those benchmarks.
 \item We evaluate the robustness of the inferred signatures by testing them with
-  8,000? packages that are transitive clients of the packages for which
-  signatures were inferred. We report 0.3\% error rate, \emph{i.e.}~signatures that
-  cause executions to diverge from the reference semantics.
+  2,000 packages that are transitive clients of the packages for which
+  signatures were inferred. We report 0.3\% error rate, \emph{i.e.}~signatures
+  that cause executions to diverge from the reference semantics.
 \end{itemize}
 
 Our conclusions are that a semi-automated migration is viable; for community
 review we intend to reduce the error rate by folding all clients of packages
-together.
+together to infer combined signatures.
 
 \paragraph{Availability} Our work is in open source, all experiments are
 repeatable and will be submitted for artifact evaluation.
@@ -609,10 +611,16 @@ having access to the same argument promises. All these functions in the chain
 can directly affect these arguments. The presence of missing arguments inside
 $...$ introduces another wrinkle.
 
-\paragraph{Orders of evaluation} Talk about that
+\paragraph{Orders of evaluation} A design choice we faced was to select
+in which order to evaluate a strict function. As R has named arguments functions
+can be invoked with a permutation of their defined parameters. The question is
+thus what is most natural? From the point of view of a library, any order strict
+order is equivalent to any other. From the point of view, of clients there is
+likely an expectation that arguments are evaluated left-to-right. For technical
+reason, \strictr evaluates strict arguments in definition order. We are
+experimenting with the alternative in our \Rsh implementation. We do not have
+sufficient experience to determine if one is superior.
 
-\newcommand{\rdyn}{{\sf R-dyntrace}\xspace}
-\newcommand{\instr}{{\sf InstrumentR}\xspace}
 
 \section{Inferring Strictness with LazR}
 
