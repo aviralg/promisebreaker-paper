@@ -161,6 +161,8 @@ paste0("\\\\\n") %>%
 cat()
 ```
 
+# Never
+
 ```{r echo = FALSE, warning=FALSE, message=FALSE}
 uneval_params %>%
     filter(uneval_type == "Never" & meta_tot == 0) %>%
@@ -181,4 +183,63 @@ uneval_params %>%
     arrange(desc(fun_perc)) %>%
     mutate(fun_cumperc = round(100 * cumsum(fun_count) / sum(fun_count), 2)) %>%
     datatable()
+```
+
+# Sometimes
+
+```{r echo = FALSE, warning=FALSE, message=FALSE}
+sometimes_params <-
+    uneval_params %>%
+    filter(uneval_type == "Sometimes" & meta_tot == 0) %>%
+    group_by(pack_name, fun_name) %>%
+    summarize(formal_pos = paste(formal_pos, collapse=",")) %>%
+    ungroup() %>%
+    left_join(functions, by = c("pack_name", "fun_name")) %>%
+    select(pack_name, fun_name, formal_pos, fun_def) %>%
+    arrange(str_length(fun_def))
+
+sometimes_params %>%
+    slice(1:5000) %>%
+    datatable()
+    
+sometimes_params %>%
+    group_by(fun_name) %>%
+    summarize(packages = length(unique(pack_name))) %>%
+    ungroup() %>%
+    datatable()
+    
+uneval_params %>%
+    filter(uneval_type == "Sometimes") %>%
+    group_by(pack_name, fun_name) %>%
+    summarize(call_count = first(call_count)) %>%
+    ungroup() %>%
+    count(call_count, name = "fun_count") %>%
+    mutate(fun_perc = compute_percentage(fun_count, 2)) %>%
+    arrange(desc(fun_perc)) %>%
+    mutate(fun_cumperc = round(100 * cumsum(fun_count) / sum(fun_count), 2)) %>%
+    slice(1:100) %>%
+    datatable()
+    
+    
+parameters %>%
+filter(pack_name == "bit64" & fun_name == "`signif.integer64`") %>%
+datatable()
+
+
+parameters %>%
+filter(pack_name == "roxygen2" & fun_name == "`object_defaults.default`") %>%
+datatable()
+
+
+uneval_params %>%
+    filter(uneval_type == "Sometimes") %>%
+    distinct(pack_name, fun_name) %>%
+    left_join(functions, by = c("pack_name", "fun_name")) %>%
+    filter(str_detect(fun_def, fixed("UseMethod("))) %>%
+    datatable()
+    
+parameters %>%
+filter(pack_name == "abind" & fun_name == "`acorn`") %>%
+datatable()
+    
 ```

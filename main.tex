@@ -821,8 +821,63 @@ better call diversity, the \never parameters will turn into \sometimes.
 
 \paragraph{Qualitative Analysis}
 
-We analyzed a sample of functions with \never parameters to identify usage
-patterns.
+We analyzed a sample of functions with \sometimes and \never parameters to
+identify usage patterns.
+
+First, we look at \sometimes parameters. A common patter occurring in 30
+packages is the following definition of \code{\%||\%} function.
+
+\begin{lstlisting}
+lazyeval::\%||\% <- function(x, y) if(is.null(x)) y else x
+\end{lstlisting}
+
+This function evaluates its second argument \code{y} only if \code{x} is
+\code{NULL}. This makes \code{y} a \sometimes parameter. This pattern suggests
+that \code{y} is a \sometimes parameter for a reason and should not be evaluated
+unless needed. However, there are other functions with multiple paths where
+evaluating the \sometimes argument is expected to be benign. For example, in
+\code{bayesplot::is_whole_number} function, the \code{tol} argument is only
+evaluated when \code{x} is a numeric value. I
+
+\begin{lstlisting}
+bayesplot::is_whole_number <- function(x, tol = .Machine$double.eps) {
+    if (!is.numeric(x)) { FALSE } else { abs(x - round(x)) < tol }
+}
+\end{lstlisting}
+
+
+Another pattern occurring in 4 packages is the definition of
+\code{on_package_load}.
+
+\begin{lstlisting}
+glue::on_package_load <- function(pkg, expr) {
+    if (isNamespaceLoaded(pkg)) { expr }
+    else {
+        thunk <- function(...) expr
+        setHook(packageEvent(pkg, "onLoad"), thunk)
+    }
+}
+\end{lstlisting}
+
+Here, if package \code{pkg} is not loaded, the \code{expr} argument's evaluation
+is delayed until the package's \code{onLoad} event occurs. In some executions,
+we see the \code{expr} argument being evaluated if package \code{pkg} is loaded
+and in other iterations, we don't. The way this code is written suggests that
+\code{expr} should not be evaluated strictly.
+
+S3 generics result in many \sometimes and \never parameters. These functions
+dynamically dispatch to a specific implementation with the same name based on
+the first argument's class. In this case, the first argument is always evaluated
+but the remaining arguments might not be needed by the specific method. Across
+all executions, we observed that \code{n} and \code{m} are evaluated sometimes
+but \code{r} is never evaluated.
+
+\begin{lstlisting}
+abind::acorn <- function(x, n=6, m=5, r=1, ...) UseMethod('acorn')
+\end{lstlisting}
+
+
+Next, we turn our attention to \never parameters.
 
 The most common case is when an argument is not used in some branch of the
 function. Due to lack of call diversity, the branch in which the argument is
