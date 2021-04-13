@@ -276,38 +276,122 @@ is added to a variant of the Scheme programming language to enable gradual
 migration from untyped to typed code.
 
 
-\subsection{The R Language}
+\subsection{Laziness and the R Language}
 
-\subsection{Missingness}
+The R language is widely used in data science. R is a vectorized, dynamic, lazy,
+functional and object-oriented programming language~\cite{ecoop12}, designed to
+be easy to learn by non-programmers and to enable rapid development of new
+statistical methods. The language was created in 1993 by~\citet{R96} as a
+successor to an earlier language for statistics named S~\cite{S88}.
 
-A function in R can be called with fewer arguments than expected. These
-argumentless parameters are treated as missing if they don't have a default
-value. The function can check for missing arguments using the \code{missing}
-function. Since missing arguments can be forwarded to callees, \code{missing}
-performs this check transitively. The strictness signatures we compute reflect
-the function's strictness with respect to its arguments when they are not
-missing.
+\paragraph{Functions}
+In R every linguistic construct is desugared to a function call, even control
+flow statements, assignments, and bracketing. Furthermore, all functions can be
+redefined. This makes R both flexible and challenging to compile. A function
+definition can include default expressions for parameters, these can refer to
+other parameters. R functions are higher-order. The following snippet declares a
+function \code f which takes a variable number of arguments, whose parameters
+\code x and \code y, if missing, evaluate to \code y and \code{3*x}. The function
+returns a closure.
+\begin{lstlisting}[style=R]
+> f <- function(x=y, ..., y=3*x) { function(z) x+y+z }
+\end{lstlisting}\vspace{1mm}
+\noindent
+Function \code f can be called with no arguments \code{f()}, with a single argument
+\code{f(3)}, with named arguments \code{f(y=4,x=2)} and with a variable number
+of arguments, \code{f(1,2,3,4,y=5)}. Some functions are written so as to
+tolerate missing arguments, to this end the \c{missing(x)} built-in can be used
+to check is parameter \code{x} was provided at the call site. Note that in the
+above example, \code{x} can have a value and be missing at the same time (because
+the default value does not void missingness). A vararg parameter, written
+\code{...}, accepts an arbitrary number of arguments, including missing arguments.
+A vararg can be materialized into a list with \code{list(...)}. Most frequently
+varargs are passed forward to a called function. This enables the function to
+expose its callee's interface to the callers without listing callee's parameters
+and their default values.
 
+\paragraph{Attributes}
+Values can be tagged by user-defined attributes. For instance, one can attach
+the attribute \code{dim} to the value \code{x<-c(1,2,3,4)} by evaluating
+\code{attr(x,"dim")<-c(2,2)}. Once done, arithmetic functions will treat \code x
+as a \code{2x2} matrix. Another attribute is \code{class} which can be bound to
+a list of names. For instance, \code{class(x)<-"human"}, sets the class of
+\code{x} to \code{human}. Attributes are used for object-oriented dispatch. The
+``S3 object system'' supports single dispatch on the class of the first argument
+of a function, whereas the ``S4 object system'' allows dispatch on all
+arguments. These names refer to the version of the S language which introduced
+them. Popular data types, such as data frames, also leverage attributes. A data
+frame is a list of vectors with \code{class} and \code{colname} attributes.
 
-\subsection{Metaprogramming}
-The \code{substitute} function provides reflective access to an argument's
-unevaluted code contained inside the promise. This can also be done in native
-code using the \code{PREXPR} C macro on the promise object. These cases reflect a
-genuine use of laziness. Functions are treated as lazy in these arguments, even
-if the arguments are evaluated.
+\paragraph{Reflection}
+R supports reflection and meta-programming. The \code{substitute(e,envir)}
+function yields the parse tree of the expression \code{e} after performing
+substitutions defined by the bindings in \code{envir}.
+\vspace{-1mm}
+\begin{lstlisting}[style=R]
+> substitute(expression(a + b), list(a = 1)))
+expression(1 + b)
+\end{lstlisting}
+\noindent
+This can also be done in native code using the \code{PREXPR} C macro. R allows
+programmatic manipulation of parse trees, which are themselves first class
+objects. They are evaluated using the \code{eval(e,envir)} function. Environment
+on the call stack can also be accessed.
 
-\subsection{Reflection}
-R provides reflective access to its first class environments and it
+\paragraph{Effects} While R strives to be functional, it has many imperative
+features such as assignment to local variables \code{<-}, assignment to
+variables in an enclosing scope \code{<<-}, assignment in a programmatically
+chosen scope \code{assign()}. R support non-local returns either through
+exception or by delayed evaluation of a \code{return} statement.
 
-\subsection{Effects}
+\paragraph{Delayed Evaluation}
 
-\subsection{Vararg}
-varargs, or $...$ paramaters, accept an arbitrary number of arguments, including
-missing arguments. The function can materialize $...$ into a list using the
-\code{list(...)} pattern. This saves the user from packaging the arguments into
-a list. The function can also forward its $...$ to a callee. This enables the
-function to expose its callee's interface to the callers without listing
-callee's parameters and their default values.
+The combination of side effects, frequent interaction with C, and absence of
+types has pushed R to be more eager than other lazy languages. Strictly
+speaking, R's not lazy as it evaluates arguments that it does not need to. Let
+us review its design. Arguments to a function are bundled into a thunk called a
+\emph{promise}. Logically, a promise combines an expression's code, its
+environment, and its value. To access the value of a promise, one must
+\emph{force} it. Forcing a promise triggers evaluation and the computed value is
+captured for future reference. The following snippet defines a function \code{f}
+that takes argument \code x and returns \code{x+x}. When called with an argument
+that has the side effect of printing to the console, the side effect is
+performed once as the second access to the promise is cached.
+\begin{lstlisting}[style=R]
+> f <- function(x) x+x
+> f( {print("Hi!");2} )
+"Hi!"
+4
+\end{lstlisting}
+
+\noindent
+Promises associated to parameters' default values have access to all variables
+in scope, including other parameters. Promises cannot be forced recursively,
+that is an error. Promises are mostly encapsulated and hidden from user code. R
+only provides a small interface for operating on promises:
+\begin{itemize}
+\item {\bf\small\code{delayedAssign(x,exp,eenv,aenv)}}: create a promise
+  with body \code{exp} and binds it to variable \code x (where \code x is a
+  symbol). Environment \code{eenv} is used to evaluate the promise, and
+  \code{aenv} is used to perform the assignment.
+\item {\bf\small\code{substitute(e,env)}}: substitutes variables in \code e
+  with their values found in environment \code{env}, returns an
+  \code{expression} (a parse tree).
+\item {\bf\small\code{force(x)}}: forces the promise \code x. This replaces a
+  common programming idiom, \code{x<-x}, which forces \code x by assigning it
+  to itself.
+\item {\bf\small\code{forceAndCall(n,f,...)}}: call \code{f} with the
+  arguments specified in the varargs of which the first \code{n} are forced
+  before the call.
+\end{itemize}
+
+\noindent
+While R does not provide built-in lazy data structures, they can be encoded. R
+evaluates promises aggressively. The sequencing operator \code{a;b} will
+evaluate both \code a and \code b, assignment \code{x<-a} evaluates \code a, and
+\code{return} also triggers evaluation. In addition, many core functions are
+strict.
+
 
 
 \section{Strictness Signatures}
@@ -1160,6 +1244,6 @@ bytecode interpreter. In this configuration the speedup is xx\%.
 
 %%\section*{Acknowledgments}
 %% TODO: Thank Flip
-\bibliography{bib/jv, bib/aviral, bib/ml}
+\bibliography{bib/jv, bib/aviral, bib/ml, bib/bib}
 
 \end{document}
