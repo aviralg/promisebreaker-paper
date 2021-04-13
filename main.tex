@@ -551,9 +551,10 @@ seem to be written as if R was strict. There is one significant exception to
 this. That is when some form of meta-programming will be applied to an argument.
 Consider the following definition for an example:
 \begin{lstlisting}
- f <- function(a,b) {  print(unparse(substitute(a)));   x <- eval(substitute(b));  x + a }
+ f <- function(a,b) { print(unparse(substitute(a)));  x <- eval(substitute(b));  x+a }
 \end{lstlisting}
 
+\medskip
 \noindent
 A call of \c{f(1+2, 3+4)} creates two promises. The first is accessed by
 \c{substitute}, turned into a string by \c{deparse} and printed. The code of the
@@ -570,183 +571,127 @@ to perform a reflective or effectful operation, we could still evaluate it
 without any observable consequence except a performance penalty.
 
 
-
 \paragraph{Accidental laziness.} In order to preserve behavior of legacy code
 some parameters may be labeled as lazy even if the called function does not
-really require them to be.
+require or expect them to be. An argument that performs a side-effect may have
+to be treated as lazy to retain semantics, for instance in the following call,
+\c{f(g(),x<-1)}, it is unknown in which order function \c f will evaluates it
+argument. Enforcing a strict left-to-right order could lead to an observable
+difference in behavior if the call to \c{g()} somehow reads \c{x}. There are two
+mitigating factors, writing such code in a lazy language is bad practice, as
+small changes in the implementation of \c f may change evaluation order.
+Secondly, R has a copy-on-write semantics for vectors and lists, as these are
+the most frequently used data types, many updates will not be observable.
+Errors and exception are another source of effect inside promises. They can
+either stop the program execution or be captured by an enclosing exception
+handler.
 
+Some functions occurring in a promise can make evaluation of the promise
+sensitive to its position on the call stack, and strict evaluation would be
+observable. Functions \code{as.environment} and \code{pos.to.env} when invoked
+with argument \code{-1} return the environment of the caller. Forcing this
+argument promise eagerly on function entry could result in a different result if
+the promise was being passed down to callees for evaluation. Note that if the
+function's documentation does not make any commitment about the frame in which
+this argument will be evaluated, this code will be susceptible to breakage due
+to change in the function's implementation.
 
-$...$ arguments are always treated as lazy. Assigning a single strictness
-annotation to $...$ is tricky because a function can have different strictness
-behavior for the individual arguments of $...$. One solution is to treat the
-function strict in $...$ if it is strict in all of its constituents. However,
-this signature may still not be unique. Unlike normal argument promises,
-promises inside $...$ are not packaged in a new promise but rather forwarded
-as-is to callees. A function's callees may use metaprogramming on the promises
-inside $...$ even if the function itself does not . Furthermore, a $...$ passed
-to a callee could be forwarded further down resulting in a long chain of
-functions having access to the same argument promises. All these functions in
-the chain can directly affect these arguments. The presence of missing arguments
-inside $...$ introduces another wrinkle.
+Vararg arguments may have to be lazy. Assigning a single strictness annotation
+to $\dots$ is tricky because a function can have different strictness behavior
+for the individual elements of $\dots$. One solution is to treat the function
+strict in $\dots$ if it is strict in all of its constituents. However, this
+signature may still not be unique. Unlike normal argument promises, promises
+inside $\dots$ are not packaged in a new promise but rather forwarded as-is to
+callees. A function's callees may use metaprogramming on the promises inside
+$\dots$ even if the function itself does not . Furthermore, a $...$ passed to a
+callee could be forwarded further down resulting in a long chain of functions
+having access to the same argument promises. All these functions in the chain
+can directly affect these arguments. The presence of missing arguments inside
+$...$ introduces another wrinkle.
 
+\paragraph{Orders of evaluation} Talk about that
 
-Functions \code{as.environment} and \code{pos.to.env} when invoked with argument
-\code{-1} return the environment of the parent call on the stack. Calling them
-directly from inside a promise makes the promise's result sensitive to the frame
-of its evaluation. Forcing this argument promise eagerly on function entry could
-result in a different result if the promise was being passed down to callees for
-evaluation in the original program. This makes the function lazy in that
-argument even if its implementation does not require this argument to be lazy.
-This code has an accidental reliance on laziness. If the function's
-documentation does not make any commitment about the frame in which this
-argument will be evaluated, this code will be susceptible to breakage due to
-change in the function's implementation.
-
-Arguments can perform side-effects. Many argument promises will contain a symbol
-referring to the value being passed as the argument, so they will at least
-perform a read in the caller's environment. Similarly, some promises contain
-function call expressions which will do local writes in the environment created
-for the function call during promise evaluation. These effects are benign and do
-not affect our decision to evaluate the corresponding arguments strictly.
-However, if a promise writes to the caller's environment, or more generally, to
-any environment that is not created during its evaluation, then that write is
-observable by code outside the promise. Also, if a promise reads from an
-environment that is modified after the promise is created and before it is
-evaluated, then that argument should also be treated lazily. Arguments that
-perform these reads and writes depend on the evaluation order implemented by the
-function to which they are passed. Unless the function's documentation describes
-this order, these uses are wrong. A change in function's implementation could
-cause the reads and writes to happen in a different order, or not at all,
-leading to incorrect results. Similarly, errors are another source of effect
-inside promises. They can either stop the program execution or be captured by an
-enclosing exception handler.
-
-
+\newcommand{\rdyn}{{\sf R-dyntrace}\xspace}
+\newcommand{\instr}{{\sf InstrumentR}\xspace}
 
 \section{Inferring Strictness with LazR}
 
+This section describes how to infer strictness annotations at scale.
 
-\subsection{Infrastructure }
-In this section, we describe our analysis pipeline that \emph{(a)} synthesizes
-strictness signatures from execution traces, \emph{(b)} validates them by
-enforcing strict argument evaluation, and \emph{(c)} analyzes execution traces
-for insights. Our experiments were performed on two Intel Xeon 6140, 2.30GHz
-machines with 72 cores and 256GB of RAM each. The analysis pipeline starts with
-setting up a Docker image that includes all the dependencies for installing
-analysis code and R packages from CRAN and Bioconductor. This provides a
-reliable reproducible setup across the two machines. Next, we mirror CRAN and
-Bioconductor\cite{bioc} repositories and install their R packages. This is
+\subsection{Infrastructure}
+
+\lazr is an analysis pipeline for inferring strictness annotations in legacy R
+libraries at scale. It builds on the \rdyn package which extends the GNUR
+virtual machine version 4.0.2 with hooks for registering
+callbacks~\cite{oopsla19b}. The analysis pipeline starts with setting up a
+Docker image that includes all the dependencies for installing analysis code and
+R packages from CRAN~\cite{ligges2017} and Bioconductor~\cite{bioc}. This
+provides a reliable reproducible setup across the two machines. Next, we mirror
+CRAN and Bioconductor repositories and install their R packages. This is
 followed by generation of execution traces from a dynamic analyzer running
 inside an instrumented R virtual machine. These traces are analyzed to generate
-tabular data files and strictness signatures. Finally, the signatures are
-applied to client programs for validation. The pipeline is managed by a Makefile
-which has rules for every step. This makes it easy to administer the experiments
-on multiple machines. Whenever possible, we parallelize the steps using GNU
-parallel\cite{tange2011a}.
+tabular data files and strictness signatures. Our analysis pipeline is managed
+by a Makefile which has rules for every step. This makes it easy to administer
+the experiments on multiple machines. Whenever possible, we parallelize the
+steps using GNU parallel~\cite{tange2011a}. Experiments were performed on two
+Intel Xeon 6140, 2.30GHz machines with 72 cores and 256GB of RAM each.
 
-\paragraph{Synthesizing Strictness Signatures}
+\subsection{LazR}
 
-For synthesizing strictness signatures, we observe the evaluation of arguments
-from dynamically generated execution tracer. For this, we use an instrumented R
-virtual machine, \emph{R-dyntrace} \citet{oopsla19b} based on GNU-R version
-4.0.2. It exposes events for invoking user-defined callbacks with raw R object
-at specific points inside the R interpreter. Extracting meaningful information
-from these R objects at this low level requires handling a lot of subtleties
-arising from the intricacies of R's execution model. These details are
-surprisingly hard to get right. The challenges are described in detail by
-\cite{oopsla19b} in the design of their tracer for collecting information about
-use of laziness in R programs.
+The low-level \rdyn allows registering callbacks with raw R objects at various
+points inside the R interpreter. Extracting meaningful information from these
+objects requires handling many subtleties arising from the intricacies of R's
+execution model. These details are surprisingly hard to get right.
 
-\AG{TODO: Add LOC for R-dyntrace and instrumentr}
+\lazr provides a layer of abstraction on top of the event framework. It allows
+creating tracers to which callbacks can be attached, and intercepts low-level
+events to invoke the corresponding tracer's callbacks. Rather than exposing raw
+R object, it exposes \emph{model} objects. These model objects abstract the raw
+R objects and provide a consistent introspection interface. Model objects also
+provide unique identities to anonymous objects. This uniqueness guarantee
+enables downstream clients to not worry about to memory manager recycling
+addresses. The model objects are reference counted so they can still be
+reclaimed. Cycles are dealt with the notion of a primary owner; an object's
+primary can release that object. This design eases expressing complex object
+dependencies without memory leaks. This greatly simplifies the handling of
+promises, first class environments and function calls.
 
-To iron these wrinkles, we developed \emph{instrumentr}, an R package that
-provides a layer of abstraction on top of the event framework exposed by
-\emph{R-dyntrace}. \emph{instrumentr} provides an API to create tracer objects
-to which event specific callbacks can be attached. \emph{instrumentr} intercepts
-\emph{R-dyntrace} events and invokes the corresponding tracer's callbacks. It
-passes model objects to callbacks by wrapping the raw R objects provided to its
-own callbacks registered with \emph{R-dyntrace}. These model objects contain
-metadata about the raw R object and provide a consistent API for inspecting
-their constituents. The object metadata keeps track of the object's unique id.
-This uniqueness guarantee enables downstream client analyses to key objects by
-their id instead of addresses which are not unique since they get resused by R's
-garbage collector. The model objects are reference counted which makes it
-possible for a model object to be referenced by multiple model objects with
-proper memory management. A complication arises in this design when objects have
-cyclic references. For example, a promise argument keeps a reference to a call
-object and vice-versa. To address this, \emph{instrumentr} defines the notion of
-a primary owner. The primary owner of a model object can ``kill'' the object,
-i.e. free up object's internals (and decrement the references it holds to other
-objects) even if it is referenced by other objects. Killing does not free up the
-model object's memory or affect its metadata. This lets secondary owners access
-the dead object's metadata even after the raw R object no longer exists. The
-``dead'' object's memory is finally freed when it is no longer referenced by any
-other object in the system. This design insight makes it trivial to express
-complex object dependencies without any memory leaks at the scale of millions of
-objects. This also enables clients to query dead object's metadata if they are
-referenced by model objects made available to the clients via their callbacks.
-This greatly simplifies the handling of promises, first class environments and
-function calls.
+During analysis, \lazr keeps track of logical time, from program entry to exit,
+time is incremented on every event. Every model object records the birth and
+death of the raw R object being modeled. For environments, the model object also
+keeps track of last read and write times. For promises, start and end of forcing
+are recorded. This information is used to classify side-effects.
 
-\emph{instrumentr} keeps track of logical time, from tracing
-entry to tracing exit, incremented on every event. The model object's metadata
-keeps track of its time of allocation and deallocation. For environments, it
-also keeps track of last read and last write time. For promises, it keeps track
-of force entry and force exit time. This information is used to identify
-non-local reads and writes to environments.
+For performance, model objects are cached in a table keyed by the R object's
+address. Cache are updated on allocation and deallocation events. This prevents
+duplication of model objects when the same R object is encountered multiple
+times. The call stack is modeled together with the promises that are under
+evaluation. This helps identify if an event, say a side-effect, occurs inside a
+promise. Furthermore, as R uses \emph{longjmp} to do non-local returns, \lazr
+deals with such events by calling the exit callbacks of interrupted calls and
+promises on the stack. Environment and function names are also modeled. Getting
+fully qualified function names dynamically is challenging in R because package
+namespaces are first class environments that are constructed piecemeal and all
+functions are by default anonymous and may be bound to any name in their lexical
+scope. \lazr handles this by assigning names to environments on package load
+events and checking on every write if a function is being bound to a name.
+Functions can be nested to arbitrary depths in which case, function model object
+are linked to reflect their parent-child relationship.
 
-For performance, \emph{instrumentr} caches model objects in a table keyed by the
-R object's address. Table entries are inserted and erased on \emph{object
-  allocation and deallocation} events respectively. This prevents duplication of
-model objects when the same R object is encountered on multiple events.
-
-\emph{instrumentr} models the call stack. It also adds promise objects under
-evaluation to the stack. This helps identify if an event, say a side-effect, is
-occuring inside a promise. Furthermore, R uses \emph{longjmp} to do non-local
-returns. \emph{instrumentr} exposes a deterministic behavior during such events
-by artificially calling the exit callbacks of interrupted calls and promises on
-the stack. This simplifies the client side tracing logic, significantly.
-
-\emph{instrumentr} keeps track of environment and function names in their model
-objects. Getting fully qualified function names dynamically is challenging in R
-because package namespaces are first class environments that are constructed
-piecemeal and all functions are by default anonymous objects that may be bound
-to a name in their lexical scope. \emph{instrumentr} handles this by assigning
-names to environments on package load events and checking on every write if a
-function is being bound to a name. Functions can be nested to arbitrary depths
-in which case \emph{instrumentr} links model function objects to reflect the
-parent-child relationship.
-
-For extracting execution traces, we developed \emph{lazr}, an R library which
-sits atop \emph{instrumentr}. \emph{lazr} collects information about function
-calls, arguments, side-effects, and reflective environment access. from the
-model objects provided by the following instrumentr event: \emph{function entry
-  and exit}, \emph{promise evaluation entry and exit}, \emph{variable reads and
-  writes}, \emph{promise value and expression reads}, and \emph{function
-  lookup}. This information is stored in compressed tabular format using R's
-\emph{fst} library.
+During execution, \lazr collects information about function calls, arguments,
+side-effects, and reflective environment access. from the model objects provided
+by the following event: \emph{function entry and exit}, \emph{promise evaluation
+entry and exit}, \emph{variable reads and writes}, \emph{promise value and
+expression reads}, and \emph{function lookup}. This information is stored in
+compressed tabular format using R's \c{fst} library.
 
 For signature generation, we use a custom R script that summarizes argument
-evaluation data per function from the tables generated by \emph{lazr} and
-generates signatures for different strictness configurations. We generate one
-file per package per signature configuration containing signatures for all
-top-level functions of that package. Here is how the signature file for package
-\code{rlang} looks like.
-
-\begin{verbatim}
-...
-strict `abort_call_input_type` <1>;
-strict `abort_coercion` <1,2>;
-strict `abort_data_pronoun` <1>;
-...
-\end{verbatim}
-
-
-\paragraph{Analysis and Data Visualization}
-
+evaluation data per function from the tables obtained during tracing and
+generates signatures for different strictness configurations. We output one file
+per package with signatures for all top-level functions of that package.
 The execution traces we generate from our corpus are 1.2TB in size. To analyze
 them for insights and data visualization, we designed a simple map-reduce style
-analysis pipeline. Each analysis is split in 4 phases. The first phase is the
+pipeline. Each analysis is split in 4 phases. The first phase is the
 \emph{reduce} phase in which we map an R function on the execution trace of each
 program to get a partial summary. Next is the \emph{combine} phase in which we
 concatenate the partial summaries obtained from the \emph{reduce} step. Then,
@@ -757,37 +702,7 @@ as many summary files. Finally, in the \emph{report} phase we analyze these data
 files in an RMarkdown notebook to generate data points, graphs, and tables for
 inclusion in the paper.
 
-\AG{TODO: add data size for each step and LOC for analysis scripts.}
-
 \subsection{Corpus}
-
-For synthesizing strictness signatures, we run code from a corpus of packages
-using \lazr. For validation, we insert strictness contracts in the corpus
-functions and run their client programs using \strictr.
-
-We selected corpus packages and client programs from CRAN and Bioconductor, two
-official package repositories for R. CRAN and Bioconductor have 17,388 and 3,344
-packages each, of which, we were able to install 17,142 CRAN and 2,733
-Bioconductor packages. Some packages could not be installed because of missing
-native dependencies and compilation errors in our Docker image. We chose to
-discard those packages. Code submitted to CRAN and Bioconductor is curated by
-subjecting it to a battery of tests to ensure quality. Packages submitted to
-these repositories have runnable code in the form of tests, examples, and
-vignettes. Vignettes are typically long examples which demonstrate a packages
-functionality.
-
-We synthesized signatures for functions from 500 packages. The criterion was to
-select packages with the maximum number of client packages. This requirement
-enabled us to evaluate the strictness signatures of those packages from the
-runnable code of their clients. The chosen packages have a total of 15,362
-dependent client packages, ranging from maximum 2,669 dependents for
-\emph{ggplot2} to minimum 5 for \emph{spatstat.linnet} with an average 125.4
-dependents.
-
-The selected 500 packages have 2.2M lines of R code and 2.7M lines of native (C,
-C++, and Fortran) code. For synthesizing signatures for their functions, we
-analyzed the execution traces obtained from their examples, tests, and
-vignettes.
 
 \begin{wraptable}{r}{7cm}
   \vspace{-3mm}
@@ -806,17 +721,35 @@ vignettes.
     &751.2K&348.8K&112.3K&\it Client \\
     \bottomrule
   \end{tabular}
-\end{wraptable}
+\end{wraptable}%%
 
-For validation, we selected 2000 dependent packages of the synthesis
-corpus. They have 4.5M lines of R code and 4.7M lines of native (C, C++, and
-Fortran) code. We run their examples, tests, and vignettes to exercise the
-functions with signatures.
+We selected corpus packages and client programs from CRAN and Bioconductor, two
+official package repositories for R. CRAN and Bioconductor have 17,388 and 3,344
+packages each, of which, we were able to install 17,142 CRAN and 2,733
+Bioconductor packages. Some packages could not be installed because of missing
+native dependencies and compilation errors. We discard those packages. Code in
+those repositories is curated by subjecting it to a battery of quality checks.
+Packages have runnable code in the form of tests, examples, and vignettes.
+Vignettes are typically long examples which demonstrate a packages
+functionality.
 
-Table ~\ref{table:corpus} gives the number of scripts of each kind that were run
-and lines of code exercised.
+We synthesized signatures for functions from 500 packages. The criterion was to
+select packages which had the most clients, \emph{i.e.}, packages which are the
+most widely used in the ecosystem. This requirement will prove handy for
+evaluation. The chosen packages have a total of 15,362 dependent client
+packages, ranging from maximum 2,669 dependents for \emph{ggplot2} to minimum 5
+for \emph{spatstat.linnet} with an average 125.4 dependents. The selected 500
+packages have 2.2M lines of R code and 2.7M lines of native code. For
+synthesizing signatures for their functions, we analyzed the execution traces
+obtained from their examples, tests, and vignettes. Table ~\ref{table:corpus}
+gives the number of scripts of each kind that were run and lines of code
+exercised.
 
-\begin{wraptable}{l}{8cm}
+
+\subsection{Inference}
+
+
+\begin{wraptable}{r}{8cm}
   \vspace{-3mm}
   \small
   \caption{Package Size} \label{table:packsize}
@@ -851,12 +784,18 @@ and lines of code exercised.
 \end{wraptable}
 
 We generate signatures for 50,435 functions from 500 packages. These are
-top-level package functions. We ignore anonymous and inner functions. Table
-~\ref{table:packsize} shows the distribution of these functions across packages.
-We observe that 148 packages have 25 functions or less. As expected, there is a
-steady decrease in packages with more functions. There are 12 packages with more
-than 500 functions. Package \emph{spatstat.geom} has the maximum number of
-functions, 886.
+top-level package functions. We ignore anonymous and inner functions.
+Table~\ref{table:packsize} shows the distribution of these functions across
+packages. We observe that 148 packages have 25 functions or less. As expected,
+there is a steady decrease in packages with more functions. There are 12
+packages with more than 500 functions. Package \emph{spatstat.geom} has the
+maximum number of functions, 886.
+
+We observe 137.2M calls to these functions. Figure ~\ref{fig:callDist} shows the
+number of distribution of calls across functions called in the synthesis
+phase. 49.5\% functions are called more than 10 times. 16.4\% functions are
+called only once, leading to low coverage. These functions are spread across 414
+packages.
 
 \begin{figure}[!h]
   \centering
@@ -864,12 +803,6 @@ functions, 886.
   \caption{Call Distribution}
   \label{fig:callDist}
 \end{figure}
-
-We observe 137.2M calls to these functions. Figure ~\ref{fig:callDist} shows the
-number of distribution of calls across functions called in the synthesis
-phase. 49.5\% functions are called more than 10 times. 16.4\% functions are
-called only once, leading to low coverage. These functions are spread across 414
-packages.
 
 We observe 294.45M arguments created in our execution traces. Of those 3.9M are
 missing, 18.9M are $...$ arguments, and 271.6M are promises. These arguments
@@ -884,21 +817,20 @@ parameters per function.
   \label{fig:paramDist}
 \end{figure}
 
-7.3\% functions have 0 parameters, 19.6\% have 1, and
-5.0\% have over 10. There are 15 functions with over 50 parameters that come
-from 10 packages. \emph{ComplexHeatmap::pheatmap} (51),
-\emph{network::plot.network.default} (52), \emph{rpart.plot::get.layout} (53),
-\emph{sna::gplot} (54), \emph{Hmisc::latex.default} (55),
-\emph{VennDiagram::draw.quintuple.venn} (57) \emph{pROC::plot.roc.roc} (58),
-\emph{rpart.plot::draw.node.numbers} (60), \emph{gplots::heatmap.2} (63),
-\emph{Hmisc::event.chart} (66), \emph{ComplexHeatmap::Heatmap} (83),
-\emph{ggplot2::theme} (95), \emph{ergm::control.ergm} (117),
-\emph{rpart.plot::prp} (119), and
-\emph{rpart.plot::check.if.dot.arg.supported.by.rpart.rules} (122) with the
-highest number of parameters.
+7.3\% functions have 0 parameters, 19.6\% have 1, and 5.0\% have over 10. There
+are 15 functions with over 50 parameters that come from 10 packages.
+\c{ComplexHeatmap::pheatmap} (51), \c{network::plot.network.default} (52),
+\c{rpart.plot::get.layout} (53), \c{sna::gplot} (54), \c{Hmisc::latex.default}
+(55), \c{VennDiagram::draw.quintuple.venn} (57) \c{pROC::plot.roc.roc} (58),
+\c{rpart.plot::draw.node.numbers} (60), \c{gplots::heatmap.2} (63),
+\c{Hmisc::event.chart} (66), \c{ComplexHeatmap::Heatmap} (83),
+\c{ggplot2::theme} (95), \c{ergm::control.ergm} (117), \c{rpart.plot::prp}
+(119), and \c{rpart.plot::check.if.dot.arg.supported.by.rpart.rules} (122) with
+the highest number of parameters.
 
 
-\section{Compiling Away the Lazy}
+
+\section{Compiling the Lazy Away}
 
 Our main hypothesis regarding performance is that eager semantics lead to faster
 execution of R programs. This hypothesis might seem unexpected to some readers,
@@ -915,25 +847,19 @@ the following we call this modified implementation Ř-strict. We evaluate the
 effects on the Ř benchmark suite. As predicted by (H2) only a handful of
 functions, such as \lstinline{tryCatch} had to be kept lazy for all the
 benchmarks to compute the correct results. Based on the observations so far we
-pose the following predictions:
+pose the following predictions: eager semantics should improve performance of
+most benchmarks; a significant portion of the speedup is due to reduced garbage
+collection pressure; and the remaining speedup is due to improved compiler
+optimizations.
 
-\begin{itemize}
-  \item[{\bf H3.1}] Eager semantics improves performance of almost all benchmarks
-    in the Ř suite.
-  \item[{\bf H3.2}] A significant portion of the speedup is due to reduced
-    garbage collection pressure.
-  \item[{\bf H3.3}] Another significant portion of the speedup is due to improved
-    compiler optimizations.
-\end{itemize}
-
-\paragraph{Speedup (H3.1)}
+\paragraph{Speedup}
 
 To evaluate the effect of eager semantics on performance we use the Ř virtual
 machine and its benchmark suite. We implement a mode where all possible promises
 are inlined in the first-tier compiler of Ř. Overal we observe a mean speedup of
 \speedupRshStrict, ranging from \speedupRshStrictMin to \speedupRshStrictMax.
 
-\paragraph{GC Pressure (H3.2)}
+\paragraph{GC Pressure}
 
 Even an optimizing compiler has to allocate many promises for R
 code. We measure the number of promises allocated in the Ř benchmark suite
@@ -951,7 +877,7 @@ still relatively high in some cases. The lowest reduction observed is
 \OF{TODO: where do they come from?} Also, overall xx\% of the
 speedup reported in (H3.2) is attributed to shorter GC pauses.
 
-\paragraph{Compiler Optimizations (H3.3)}
+\paragraph{Compiler Optimizations}
 
 Our intuition is that inlining promises leads to code that is easier to analyze.
 Therefore we expect an optimizing compiler to provide performance gains that go
@@ -965,17 +891,11 @@ bytecode interpreter. In this configuration the speedup is xx\%.
 
 \section{Robustness}
 
-\OF{We probably need some proper research questions we list earlier, that go along with
-the evaluation...}
 
-In this section we test the following hypotheses:
-
-\begin{itemize}
-  \item[{\bf H1}] Most argument evaluations observed in R conform with strict semantics
-  \item[{\bf H2}] Strict semantics does not break most programs
-  \item[{\bf H3}] Strict semantics is beneficial for performance
-\end{itemize}
-
+For validation, we selected 2000 dependent packages of the synthesis
+corpus. They have 4.5M lines of R code and 4.7M lines of native (C, C++, and
+Fortran) code. We run their examples, tests, and vignettes to exercise the
+functions with signatures.
 
 % TODO for end
 % Table~\cite{tab:ten_sigs} shows ten representative signatures generated by the
