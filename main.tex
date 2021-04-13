@@ -258,20 +258,22 @@ the expected type. For strictness, we have to worry about the interplay of
 side-effects and changes to the order of evaluation of arguments. This makes
 validation of strictness signatures hard.
 
-\paragraph{Language migration}
-With this work, we are trying to propose a change in the semantics of R. The
-most prominent contemporary example is the transition from Python 2 to Python 3,
-which is still ongoing. Python 3 was released in 2008 with many incompatible
-changes. The plan \cite{pysunset} to drop support for Python 2 was postponed
-from 2015 to 2020 since a lot of codebase was not transitioned to Python 3.
-Currently, the translation has been mostly automated by tools such as
-\emph{Futurize}, and \emph{py2to3}.
-
-\AG{Do we want to talk about PHP-Hack and JS strict mode?}
-
-ADD: Gradual typing
-
-ADD: Typescript
+\paragraph{Language migration} Changing a language with a large code base
+is challenging. No migration has been more fraught than that of Python. Python 3
+was released in 2008 with many changes that broke backwards compatibility and no
+automated upgrade path. \citet{Agg15} attempted to use statistical machine
+learning to convert Python 2 to 3. \citet{Pra20} described a tool for
+discovering types in Python programs as a combination of probalistic type
+prediction and search-based refinement. Migration was studied in the context of
+Java libraries~\cite{Xu19}, Android apps~\cite{Orso20} and C++
+applications~\cite{OB20}. A more successful experience is the migration from PHP
+to Hack at Facebook. The key to success was a close feedback loop between
+language changes and their impact on the ecosystem at large. As all the users of
+Hack shared a single source code repository, it was possible to test changes and
+develop tools target at relevant usage patterns. One last relevant thread of
+work is the migratory typing of \citet{matthias06} where a gradual type system
+is added to a variant of the Scheme programming language to enable gradual
+migration from untyped to typed code.
 
 
 \subsection{The R Language}
@@ -1158,6 +1160,6 @@ bytecode interpreter. In this configuration the speedup is xx\%.
 
 %%\section*{Acknowledgments}
 %% TODO: Thank Flip
-\bibliography{bib/jv, bib/aviral}
+\bibliography{bib/jv, bib/aviral, bib/ml}
 
 \end{document}
