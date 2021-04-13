@@ -94,19 +94,6 @@ validation_tab <-
     validation_tab %>%
     mutate(exitval = !exitval, stdout = !stdout) %>%
     filter(keep)
-    
-validation_summary <-
-    validation_tab %>%
-    group_by(signature) %>%
-    summarize(both = sum(exitval & stdout),
-              either = sum(exitval | stdout),
-              exitval = sum(exitval),
-              stdout = sum(stdout)) %>%
-    ungroup()
-    
-validation_summary %>%
-datatable()
-
 
 baseline_programs <-
     validation_tab %>%
@@ -114,34 +101,95 @@ baseline_programs <-
     distinct(type, package, filename) %>%
     nrow()
 
+
+validation_summary <-
+    validation_tab %>%
+    group_by(signature, type) %>%
+    summarize(#both = sum(exitval & stdout),
+              either = sum(exitval | stdout)) %>%
+              #exitval = sum(exitval),
+              #stdout = sum(stdout)) %>%
+    ungroup() 
+    ##%>%
+    ##group_by(signature) %>%
+    ##mutate(type = "total", 
+    ##       both = sum(both),
+    ##       either = sum(either),
+    ##       exitval = sum(exitval),
+    ##       stdout = sum(stdout)) %>%
+    ##ungroup()
+    
+validation_summary %>%
+datatable()
+
+
 validation_summary <-
     validation_summary %>%
-    mutate(either_perc = round(100 * either / baseline_programs, 2),
-           both_perc = round(100 * both / baseline_programs, 2),
-           exitval_perc = round(100 * exitval / baseline_programs, 2),
-           stdout_perc = round(100 * stdout / baseline_programs, 2)) %>%
-    mutate(either_perc = as_perc(either_perc),
-           both_perc = as_perc(both_perc),
-           exitval_perc = as_perc(exitval_perc),
-           stdout_perc = as_perc(stdout_perc)) %>%
+    group_by(signature) %>%
+    mutate(either_perc = round(100 * either / sum(either), 2)) %>%
+           #both_perc = round(100 * both / baseline_programs, 2),
+           #exitval_perc = round(100 * exitval / baseline_programs, 2),
+           #stdout_perc = round(100 * stdout / baseline_programs, 2)) %>%
+    ungroup()
+    
+total_validation_summary <-
+    validation_summary %>%
+    group_by(signature) %>%
+    summarize(type = "total", 
+              either = sum(either),
+              either_perc = round(100 * either / baseline_programs, 2)) %>%
+    ungroup()
+    
+validation_summary <-
+    validation_summary %>%
+    bind_rows(total_validation_summary) %>%
+    mutate(either_perc = as_perc(either_perc)) %>%
+           ##both_perc = as_perc(both_perc),
+           ##exitval_perc = as_perc(exitval_perc),
+           ##stdout_perc = as_perc(stdout_perc)) %>%
     mutate(signature = str_replace(signature, fixed("signature"), ""),
            signature = str_replace(signature, fixed("force"), "U"),
            signature = str_replace(signature, fixed("effect"), "E"),
            signature = str_replace(signature, fixed("reflection"), "R")) %>%
+    mutate(failure = paste(either, either_perc, sep = "&")) %>%
+    select(-either, -either_perc) %>%
+    filter(!(signature %in% c("lazy-1", "lazy-2"))) %>%
+    pivot_wider(names_from = "type",
+                values_from = "failure") %>%
     mutate(order = 4 * str_detect(signature, fixed("-U")) +
-                   2 * str_detect(signature, fixed("-E")) +
+                   2 * str_detect(signature, fixed("-E")) + 
                    1 * str_detect(signature, fixed("-R"))) %>%
-    arrange(order)
+    arrange(order) %>%
+    select(order, signature, test, vignette, example, testthat, total)
+    
 
 validation_summary %>% datatable()
 
 cat(baseline_programs)
 
+header <- colnames(validation_summary)
+
+header_latex <- 
+    paste(map_chr(header[3:length(header)], function(h) paste0("\\multicolumn{2}{c}{\\textbf{", h, "}}")), collapse = "&")
+      
+header_latex <- paste0("\\#&", "\\textbf{Configuration}&", header_latex)
+
+body_latex <-
 validation_summary %>%
-filter(!(signature %in% c("lazy-1", "lazy-2"))) %>%
-pmap_chr(function(signature, either, both, exitval, stdout, either_perc, both_perc, exitval_perc, stdout_perc, order) {
-     res <- paste(order, signature, exitval, exitval_perc, stdout, stdout_perc, either, either_perc, both, both_perc, sep = "&")
-}) %>%
+pmap_chr(function(order, signature, ...) {
+     
+     ##signature <-
+     ##    signature %>%
+     ##    str_replace_all("[+](.)", "\\\\color{green}{+}&") %>%
+     ##    str_replace_all("[-](.)", "\\\\color{red}{-}&") %>%
+     ##    str_remove_all("&$")
+
+     signature <- paste0("$", signature, "$")
+     res <- paste(order, signature, ..., sep = "&")
+})
+
+
+c(header_latex, body_latex) %>%
 paste(collapse = "\\\\\n") %>%
 cat()
 ```

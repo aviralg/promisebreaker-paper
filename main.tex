@@ -754,10 +754,7 @@ obtained from their examples, tests, and vignettes. Table ~\ref{table:corpus}
 gives the number of scripts of each kind that were run and lines of code
 exercised.
 
-
 \subsection{Inference}
-
-
 \begin{wraptable}{r}{8cm}
   \vspace{-3mm}
   \small
@@ -1271,18 +1268,18 @@ spurious transitive laziness.
   \small
   \caption{Strictness Failure} \label{table:strictfail}
   \centering
-  \begin{tabular}{llr|lr|lr|lr|l}
+  \begin{tabular}{lcr|lr|lr|lr|lr|l}
     \toprule
-    \# & \textbf{Configuration}& \multicolumn{2}{c}{\textbf{E}} & \multicolumn{2}{c}{\textbf{S}} & \multicolumn{2}{c}{\textbf{E $\cup$ S}} & \multicolumn{2}{c}{\textbf{E $\cap$ S}}\\
+    \#&\textbf{Configuration}&\multicolumn{2}{c}{\textbf{test}}&\multicolumn{2}{c}{\textbf{vignette}}&\multicolumn{2}{c}{\textbf{example}}&\multicolumn{2}{c}{\textbf{testthat}}&\multicolumn{2}{c}{\textbf{total}}\\
     \midrule
-    0&$+U+E+R$&21&0.05\%&239&0.56\%&239&0.56\%&21&0.05\%\\
-    1&$+U+E-R$&20&0.05\%&234&0.55\%&234&0.55\%&20&0.05\%\\
-    2&$+U-E+R$&33&0.08\%&1922&4.51\%&1922&4.51\%&33&0.08\%\\
-    3&$+U-E-R$&4922&11.54\%&6625&15.54\%&6625&15.54\%&4922&11.54\%\\
-    4&$-U+E+R$&335&0.79\%&610&1.43\%&610&1.43\%&335&0.79\%\\
-    5&$-U+E-R$&336&0.79\%&616&1.44\%&616&1.44\%&336&0.79\%\\
-    6&$-U-E+R$&389&0.91\%&2319&5.44\%&2319&5.44\%&389&0.91\%\\
-    7&$-U-E-R$&5477&12.85\%&7158&16.79\%&7158&16.79\%&5477&12.85\%\\
+    0&$+U+E+R$&5&2.09\%&25&10.46\%&163&68.2\%&46&19.25\%&239&0.56\%\\
+    1&$+U+E-R$&4&1.71\%&24&10.26\%&162&69.23\%&44&18.8\%&234&0.55\%\\
+    2&$+U-E+R$&28&1.46\%&101&5.25\%&1594&82.93\%&199&10.35\%&1922&4.51\%\\
+    3&$+U-E-R$&41&0.62\%&99&1.49\%&1649&24.89\%&4836&73\%&6625&15.54\%\\
+    4&$-U+E+R$&21&3.44\%&87&14.26\%&409&67.05\%&93&15.25\%&610&1.43\%\\
+    5&$-U+E-R$&20&3.25\%&91&14.77\%&412&66.88\%&93&15.1\%&616&1.44\%\\
+    6&$-U-E+R$&46&1.98\%&156&6.73\%&1861&80.25\%&256&11.04\%&2319&5.44\%\\
+    7&$-U-E-R$&57&0.8\%&181&2.53\%&2084&29.11\%&4836&67.56\%&7158&16.79\%\\
     \bottomrule
   \end{tabular}
 \end{table}
