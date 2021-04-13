@@ -11,7 +11,7 @@
 
 
 
-<title>Unevaluated Arguments</title>
+<title>Validation</title>
 
 <script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
 // be compatible with the behavior of Pandoc < 2.8).
@@ -4125,7 +4125,7 @@ div.tocify {
 
 
 
-<h1 class="title toc-ignore">Unevaluated Arguments</h1>
+<h1 class="title toc-ignore">Validation</h1>
 
 </div>
 
@@ -4136,9 +4136,17 @@ div.tocify {
 ## /Users/aviral/projects/promisebreaker-experiment/experiment/report/paper/data/functions.fst</code></pre>
 <pre><code>## /Users/aviral/projects/promisebreaker-experiment/experiment/report/paper/data/exitval_raw.csv
 ## /Users/aviral/projects/promisebreaker-experiment/experiment/report/paper/data/stdout_raw.csv</code></pre>
-<div id="htmlwidget-ecf538c1c1f3e024cf3b" style="width:100%;height:auto;" class="datatables html-widget"></div>
-<script type="application/json" data-for="htmlwidget-ecf538c1c1f3e024cf3b">{"x":{"filter":"none","data":[["1","2","3","4","5","6","7","8","9","10"],["lazy-1","lazy-2","signature-force-effect-reflection","signature-force-effect+reflection","signature-force+effect-reflection","signature-force+effect+reflection","signature+force-effect-reflection","signature+force-effect+reflection","signature+force+effect-reflection","signature+force+effect+reflection"],[-6059,0,7073,2235,533,523,6529,1828,144,142],[-5,0,5829,484,409,407,5153,40,25,26],[-6128,0,7155,2255,537,519,6605,1843,141,142]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th> <\/th>\n      <th>signature<\/th>\n      <th>both<\/th>\n      <th>exitval<\/th>\n      <th>stdout<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"columnDefs":[{"className":"dt-right","targets":[2,3,4]},{"orderable":false,"targets":0}],"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script>
+<div id="htmlwidget-59e1534a0b1bcb6e4fb3" style="width:100%;height:auto;" class="datatables html-widget"></div>
+<script type="application/json" data-for="htmlwidget-59e1534a0b1bcb6e4fb3">{"x":{"filter":"none","data":[["1","2","3","4","5","6","7","8","9","10"],["lazy-1","lazy-2","+U+E+R","+U+E-R","+U-E+R","+U-E-R","-U+E+R","-U+E-R","-U-E+R","-U-E-R"],[-6059,0,142,144,1828,6529,523,533,2235,7073],[-5,0,26,25,40,5153,407,409,484,5829],[-6128,0,142,141,1843,6605,519,537,2255,7155],["-14.21\\%","0\\%","0.33\\%","0.34\\%","4.29\\%","15.31\\%","1.23\\%","1.25\\%","5.24\\%","16.59\\%"],["-0.01\\%","0\\%","0.05\\%","0.05\\%","0.08\\%","10.58\\%","0.84\\%","0.84\\%","0.99\\%","11.97\\%"],["-14.13\\%","0\\%","0.33\\%","0.33\\%","4.25\\%","15.23\\%","1.2\\%","1.24\\%","5.2\\%","16.5\\%"],[0,0,0,1,2,3,4,5,6,7]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th> <\/th>\n      <th>signature<\/th>\n      <th>both<\/th>\n      <th>exitval<\/th>\n      <th>stdout<\/th>\n      <th>both_perc<\/th>\n      <th>exitval_perc<\/th>\n      <th>stdout_perc<\/th>\n      <th>order<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"columnDefs":[{"className":"dt-right","targets":[2,3,4,8]},{"orderable":false,"targets":0}],"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script>
 <pre><code>## 42637</code></pre>
+<pre><code>## 0&amp;+U+E+R&amp;142&amp;0.33\%&amp;26&amp;0.05\%&amp;142&amp;0.33\%\\
+## 1&amp;+U+E-R&amp;144&amp;0.34\%&amp;25&amp;0.05\%&amp;141&amp;0.33\%\\
+## 2&amp;+U-E+R&amp;1828&amp;4.29\%&amp;40&amp;0.08\%&amp;1843&amp;4.25\%\\
+## 3&amp;+U-E-R&amp;6529&amp;15.31\%&amp;5153&amp;10.58\%&amp;6605&amp;15.23\%\\
+## 4&amp;-U+E+R&amp;523&amp;1.23\%&amp;407&amp;0.84\%&amp;519&amp;1.2\%\\
+## 5&amp;-U+E-R&amp;533&amp;1.25\%&amp;409&amp;0.84\%&amp;537&amp;1.24\%\\
+## 6&amp;-U-E+R&amp;2235&amp;5.24\%&amp;484&amp;0.99\%&amp;2255&amp;5.2\%\\
+## 7&amp;-U-E-R&amp;7073&amp;16.59\%&amp;5829&amp;11.97\%&amp;7155&amp;16.5\%</code></pre>
 
 
 

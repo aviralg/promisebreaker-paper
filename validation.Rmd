@@ -1,5 +1,5 @@
 ---
-title: "Unevaluated Arguments"
+title: "Validation"
 output:
     html_document:
         toc: true
@@ -103,12 +103,33 @@ validation_summary <-
     validation_summary %>%
     mutate(both = lazy_2_both - both,
            exitval = lazy_2_exitval - exitval,
-           stdout = lazy_2_stdout - stdout)
-    
+           stdout = lazy_2_stdout - stdout) %>%
+    mutate(both_perc = round(100 * both / lazy_2_both, 2),
+           exitval_perc = round(100 * exitval / lazy_2_exitval, 2),
+           stdout_perc = round(100 * stdout / lazy_2_stdout, 2)) %>%
+    mutate(both_perc = as_perc(both_perc),
+           exitval_perc = as_perc(exitval_perc),
+           stdout_perc = as_perc(stdout_perc)) %>%
+    mutate(signature = str_replace(signature, fixed("signature"), ""),
+           signature = str_replace(signature, fixed("force"), "U"),
+           signature = str_replace(signature, fixed("effect"), "E"),
+           signature = str_replace(signature, fixed("reflection"), "R")) %>%
+    mutate(order = 4 * str_detect(signature, fixed("-U")) +
+                   2 * str_detect(signature, fixed("-E")) +
+                   1 * str_detect(signature, fixed("-R"))) %>%
+    arrange(order)
     #t() %>%
     #as_tibble(rownames = "row_names")
 
 validation_summary %>% datatable()
 
 cat(lazy_2_both)
+
+validation_summary %>%
+filter(!(signature %in% c("lazy-1", "lazy-2"))) %>%
+pmap_chr(function(signature, both, exitval, stdout, both_perc, exitval_perc, stdout_perc, order) {
+     res <- paste(order, signature, both, both_perc, exitval, exitval_perc, stdout, stdout_perc, sep = "&")
+}) %>%
+paste(collapse = "\\\\\n") %>%
+cat()
 ```

@@ -1266,6 +1266,26 @@ spurious transitive laziness.
   \end{tabular}
 \end{table}
 
+\begin{table}
+  \vspace{-3mm}
+  \small
+  \caption{Strictness Failure} \label{table:strictfail}
+  \centering
+  \begin{tabular}{llr|lr|lr|l}
+    \toprule
+    \# & \textbf{Configuration} & \multicolumn{2}{c}{\textbf{E $\cup$ S}} & \multicolumn{2}{c}{\textbf{E}} & \multicolumn{2}{c}{\textbf{S}}\\
+    \midrule
+    0&$+U+E+R$&142&0.33\%&26&0.05\%&142&0.33\%\\
+    1&$+U+E-R$&144&0.34\%&25&0.05\%&141&0.33\%\\
+    2&$+U-E+R$&1828&4.29\%&40&0.08\%&1843&4.25\%\\
+    3&$+U-E-R$&6529&15.31\%&5153&10.58\%&6605&15.23\%\\
+    4&$-U+E+R$&523&1.23\%&407&0.84\%&519&1.2\%\\
+    5&$-U+E-R$&533&1.25\%&409&0.84\%&537&1.24\%\\
+    6&$-U-E+R$&2235&5.24\%&484&0.99\%&2255&5.2\%\\
+    7&$-U-E-R$&7073&16.59\%&5829&11.97\%&7155&16.5\%\\
+    \bottomrule
+  \end{tabular}
+\end{table}
 
 
 \section{Discussion}
