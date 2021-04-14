@@ -41,6 +41,9 @@ reflection:
 validation:
 	make analysis ANALYSIS=validation
 
+performance:
+	make analysis ANALYSIS=performance
+
 watch: pdf
 	evince main.pdf&
 	while true; do inotifywait main.tex $(GRAPHDIR); make; done

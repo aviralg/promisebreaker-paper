@@ -84,6 +84,7 @@ selection <- c(
   "Binarytrees",
   "Fasta",
   "Fastaredux",
+  "Fannkuchredux",
   "Knucleotide",
   "Nbody",
   "Pidigits",
