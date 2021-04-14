@@ -1185,14 +1185,22 @@ spurious transitive laziness.
 \end{table}
 
 
-\section{Compiling the Lazy Away}
+\section{Compile the Lazy Away}
 
 In this section we report on our experiments to evaluate the implications of
-eagerness on implementations of R. To that end we modified \Rsh, a just-in-time
-compiler for the language. \Rsh features a two tier compilation strategy. The
+eagerness on an implementations of R. To that end we modified \Rsh, a just-in-time
+compiler for the language. \Rsh is based on the GNU R reference implementation
+and introduces an additional two-tiered compilation strategy. The
 first tier is realized by a naive bytecode interpreter, the second tier
-by an optimizing native compiler. This optimizer employs
-speculative inlining of R functions and promises. We changed the first-tier
+by an optimizing native compiler. The compiler employs, among many other
+optimizations, speculative inlining of R closures and promises.
+The reason for choosing \Rsh as the target for our
+experiments is, that it allows us to better evaluate the impact of lazyness. In
+\Rsh we can both measure the impact on an interpreter with few optimizations
+applied to the bytecode and an optimizing compiler, that already does its best
+eliding promises as long as the default semantics allow it.
+
+We changed the first-tier
 compiler to eagerly evaluate all arguments at all call-sites, except for a
 manually curated list of exceptions. Additionally, we changed the optimizing
 compiler to inline the expressions of default arguments, which are normally also
