@@ -23,22 +23,113 @@ params:
 source("analysis.R", local = knitr::knit_global())
 ```
 
-```{r echo = FALSE, warning=FALSE, message=FALSE}
-parameters <-
-    parameters %>%
-    filter(pack_name %in% corpus)
-    
-functions <-
-    functions %>%
-    filter(pack_name %in% corpus)
-    
-```
-
-# Reads
+## Functions ordered by number of effects
 
 ```{r echo = FALSE, warning=FALSE, message=FALSE}
-parameters %>%
-    filter(assign_tot != 0) %>%
-    distinct(pack_name, fun_name, formal_pos) %>%
-    datatable()
+effects_direct %>%
+filter(type == "L") %>%
+count(type, pack_name, fun_name, formal_pos, wt = count, name = "count") %>%
+arrange(desc(count)) %>%
+mutate(perc = round(100 * count / sum(count), 2)) %>%
+mutate(cumperc = cumsum(perc)) %>%
+datatable()
+
+effects_direct %>%
+filter(type == "A") %>%
+count(type, pack_name, fun_name, formal_pos, wt = count, name = "count") %>%
+arrange(desc(count)) %>%
+mutate(perc = round(100 * count / sum(count), 2)) %>%
+mutate(cumperc = cumsum(perc)) %>%
+datatable()
+
+effects_direct %>%
+filter(type == "D") %>%
+count(type, pack_name, fun_name, formal_pos, wt = count, name = "count") %>%
+arrange(desc(count)) %>%
+mutate(perc = round(100 * count / sum(count), 2)) %>%
+mutate(cumperc = cumsum(perc)) %>%
+datatable()
+
+
+effects_direct %>%
+filter(type == "R") %>%
+count(type, pack_name, fun_name, formal_pos, wt = count, name = "count") %>%
+arrange(desc(count)) %>%
+mutate(perc = round(100 * count / sum(count), 2)) %>%
+mutate(cumperc = cumsum(perc)) %>%
+datatable()
 ```
+
+```{r echo = FALSE, warning=FALSE, message=FALSE}
+effects_summary <-
+    effects_direct %>%
+    count(type, pack_name, fun_name, formal_pos, wt = count, name = "count") %>%
+    group_by(type) %>%
+    summarize(operations = sum(count),
+              parameters = n(),
+              functions = length(unique(paste0(pack_name, "::", fun_name))),
+              packages = length(unique(pack_name))) %>%
+    ungroup() %>%
+    mutate(type =  factor(type, levels = c("L", "D", "A", "R", "E"))) %>%
+    arrange(type)
+
+datatable(effects_summary)
+
+
+effects_summary %>%
+pmap_chr(function(...) {
+    paste(..., sep = "&")
+}) %>%
+paste(collapse = "\\\\\n") %>%
+cat()
+```
+
+
+## Effect sequence
+
+```{r echo = FALSE, warning=FALSE, message=FALSE}
+
+merge_effects <- function(seq) {
+    seq %>%
+    str_replace_all("[L]+", "L+") %>%
+    str_replace_all("[A]+", "A+") %>%
+    str_replace_all("[D]+", "D+") %>%
+    str_replace_all("[R]+", "R+") %>%
+    str_replace_all("(L\\+D\\+)+", "(L+D+)+") %>%
+    str_replace_all("(D\\+A\\+)+", "(D+A+)+") %>%
+    str_replace_all("(L\\+A\\+)+", "(L+A+)+") %>%
+    str_replace_all("(D\\+R\\+)+", "(D+R+)+")
+}
+
+effects_seq_summary <-
+    effects_direct %>%
+    mutate(self_effect_seq = if_else(self_effect_seq == "", type, self_effect_seq)) %>%
+    mutate(self_effect_seq = merge_effects(self_effect_seq)) %>%
+    count(self_effect_seq, wt = count, name = "count") %>%
+    arrange(desc(count)) %>%
+    mutate(perc = round(100 * count / sum(count), 2)) %>%
+    mutate(cumperc = cumsum(perc)) %>%
+    slice(1:100)
+
+
+datatable(effects_seq_summary)
+
+
+effects_seq_summary %>%
+pmap_chr(function(self_effect_seq, count, perc, cumperc) {
+    paste(self_effect_seq, as_perc(perc), sep = "&")
+}) %>%
+paste(collapse = "\\\\\n") %>%
+cat()
+
+
+effects_direct %>%
+filter(is.na(self_effect_seq) | self_effect_seq == "") %>%
+datatable()
+```
+
+
+A table
+- How many L, A, D, R.
+- How many positions of how many functions
+

@@ -1140,6 +1140,48 @@ spurious transitive laziness.
 
 \subsubsection{Side-Effects}
 
+\begin{table}
+  \vspace{-3mm}
+  \small
+  \caption{Effects} \label{table:effects}
+  \centering
+  \begin{tabular}{lllll}
+    \toprule
+    \textbf{Effect}&\textbf{Count}&\textbf{Parameters}&\textbf{Functions}&\textbf{Packages}\\
+    \midrule
+    L&3739631&5539&3619&358\\
+    D&1069746&2972&2599&319\\
+    A&236985&510&486&109\\
+    R&1172&27&24&10\\
+    E&6&6&6&3\\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\begin{table}
+  \vspace{-3mm}
+  \small
+  \caption{Effect Sequence} \label{table:effectseq}
+  \centering
+  \begin{tabular}{lll}
+    \toprule
+    \textbf{Effect Sequence}&\textbf{Argument \%}\\
+    \midrule
+    (L+D+)+&40.35\%\\
+    L+&29.75\%\\
+    D+&10.25\%\\
+    (L+A+)+&6.96\%\\
+    (D+A+)+D+&3.23\%\\
+    A+&2.48\%\\
+    (L+D+)+L+&1.69\%\\
+    (D+A+)+&1.42\%\\
+    (L+D+)+(L+A+)+(L+D+)+&0.99\%\\
+    (L+D+)+A+&0.5\%\\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+
 \section{Compiling the Lazy Away}
 
 In this section we report on our experiments to evaluate the implications of
@@ -1274,7 +1316,6 @@ functions with signatures.
     \bottomrule
   \end{tabular}
 \end{table}
-
 
 \section{Discussion}
 
