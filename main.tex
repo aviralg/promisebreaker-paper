@@ -1199,12 +1199,10 @@ experiments is, that it allows us to better evaluate the impact of lazyness. In
 \Rsh we can both measure the impact on an interpreter with few optimizations
 applied to the bytecode and an optimizing compiler, that already does its best
 eliding promises as long as the default semantics allow it.
-
-We changed the first-tier
+To conduct our evaluation, we changed the first-tier
 compiler to eagerly evaluate all arguments at all call-sites, except for a
-manually curated list of exceptions. Additionally, we changed the optimizing
-compiler to inline the expressions of default arguments, which are normally also
-wrapped in promises and evaluated by need. In the following we will refer
+manually curated list of exceptions.
+In the following we will refer
 to this modified implementation as \Rshstrict.
 
 Our main hypothesis regarding performance is that eager semantics lead to faster
@@ -1226,7 +1224,7 @@ each benchmark. As predicted by (H2) only a handful of functions, such as
 the correct results. Based on the observations so far we
 pose the following predictions: eager semantics should improve performance of
 most benchmarks; a significant portion of the speedup is due to reduced garbage
-collection pressure; and there is an additiona speedup due to improved compiler
+collection pressure; and there is an additional speedup due to improved compiler
 optimizations.
 
 \paragraph{Methodology}
@@ -1254,37 +1252,77 @@ $t_e = 1, t_i = 15$ and found a mean speedup of \speedupRsh, ranging between
 
 \paragraph{Speedup}
 
-\begin{figure}
+\begin{figure}[h]
   \centering
   \input{graphs/rshStrictPerf.tex}
-  \caption{Speedup of \Rshstrict gained by eagerly evaluating arguments}
+  \vspace{-1cm}
+  \caption{Speedup of \Rshstrict}
   \label{fig:speedup}
 \end{figure}
 
-First we compare \Rsh against \Rshstrict. This experiment estimates the end-to-end
+First, we compare \Rsh against \Rshstrict. This experiment estimates the end-to-end
 improvement on performance, that a change to eager semantics in the R language
 would have on \Rsh. The execution times were measured with $t_e = 4, t_i = 25$.
 \autoref{fig:speedup} shows a boxplot for the execution times of \Rsh-strict,
 normalized to \Rsh. Overal, we observe a mean speedup of
 \speedupRshStrict, ranging from \speedupRshStrictMin to \speedupRshStrictMax.
 For \speedupRshStrictSignificant out of \benchmarkSuiteSize benchmarks we measure a significant increase in performance.
-
-\paragraph{GC Pressure}
-
-\begin{figure}
+%
+\begin{figure}[h]
   \centering
-  \input{graphs/rshProm.tex}
-  \caption{TODO gcpressure}
-  \label{fig:gc-pressure}
+  \input{graphs/rshStrictPerfBC.tex}
+  \vspace{-1cm}
+  \caption{Speedup of \Rshstrict without optimizations}
+  \label{fig:speedup-bc}
+\end{figure}
+%
+Then, we repeated the performance experiment, but with the second tier
+optimizer completely disabled. Since this variant executes overal \rshBCSlowdown
+slower, we chose to only run with $t_e = 1, t_i = 15$.
+The results are presented in \autoref{fig:speedup-bc}. We found that the bytecode
+interpreter also gains a speedup of \speedupBCRshStrict, ranging from
+\speedupBCRshStrictMin to \speedupBCRshStrictMax.
+%
+Thus, we conclude that in our benchmark suite both a naive interpreter, as well as a speculatively
+optimizing native compiler achieve better performance on a strict dialect of R.
+Even though the speedup is very similar in numbers, the reasons seem to be quite
+different at times. We'll get back to that point in the discussion at the end of
+this section.
+
+\paragraph{Effects on Garbage Collection}
+
+\begin{figure}[h]
+  \centering
+  \input{graphs/rshStrictPerf.tex}
+  \vspace{-1cm}
+  \caption{Time spent in GC}
+  \label{fig:gc-time}
 \end{figure}
 
 Even an optimizing compiler has to allocate many promises for R
-code. Thus we expect a large portion of the speedup to actually originate from
-the reduced allocation rate. We measure the number of promises allocated in the
-benchmark suite
-in GNU R, in Ř and in Ř-strict. The results are shown in
-\autoref{fig:gc-pressure}. The first step from a naive interpreter to an
-optimizing compiler leads to an \promiseAlocationReductionGnurRsh
+code, as often times, they cannot be eliminated entirely.
+Thus we expect a significant portion of the speedup to originate from
+the reduced allocation rate. We measured the time spent in garbage collection
+and as can be seen in \autoref{fig:gc-time}, indeed a significant reduction occurs.
+These numbers have to be taken with a grain of salt. The GNU R garbage
+collector, which is reused in \Rsh, has a fairly slow allocation path, which
+includes mutating a doubly-linked list. Therefore, some portion of the speedup
+is due to the saved time in the allocation of promises, which is not counted.
+Therefore, these numbers underestimate the effect on memory management overhead.
+%
+\begin{figure}[h]
+  \centering
+  \input{graphs/rshProm.tex}
+  \vspace{-1cm}
+  \caption{Promises allocated}
+  \label{fig:gc-pressure}
+\end{figure}
+%
+For an additional estimation of how much promises occur and are avoided by a
+strict R, we measure the number of promises allocated in the
+benchmark suite per iteration for GNU R, Ř and Ř-strict. The results are shown in
+\autoref{fig:gc-pressure}. The first jump from GNU R's bytecode interpreter to
+the optimizing just-in-time compiler \Rsh, leads to an \promiseAlocationReductionGnurRsh
 reduction in allocations. The second step
 from lazy to eager semantics leads to \promiseAlocationReductionRshStrictToZero
 benchmarks not allocating any promises at all. On the remainder we see an additional
@@ -1294,45 +1332,12 @@ allocations, the rest reduce on average by \promiseAlocationReductionGnurRshStri
 The lowest reduction observed is
 \promiseAlocationReductionGnurRshStrictMin.
 Surprisingly the number of remaining promises is
-still relatively high in some cases. As far as we were able to observe, the
-originate largely from special forms, \ie R builtins with a custom evaluation
+still relatively high in some cases. As far as we were able to observe, they
+originate largely from two sources. One are default argument expressions, which
+are still bundled in promises and special forms, \ie R builtins with a custom evaluation
 strategy, that are not yet natively supported in the \Rsh bytecode.
 
-\begin{figure}
-  \centering
-  \input{graphs/rshStrictPerf.tex}
-  \caption{TODO speedup due to gc}
-  \label{fig:gc-pressure2}
-\end{figure}
-
-
-Finally, we measured the time spent in garbage collection in \Rsh and in
-\Rshstrict with $t_e = 1, t_i = 15$. The results are show in
-\autoref{fig:gc-pressure2}. Overal, we found that about \speedupDueToGCPressure
-of the speedup is explained by reduced GC pause times.
-
-\paragraph{Compiler Optimizations}
-
-\begin{figure}
-  \centering
-  \input{graphs/rshStrictPerf.tex}
-  \caption{TODO speedup bytecode}
-  \label{fig:speedup-bc}
-\end{figure}
-
-
-Our intuition is that inlining promises leads to code that is easier to analyze.
-Therefore we expect an optimizing compiler to provide performance gains, that go
-beyond what can be explained by the reduction in GC pressure. To measure this
-effect we disabled the optimizing native compiler in \Rsh, such that all code is
-executed in the first-tier bytecode interpreter. Then we repeated the
-performance experiment from \autoref{fig:speedup} in that configuration, with $t_e = 1, t_i = 15$.
-The results are presented in \autoref{fig:speedup-bc}. We found that the bytecode
-interpreter gains a speedup of \speedupBCRshStrict, ranging from
-\speedupBCRshStrictMin to \speedupBCRshStrictMax. Compared to the full system,
-which sped up by \speedupRshStrict, we see slightly less gains in performance.
-We conclude that there is only weak evidence for the optimizing compiler to benefit
-more from eager semantics than the interpreter.
+\paragraph{Discussion}
 
 \section{Robustness}
 

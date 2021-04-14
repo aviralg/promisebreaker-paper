@@ -53,6 +53,14 @@ performanceExperiment <- list(
 )
 ```
 
+```{r echo=FALSE, warning=FALSE, message=FALSE, eval=TRUE}
+performanceExperiment_bc <- list(
+  `Ř`        = 1172663147,     # rir 2872a79
+  `Ř strict` = 1172677834      # rir 9c038ed
+)
+```
+
+
 # H3.2: Promise allocations
 
 This experiment compares the number of promise allocations in Ř and Ř strict;
@@ -242,6 +250,7 @@ printable_name <- function(s) {
 
 ```{r echo=FALSE, warning=FALSE, message=FALSE, eval=TRUE}
 perf <- fetch_jobs(performanceExperiment, fetch.bmdash)
+perf_bc <- fetch_jobs(performanceExperiment_bc, fetch.bmdash)
 prom <- fetch_jobs(promiseReductionExperiment, fetch.prom.counters)
 # gcpr <- fetch_jobs(gcExperiment, fetch.gitlab.gc)
 # opti <- fetch_jobs(optimizerExperiment, fetch.bmdash)
@@ -250,8 +259,8 @@ prom <- fetch_jobs(promiseReductionExperiment, fetch.prom.counters)
 # Plots
 
 ```{r echo=FALSE, warning=FALSE, message=FALSE, eval=TRUE}
-H3.1 <- function(perf) {
-  perf$experiment = factor(perf$experiment, c("Ř", "Ř strict"))
+H3.1 <- function(perf, kind) {
+  perf$experiment = factor(perf$experiment)
   perf$benchmark_ = perf$benchmark
   perf$suite_short = lapply(perf$suite, shorten_suite)
   perf <- normalize(perf, T, "Ř")
@@ -266,9 +275,10 @@ H3.1 <- function(perf) {
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
     theme(axis.title.y = element_text(vjust = 5))
 
-  save_graph(perf_plot, "rshStrictPerf")
+  save_graph(perf_plot, paste0("rshStrictPerf",kind))
 }
-H3.1(perf)
+H3.1(perf, "")
+H3.1(perf_bc, "Bc")
 ```
 
 ```{r echo=FALSE, warning=FALSE, message=FALSE, eval=TRUE}

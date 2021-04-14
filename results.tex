@@ -15,6 +15,16 @@
 \newcommand{\speedupRshStrictMin}{$0.92\times$\xspace}
 \newcommand{\speedupRshStrictSignificant}{9\xspace}
 
+%%  Speedup BC
+%% https://rir-benchmarks.prl.fit.cvut.cz/diff?warmup=5&kind=diff&job_ids%5B%5D=1172677834&job_ids%5B%5D=1172663147&selection=promisebreaker
+\newcommand{\speedupBCRshStrict}{$1.16\times$\xspace}
+\newcommand{\speedupBCRshStrictMax}{$1.48\times$\xspace}
+\newcommand{\speedupBCRshStrictMin}{$1.00\times$\xspace}
+
+%%  How much is BC slower?
+%% https://rir-benchmarks.prl.fit.cvut.cz/diff?warmup=5&kind=diff&job_ids%5B%5D=1174869738&job_ids%5B%5D=1172663147&execution=all&selection=promisebreaker
+\newcommand{\rshBCSlowdown}{$0.38\times$\xspace}
+
 %% Reduction in promise allocation:
 %% TODO: numbers with the wrong selection (missing at least Fannkuchredux)! Are
 %%       they correct?
@@ -27,8 +37,4 @@
 %% TODO: missing numbers
 \newcommand{\speedupDueToGCPressure}{$80\%$\xspace}
 
-%%  Speedup BC
-%% https://rir-benchmarks.prl.fit.cvut.cz/diff?warmup=5&kind=diff&job_ids%5B%5D=1172677834&job_ids%5B%5D=1172663147&selection=promisebreaker
-\newcommand{\speedupBCRshStrict}{$1.16\times$\xspace}
-\newcommand{\speedupBCRshStrictMax}{$1.48\times$\xspace}
-\newcommand{\speedupBCRshStrictMin}{$1.00\times$\xspace}
+
