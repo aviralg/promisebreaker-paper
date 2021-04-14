@@ -1193,7 +1193,8 @@ compiler for the language. \Rsh is based on the GNU R reference implementation
 and introduces an additional two-tiered compilation strategy. The
 first tier is realized by a naive bytecode interpreter, the second tier
 by an optimizing native compiler. The compiler employs, among many other
-optimizations, speculative inlining of R closures and promises.
+optimizations, speculative inlining of R closures and promises \citep{dls19,
+oopsla20c}.
 The reason for choosing \Rsh as the target for our
 experiments is, that it allows us to better evaluate the impact of lazyness. In
 \Rsh we can both measure the impact on an interpreter with few optimizations
@@ -1215,17 +1216,20 @@ combination with effects potentially originating from promises, it obstructs
 more advanced compiler analysis and optimizations. Especially the later point
 means that we expect the hypothesis to hold even for a just-in-time compiler,
 that uses advanced optimizations.
+In particular, we pose the following predictions:
+(1) eager semantics should improve performance of most benchmarks for both tiers
+of \Rsh; (2) a significant portion of the speedup is due to reduced garbage
+collection pressure; (3) and there is an additional speedup due to improved compiler
+optimizations. In the following we will present our evidence in support of all
+three predictions.
 
 We evaluate the effects of our modifications on the Ř benchmark suite.
 To ease the discussion, the results are presented on a representative subset of
-the suite, that preserves the means and outliers, and includes one variant of
-each benchmark. As predicted by (H2) only a handful of functions, such as
+the suite which includes one variant of
+each benchmark. As should be no surprise given the results presented so far,
+only a handful of functions, such as
 \lstinline{tryCatch} had to be kept lazy for all the benchmarks to compute
-the correct results. Based on the observations so far we
-pose the following predictions: eager semantics should improve performance of
-most benchmarks; a significant portion of the speedup is due to reduced garbage
-collection pressure; and there is an additional speedup due to improved compiler
-optimizations.
+the correct results.
 
 \paragraph{Methodology}
 
@@ -1289,7 +1293,7 @@ Even though the speedup is very similar in numbers, the reasons seem to be quite
 different at times. We'll get back to that point in the discussion at the end of
 this section.
 
-\paragraph{Effects on Garbage Collection}
+\paragraph{Garbage Collection}
 
 \begin{figure}[h]
   \centering
@@ -1334,10 +1338,33 @@ The lowest reduction observed is
 Surprisingly the number of remaining promises is
 still relatively high in some cases. As far as we were able to observe, they
 originate largely from two sources. One are default argument expressions, which
-are still bundled in promises and special forms, \ie R builtins with a custom evaluation
+are still bundled in promises. \OF{which bms and how much?} The other are special forms, \ie R builtins with a custom evaluation
 strategy, that are not yet natively supported in the \Rsh bytecode.
 
 \paragraph{Discussion}
+
+It was surprising to see that the resulting speedup of both tiers were
+extremely similar, however the underlying reasons were at times very different.
+Take for instance the \lstinline{Binarytrees} benchmark, which showed in both
+the bytecode interpreter and the native compiler a speedup of about $1.5\times$
+in the strict mode. In native the execution time decreased from 79ms to 53ms, in
+the interpreter from 143ms to 97ms per iteration. However, the reasons for the
+seemingly similar speedup are very different. In both tiers we observed a
+proportional reduction of the time spent in tracing the heap for garbage collection,
+that accounted for only about $5\%$ of the speedup. We investigated the
+remaining difference using \lstinline{perf} and found that for the bytecode interpreter the overheads of
+lazy evaluation in that benchmark were in promise allocation (\ie acquiring an
+appropriately sized chunk of memory from the freelist) and setting up the
+execution context for promise evaluation. This includes marking it as being
+executed to detect recursive evaluation dependencies and calling the interpreters
+main eval-loop on the code of the promise.
+In the native code there is also some reduction in promise allocation and
+evaluation overhead, however a significant part of the speedup is due to better
+optimizations. Previously the local variables of the innermost function in
+that benchmark are kept in a first-class R environment, since \Rsh does not yet
+support speculative environment elision for recursive functions. But thanks to eager
+evaluation of the arguments, the argument promises do not leak the environment
+and therefore \Rsh is able to speculatively elide it.
 
 \section{Robustness}
 
