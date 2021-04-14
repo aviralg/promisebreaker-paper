@@ -20,6 +20,7 @@ params:
 
 ```{r echo = FALSE, warning=FALSE, message=FALSE}
 ## https://bookdown.org/yihui/rmarkdown-cookbook/source-script.html
+library(scales)
 source("analysis.R", local = knitr::knit_global())
 ```
 
@@ -78,13 +79,12 @@ optimizerExperiment <- list(
 ```{r echo=FALSE, warning=FALSE, message=FALSE, eval=TRUE}
 selection <- c(
   "Bounce",
-  "Mandelbrot",
+  "Mandelbrot",  # are-we-fast-r version
   "Storage",
   "Flexclust",
   "Binarytrees",
   "Fasta",
   "Fastaredux",
-  "Fannkuchredux",
   "Knucleotide",
   "Nbody",
   "Pidigits",
@@ -204,7 +204,6 @@ H3.1 <- function() {
   perf$benchmark_ = perf$benchmark
   perf$suite_short = lapply(perf$suite, shorten_suite)
   perf$benchmark = paste0(lapply(perf$benchmark, printable_name), "")
-  sss <<- perf
   perf <- normalize(perf, T, "Ř")
   perf_ <- perf[perf$benchmark %in% selection & perf$warm == 1, ]
 
@@ -213,7 +212,8 @@ H3.1 <- function() {
     geom_boxplot() +
     geom_hline(yintercept=1) +
     labs(y = "Speedup", x = "") +
-    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
+    theme(axis.title.y = element_text(vjust = 5))
 
   save_graph(perf_plot, "rshStrictPerf")
 }
@@ -224,24 +224,26 @@ H3.1()
 
 ```{r echo=FALSE, warning=FALSE, message=FALSE, eval=TRUE}
 H3.2a <- function() {
-  perf <- fetch_jobs(performanceExperiment)
-  perf$experiment = factor(perf$experiment, c("Ř", "Ř-strict"))
-  perf$benchmark_ = perf$benchmark
-  perf$suite_short = lapply(perf$suite, shorten_suite)
-  perf$benchmark = paste0("[",perf$suite_short,"] ", perf$benchmark)
-  perf <- normalize(perf, T, "Ř")
-  perf_ <- perf[perf$benchmark %in% selection & perf$warm == 1, ]
-
-  ss <<- perf_  # TODO debugging, remove
+  prom <- fetch_jobs(promiseReductionExperiment, addWarm = TRUE, warmup = 5, iterations = 15)
+  prom$experiment = factor(prom$experiment, c("GNU R", "Ř", "Ř strict"))
+  prom$benchmark_ = prom$benchmark
+  prom$suite_short = lapply(prom$suite, shorten_suite)
+  prom$benchmark = paste0(lapply(prom$benchmark, printable_name), "")
+  # prom <- normalize(prom, T, "Ř")
+  prom_ <- prom[prom$benchmark %in% selection & prom$warm == 1, ]
   
-  perf_plot <-
-    ggplot(perf_, aes(benchmark, speedup, fill=experiment)) +
-    geom_boxplot() +
-    geom_hline(yintercept=1) +
-    labs(y = "Speedup") +
-    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+  prom_plot <-
+    ggplot(prom_, aes(benchmark, createdPromises, fill=experiment)) +
+    geom_col(position="dodge") +
+    scale_y_continuous(trans = scales::log1p_trans(),
+      breaks = c(0, 1e1, 1e2, 1e3, 1e4, 1e5, 1e6, 1e7, 1e8),
+      labels = c("0", "10", "1e2", "1e3", "1e4", "1e5", "1e6", "1e7", "1e8")) +
+    labs(y = "Promises created", x = "") +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+    theme(axis.title.y = element_text(vjust = 5)) +
+    scale_fill_grey(start = 0.2, end = 0.6)
 
-  save_graph(perf_plot, "perf")
+  save_graph(prom_plot, "rshProm")
 }
 H3.2a()
 ```
