@@ -833,8 +833,6 @@ are 15 functions with over 50 parameters that come from 10 packages.
 (119), and \c{rpart.plot::check.if.dot.arg.supported.by.rpart.rules} (122) with
 the highest number of parameters.
 
-\subsection{Algorithm}
-
 Now, we turn our attention to the algorithm used by \lazr to infer strictness.
 As discussed in section \ref{subsection:lazr}, \lazr uses execution traces to
 synthesize strictness signatures. Execution traces tell us if an argument
@@ -861,16 +859,26 @@ the parameter lazy if an argument has performed a side-effect or reflective
 operation in the programs it has run. Including more programs will make more
 arguments lazy.
 
-Table~\ref{table:strictdist} presents a summary of strictness; the number of
-strict parameters, functions, and the packages in which these functions are
-defined; for all combinations of the sources. If laziness from a source is taken
-into account, it is marked with a \xmark{}, otherwise, it is marked with a
-\cmark{}. We observe that row \#0 corresponds to the configuration with maximum
-laziness, all three sources are taken into account for synthesizing signatures.
-Row \#7 corresponds to maximum strictness, all three sources are discarded and
-only metaprogrammed and $...$ arguments are treated lazy.
-
-
+Table~\ref{table:strictdist} presents a summary of the distribution of
+parameters, functions, and packages that correspond to unevaluated, effectful or
+reflective arguments. Row \#0 tells that there are 128.3K parameters from 44.4K
+functions whose arguments are evaluated across all calls and they don't perform
+any effect or reflective operation. Similarly, row \#7 tells us that 25
+parameters from 24 functions are not evaluated in at least one call, but whey
+they are evaluated, they perform a side-effect and a reflective operation.
+Similarly, row \#4 tells us that 27.1K parameters from 11.3K functions are never
+evaluated. A careful study of these rows yields the following insights. First,
+arguments passed to majority of parameters, 65.25\%, are always evaluated and
+don't perform any side-effects or reflective operations. So, they can be made
+unconditionally strict . Of the remaining parameters, only unevaluated arguments
+correspond to 13.76\% parameters, followed by only side-effecting arguments to
+4\% parameters, and only reflective promises to 0.07\% parameters. The remaining
+combinations amount to less than a percent each. It is important to note that a
+function can appear in multiple rows as different parameters can belong to
+different categories. Same reasoning applies to packages. Another interesting
+pattern in the data is that arguments performing reflective operations
+(alternate rows \#1, \#3, \#5, \#7) come from relatively few functions and
+packages.
 
 \begin{table}
   \vspace{-3mm}
@@ -893,6 +901,13 @@ only metaprogrammed and $...$ arguments are treated lazy.
   \end{tabular}
 \end{table}
 
+An important detail in this summary is that includes contribution of
+side-effects and reflective operations performed by R's \emph{base} package and
+other user packages not part of our corpus. This is because arguments are also
+transitively involved in side-effecting or reflective operations. The numbers
+provided in this table are upper-bounds, we over count the number of arguments
+transitively involved in effects and reflective operations because our inference
+algorithm is conservative.
 
 \subsubsection{...}
 
