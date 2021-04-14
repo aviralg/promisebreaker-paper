@@ -1,4 +1,3 @@
-suite,benchmark,benchmarkId,createdPromises,createdPromisesAst,inlinedPromises
 shootout,nbody_naive,shootout/nbody_naive,20363,24,6
 shootout,nbody_naive,shootout/nbody_naive,20203,22,10
 shootout,nbody_naive,shootout/nbody_naive,152,22,29

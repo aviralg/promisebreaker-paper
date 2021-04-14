@@ -24,9 +24,22 @@ library(scales)
 source("analysis.R", local = knitr::knit_global())
 ```
 
-```{r echo=FALSE, warning=FALSE, message=FALSE, eval=FALSE}
-url <- "https://rir-benchmarks.prl.fit.cvut.cz/job/"
-```
+* rsh-perf
+* rsh-strict-perf
+
+* gnur-promises
+* rsh-promises
+* rsh-strict-promises
+
+* rsh-gc
+* rsh-strict-gc
+
+* rsh-perf
+* rsh-perf-noopt
+* rsh-strict-perf
+* rsh-strict-perf-noopt
+
+
 
 # H3.1: Peformance of base Ř vs. Ř strict
 
@@ -35,8 +48,9 @@ for the base version of Ř and Ř strict.
 
 ```{r echo=FALSE, warning=FALSE, message=FALSE, eval=TRUE}
 performanceExperiment <- list(
-  `Ř` = "rsh-perf",
-  `Ř strict` = "rsh-strict-perf")
+  `Ř`        = 1174869738,     # rir ac583eac
+  `Ř strict` = 1174881563      # rir 1a563707
+)
 ```
 
 # H3.2: Promise allocations
@@ -45,10 +59,17 @@ This experiment compares the number of promise allocations in Ř and Ř strict;
 the baseline is GNUR.
 
 ```{r echo=FALSE, warning=FALSE, message=FALSE, eval=TRUE}
+# Run the following from the RBenchmarking dir with the given commits checked out and built (fix the paths for your setup):
+#   Setup/run.sh ~/RBenchmarking/rebench.conf ~/RBenchmarking/Benchmarks/ ~/rir/external/custom-r "e:PIR-LLVM"
+#   INLINE_ALL_PROMS=0 Setup/run.sh ~/RBenchmarking/rebench.conf ~/RBenchmarking/Benchmarks/ ~/rir/build/release "e:PIR-LLVM"
+#   INLINE_ALL_PROMS=1 Setup/run.sh ~/RBenchmarking/rebench.conf ~/RBenchmarking/Benchmarks/ ~/rir/build/release "e:PIR-LLVM"
+# Each run produces the file ~/dataPromises
+# Rename to the appropriate name (eg. gnur-promises.csv)
 promiseReductionExperiment <- list(
-  `GNU R` = "gnur-promises",
-  `Ř` = "rsh-promises",
-  `Ř strict` = "rsh-strict-promises")
+  `GNU R`    = "gnur-promises",         # gnur c20b7d4, rir c3eb11c, RBenchmarking 5f34747
+  `Ř`        = "rsh-promises",          # gnur c20b7d4, rir c3eb11c, RBenchmarking acc5820
+  `Ř strict` = "rsh-strict-promises"    # gnur c20b7d4, rir c3eb11c, RBenchmarking acc5820
+)
 ```
 
 This experiment shows the impact on GC of base Ř and Ř strict, and the percentage
@@ -57,8 +78,9 @@ We reuse the performanceExperiment data.
 
 ```{r echo=FALSE, warning=FALSE, message=FALSE, eval=TRUE}
 gcExperiment <- list(
-  `Ř` = "rsh-gc",
-  `Ř strict` = "rsh-strict-gc")
+  `Ř`        = 1177940528,          # rir 30db34d3
+  `Ř strict` = 1177270642           # rir 002f8f75
+)
 ```
 
 # H3.3: Optimizer impact comparing Ř strict and Ř strict w/o optimizer
@@ -68,59 +90,78 @@ Without, all code is executed in the first tier bytecode interpreter.
 
 ```{r echo=FALSE, warning=FALSE, message=FALSE, eval=TRUE}
 optimizerExperiment <- list(
-  `Ř` = "rsh-perf",
-  `Ř no-opt` = "rsh-perf-noopt",
-  `Ř strict` = "rsh-strict-perf",
-  `Ř strict no-opt` = "rsh-strict-perf-noopt")
+  `Ř`               = performanceExperiment[[1]],
+  `Ř no-opt`        = NA,                          # rir ???
+  `Ř strict`        = performanceExperiment[[2]],
+  `Ř strict no-opt` = NA                           # rir ???
+)
 ```
 
 # Benchmark selection
 
 ```{r echo=FALSE, warning=FALSE, message=FALSE, eval=TRUE}
+# names of the benchmarks, they are transformed to labels later
 selection <- c(
   "Bounce",
-  "Mandelbrot",  # are-we-fast-r version
+  "Mandelbrot",
   "Storage",
-  "Flexclust",
-  "Binarytrees",
-  "Fasta",
-  "Fastaredux",
-  "Fannkuchredux",
-  "Knucleotide",
-  "Nbody",
-  "Pidigits",
-  "Regexdna",
-  "Reversecomplement",
-  "Spectralnorm"
+  "flexclust",
+  "binarytrees",
+  "fasta",
+  "fastaredux",
+  "fannkuchredux",
+  "knucleotide",
+  "nbody",
+  "pidigits",
+  "regexdna",
+  "reversecomplement",
+  "spectralnorm"
 )
 ```
 
 # Helpers
 
 ```{r echo=FALSE, warning=FALSE, message=FALSE, eval=TRUE}
-# fetch <- function(job, addWarm) {
-#   dir.create("data", showWarnings=F)
-#   setwd("data")
-#   file <- paste0(job, ".csv")
-#   if (!file.exists(file))
-#     download.file(paste0(url, file), file)
-#   res <- read.csv(file, header=TRUE, strip.white=TRUE)
-#   if (addWarm)
-#     res$warm <- c(rep(0L, COLD_RUNS), rep(1L, WARM_RUNS))
-#   res$row <- 1:nrow(res)
-#   setwd("..")
-#   res
-# }
 
-fetch <- function(job, addWarm, warmup, iterations) {
+fetch.bmdash <- function(job) {
+  url.bmdash.start <- "https://rir-benchmarks.prl.fit.cvut.cz/job/"
+  url.bmdash.suffix <- "?selection=promisebreaker&execution=all&warmup=5"
+  dir.create("data", showWarnings=F)
+  setwd("data")
+  file <- paste0(job, ".csv")
+  if (!file.exists(file))
+    download.file(paste0(url.bmdash.start, file, url.bmdash.suffix), file)
+  res <- read.csv(file, header=TRUE, strip.white=TRUE)
+  res$row <- 1:nrow(res)
+  setwd("..")
+  res
+}
+
+fetch.gitlab.gc <- function(job) {
+  url.gitlab.start <- "https://gitlab.com/rirvm/rir_mirror/-/jobs/"
+  url.gitlab.suffix <- "/artifacts/file/dataGC.csv"
+  dir.create("data", showWarnings=F)
+  setwd("data")
+  file <- paste0(job, ".csv")
+  if (!file.exists(file))
+    download.file(paste0(url.gitlab.start, job, url.bmdash.suffix), file)
+  res <- read.csv(file, header=TRUE, strip.white=TRUE)
+  res$row <- 1:nrow(res)
+  setwd("..")
+  res
+}
+
+fetch.prom.counters <- function(job) {
+  warm <- 10
+  cold <- 5
   dir.create("data", showWarnings=F)
   setwd("data")
   file <- paste0(job, ".csv")
   if (!file.exists(file))
     stop("file not found")
-  res <- read.csv(file, header=TRUE, strip.white=TRUE)
-  if (addWarm)
-    res$warm <- c(rep(0L, warmup), rep(1L, iterations - warmup))
+  res <- read.csv(file, header=FALSE, strip.white=TRUE)
+  colnames(res) <- c("suite","benchmark","benchmarkId","createdPromises","createdPromisesAst","inlinedPromises")
+  res$warm <- c(rep(0L, cold), rep(1L, warm))
   res$row <- 1:nrow(res)
   setwd("..")
   res
@@ -147,12 +188,12 @@ remove_warmup <- function(data) {
   data[data$warm == 1,]
 }
 
-fetch_jobs <- function(jobs, addWarm = FALSE, warmup, iterations) {
+fetch_jobs <- function(jobs, fetcher) {
   data <- NULL
   for (i in seq_along(jobs)) {
     job <- jobs[i]
     ex = names(job)
-    d <- fetch(job, addWarm, warmup, iterations)
+    d <- fetcher(job)
     d$experiment = ex
     if (is.null(data))
       data <- d
@@ -190,21 +231,29 @@ shorten_suite <- function(s) {
 
 printable_name <- function(s) {
   s <- gsub("_", " ", s)
+  s <- gsub(" ", "", s)
   substr(s, 1, 1) <- toupper(substr(s, 1, 1))
   s
 }
 
 ```
 
-
+# Fetch data
 
 ```{r echo=FALSE, warning=FALSE, message=FALSE, eval=TRUE}
-H3.1 <- function() {
-  perf <- fetch_jobs(performanceExperiment)
+perf <- fetch_jobs(performanceExperiment, fetch.bmdash)
+prom <- fetch_jobs(promiseReductionExperiment, fetch.prom.counters)
+# gcpr <- fetch_jobs(gcExperiment, fetch.gitlab.gc)
+# opti <- fetch_jobs(optimizerExperiment, fetch.bmdash)
+```
+
+# Plots
+
+```{r echo=FALSE, warning=FALSE, message=FALSE, eval=TRUE}
+H3.1 <- function(perf) {
   perf$experiment = factor(perf$experiment, c("Ř", "Ř strict"))
   perf$benchmark_ = perf$benchmark
   perf$suite_short = lapply(perf$suite, shorten_suite)
-  perf$benchmark = paste0(lapply(perf$benchmark, printable_name), "")
   perf <- normalize(perf, T, "Ř")
   perf_ <- perf[perf$benchmark %in% selection & perf$warm == 1, ]
 
@@ -213,23 +262,20 @@ H3.1 <- function() {
     geom_boxplot() +
     geom_hline(yintercept=1) +
     labs(y = "Speedup", x = "") +
+    scale_x_discrete(labels = printable_name) +
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
     theme(axis.title.y = element_text(vjust = 5))
 
   save_graph(perf_plot, "rshStrictPerf")
 }
-H3.1()
+H3.1(perf)
 ```
 
-
-
 ```{r echo=FALSE, warning=FALSE, message=FALSE, eval=TRUE}
-H3.2a <- function() {
-  prom <- fetch_jobs(promiseReductionExperiment, addWarm = TRUE, warmup = 5, iterations = 15)
+H3.2a <- function(prom) {
   prom$experiment = factor(prom$experiment, c("GNU R", "Ř", "Ř strict"))
   prom$benchmark_ = prom$benchmark
   prom$suite_short = lapply(prom$suite, shorten_suite)
-  prom$benchmark = paste0(lapply(prom$benchmark, printable_name), "")
   # prom <- normalize(prom, T, "Ř")
   prom_ <- prom[prom$benchmark %in% selection & prom$warm == 1, ]
   
@@ -240,19 +286,18 @@ H3.2a <- function() {
       breaks = c(0, 1e1, 1e2, 1e3, 1e4, 1e5, 1e6, 1e7, 1e8),
       labels = c("0", "10", "1e2", "1e3", "1e4", "1e5", "1e6", "1e7", "1e8")) +
     labs(y = "Promises created", x = "") +
+    scale_x_discrete(labels = printable_name) +
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
     theme(axis.title.y = element_text(vjust = 5)) +
     scale_fill_grey(start = 0.2, end = 0.6)
 
   save_graph(prom_plot, "rshProm")
 }
-H3.2a()
+H3.2a(prom)
 ```
 
-
-
 ```{r echo=FALSE, warning=FALSE, message=FALSE, eval=FALSE}
-H3.2b <- function() {
+H3.2b <- function(gcpr) {
   perf <- fetch_jobs(performanceExperiment)
   perf$experiment = factor(perf$experiment, c("Ř", "Ř-strict"))
   perf$benchmark_ = perf$benchmark
@@ -272,13 +317,11 @@ H3.2b <- function() {
 
   save_graph(perf_plot, "perf")
 }
-H3.2b()
+H3.2b(gcpr)
 ```
 
-
-
 ```{r echo=FALSE, warning=FALSE, message=FALSE, eval=FALSE}
-H3.3 <- function() {
+H3.3 <- function(opti) {
   perf <- fetch_jobs(performanceExperiment)
   perf$experiment = factor(perf$experiment, c("Ř", "Ř-strict"))
   perf$benchmark_ = perf$benchmark
@@ -298,11 +341,8 @@ H3.3 <- function() {
 
   save_graph(perf_plot, "perf")
 }
-H3.3()
+H3.3(opti)
 ```
-
-
-
 
 ```{r echo=FALSE, warning=FALSE, message=FALSE, eval=FALSE}
 plot_bm <- function(title, d, warmup, trend=FALSE, log=TRUE, relative=FALSE, ncol=6, hide_legend=F, baseline=relative, scales="free") {
