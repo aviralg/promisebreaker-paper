@@ -94,7 +94,7 @@
 \author{Aviral Goel}\affiliation{\institution{Northeastern University}\country{USA}}
 \author{Jan Ječmen}\affiliation{\institution{Czech Technical University}\country{Czechia}}
 \author{Sebastián Krynski}\affiliation{\institution{Czech Technical University}\country{Czechia}}
-\author{Oliver Flückiger}\affiliation{\institution{Northeastern University}\country{USA}}
+\author{Olivier Flückiger}\affiliation{\institution{Northeastern University}\country{USA}}
 \author{Jan Vitek}\affiliation{\institution{Czech Technical University and Northeastern University}\country{USA}}
 \authorsaddresses{}
 \renewcommand{\shortauthors}{Goel, Vitek}
@@ -104,7 +104,7 @@
   passed as suspended computations to the callee which evaluates them only if
   they are needed. After 25 years of experience with the language, there are
   very few cases where programmers leverage delayed evaluation intentionally.
-  Yet being lazy comes at a price in performance and complexity. This paper
+  Yet, being lazy comes at a price in performance and complexity. This paper
   explores how one could evolve the semantics of the language towards strictness
   by default and laziness on demand. To provide a migration path, it is
   necessary to change the semantics of the language implementations and provide
@@ -833,8 +833,6 @@ are 15 functions with over 50 parameters that come from 10 packages.
 (119), and \c{rpart.plot::check.if.dot.arg.supported.by.rpart.rules} (122) with
 the highest number of parameters.
 
-\subsection{Algorithm}
-
 Now, we turn our attention to the algorithm used by \lazr to infer strictness.
 As discussed in section \ref{subsection:lazr}, \lazr uses execution traces to
 synthesize strictness signatures. Execution traces tell us if an argument
@@ -847,7 +845,7 @@ and generates strictness signatures. The signatures also dictate the order of
 evaluation of arguments.
 
 Because of the difficulty in assigning a unique strictness signature, $...$
-arguments are always lazy. Metaprogrammed arguments are also lazy as
+arguments are always lazy. Meta-programmed arguments are also lazy as
 meta-programming relies on unevaluated argument text provided by a promise. The
 remaining operations are sources of \emph{accidental laziness}. We could decide
 to unevaluated, effectful, and reflective arguments lazy to preserve the
@@ -861,45 +859,26 @@ the parameter lazy if an argument has performed a side-effect or reflective
 operation in the programs it has run. Including more programs will make more
 arguments lazy.
 
-Table~\ref{table:strictdist} presents a summary of strictness; the number of
-strict parameters, functions, and the packages in which these functions are
-defined; for all combinations of the sources. If laziness from a source is taken
-into account, it is marked with a \xmark{}, otherwise, it is marked with a
-\cmark{}. We observe that row \#0 corresponds to the configuration with maximum
-laziness, all three sources are taken into account for synthesizing signatures.
-Row \#7 corresponds to maximum strictness, all three sources are discarded and
-only metaprogrammed and $...$ arguments are treated lazy.
+Now, we take a detailed look at the different sources of laziness.
 
-
-
-\begin{table}
-  \vspace{-3mm}
-  \small
-  \caption{Strictness Distribution} \label{table:strictdist}
-  \centering
-  \begin{tabular}{lcccr|lr|lr}
-    \toprule
-    \#&\bf Unevaluted & \bf Side-Effecting & \bf Reflective & \multicolumn{2}{c}{\textbf{Parameters}} & \multicolumn{2}{c}{\textbf{Functions}}& \bf Packages\\
-    \midrule
-    0&\xmark{}&\xmark{}&\xmark{}&128305&65.25\%&44377&85.93\%&489\\
-    1&\xmark{}&\xmark{}&\cmark{}&134&0.07\%&124&0.24\%&47\\
-    2&\xmark{}&\cmark{}&\xmark{}&7871&4\%&5805&11.24\%&399\\
-    3&\xmark{}&\cmark{}&\cmark{}&408&0.21\%&385&0.75\%&93\\
-    4&\cmark{}&\xmark{}&\xmark{}&27050&13.76\%&11333&21.95\%&453\\
-    5&\cmark{}&\xmark{}&\cmark{}&13&0.01\%&12&0.02\%&11\\
-    6&\cmark{}&\cmark{}&\xmark{}&1213&0.62\%&813&1.57\%&199\\
-    7&\cmark{}&\cmark{}&\cmark{}&25&0.01\%&24&0.05\%&15\\
-    \bottomrule
-  \end{tabular}
-\end{table}
-
-
-\subsubsection{...}
+There are XXXX $...$ parameters. We unconditionally treat them lazy.
 
 \subsubsection{Metaprogramming}
-There are XX $...$ parameters which make XXX functions non-strict. R's
-metaprogramming support introduces another source of laziness. XX parameters are
-metaprogrammed in our corpus.
+For tracking metaprogramming, we look at uses of \code{substitute} on arguments
+from R code and \code{PREXPR} macro on promise objects from C code. We observe
+substitute called on XXX arguments from XXXX parameters of XXXX functions.
+\code{PREXPR} was called on XXX arguments from XXXX parameters of XXXX
+functions.
+
+For an in-depth discussion on the patterns of use of \code{substitute}, we refer
+the reader to \citet{oopsla19b}. We continue with the exploration of the use of
+\code{PREXPR} for metaprogramming, since that is not addressed in
+\cite{oopsla19b}.
+
+We observe that 
+
+
+
 
 \subsubsection{Unevaluated Arguments}
 Of the 294.45M total arguments in our corpus, 30.4M argument promises were not
@@ -1232,6 +1211,58 @@ spurious transitive laziness.
     \bottomrule
   \end{tabular}
 \end{table}
+
+\subsection{Summary}
+
+Table~\ref{table:strictdist} presents a summary of the distribution of
+parameters, functions, and packages that correspond to unevaluated, effectful or
+reflective arguments. Row \#0 tells that there are 128.3K parameters from 44.4K
+functions whose arguments are evaluated across all calls and they don't perform
+any effect or reflective operation. Similarly, row \#7 tells us that 25
+parameters from 24 functions are not evaluated in at least one call, but whey
+they are evaluated, they perform a side-effect and a reflective operation.
+Similarly, row \#4 tells us that 27.1K parameters from 11.3K functions are never
+evaluated. A careful study of these rows yields the following insights. First,
+arguments passed to majority of parameters, 65.25\%, are always evaluated and
+don't perform any side-effects or reflective operations. So, they can be made
+unconditionally strict . Of the remaining parameters, only unevaluated arguments
+correspond to 13.76\% parameters, followed by only side-effecting arguments to
+4\% parameters, and only reflective promises to 0.07\% parameters. The remaining
+combinations amount to less than a percent each. It is important to note that a
+function can appear in multiple rows as different parameters can belong to
+different categories. Same reasoning applies to packages. Another interesting
+pattern in the data is that arguments performing reflective operations
+(alternate rows \#1, \#3, \#5, \#7) come from relatively few functions and
+packages.
+
+\begin{table}
+  \vspace{-3mm}
+  \small
+  \caption{Strictness Distribution} \label{table:strictdist}
+  \centering
+  \begin{tabular}{lcccr|lr|lr}
+    \toprule
+    \#&\bf Unevaluted & \bf Side-Effecting & \bf Reflective & \multicolumn{2}{c}{\textbf{Parameters}} & \multicolumn{2}{c}{\textbf{Functions}}& \bf Packages\\
+    \midrule
+    0&\xmark{}&\xmark{}&\xmark{}&128305&65.25\%&44377&85.93\%&489\\
+    1&\xmark{}&\xmark{}&\cmark{}&134&0.07\%&124&0.24\%&47\\
+    2&\xmark{}&\cmark{}&\xmark{}&7871&4\%&5805&11.24\%&399\\
+    3&\xmark{}&\cmark{}&\cmark{}&408&0.21\%&385&0.75\%&93\\
+    4&\cmark{}&\xmark{}&\xmark{}&27050&13.76\%&11333&21.95\%&453\\
+    5&\cmark{}&\xmark{}&\cmark{}&13&0.01\%&12&0.02\%&11\\
+    6&\cmark{}&\cmark{}&\xmark{}&1213&0.62\%&813&1.57\%&199\\
+    7&\cmark{}&\cmark{}&\cmark{}&25&0.01\%&24&0.05\%&15\\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+An important detail in this summary is that includes contribution of
+side-effects and reflective operations performed by R's \emph{base} package and
+other user packages not part of our corpus. This is because arguments are also
+transitively involved in side-effecting or reflective operations. The numbers
+provided in this table are upper-bounds, we over count the number of arguments
+transitively involved in effects and reflective operations because our inference
+algorithm is conservative.
 
 \subsection{Orders of Evaluation}
 
