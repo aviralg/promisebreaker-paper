@@ -18,8 +18,8 @@
 % For meta comments:
 \newcommand{\isit}[1]{\authorcomment{cyan}{Check}{#1}}
 \newcommand{\todo}[1]{\authorcomment{red}{TODO}{#1}}
-\newcommand{\xmark}{\color{red} \ding{55}}
-\newcommand{\cmark}{\color{green} \ding{51}}
+\newcommand{\xmark}{\textcolor{red}{\ding{55}}}
+\newcommand{\cmark}{\textcolor{green}{\ding{51}}}
 
 \newcommand{\always}{\emph{Always}\xspace}
 \newcommand{\sometimes}{\emph{Sometimes}\xspace}
@@ -644,7 +644,7 @@ the experiments on multiple machines. Whenever possible, we parallelize the
 steps using GNU parallel~\cite{tange2011a}. Experiments were performed on two
 Intel Xeon 6140, 2.30GHz machines with 72 cores and 256GB of RAM each.
 
-\subsection{LazR}
+\subsection{LazR} \label{subsection:lazr}
 
 The low-level \rdyn allows registering callbacks with raw R objects at various
 points inside the R interpreter. Extracting meaningful information from these
@@ -833,16 +833,65 @@ are 15 functions with over 50 parameters that come from 10 packages.
 (119), and \c{rpart.plot::check.if.dot.arg.supported.by.rpart.rules} (122) with
 the highest number of parameters.
 
+\subsection{Algorithm}
 
-\subsection{Strictness}
+Now, we turn our attention to the algorithm used by \lazr to infer strictness.
+As discussed in section \ref{subsection:lazr}, \lazr uses execution traces to
+synthesize strictness signatures. Execution traces tell us if an argument
+\emph{(a)} is evaluated, \emph{(b)} is passed to a $...$ parameter, \emph{(c)}
+is metaprogrammed, \emph{(d)} performs a non-local effect, and \emph{(e)}
+accesses parent environment reflectively. \lazr merges this information from all
+execution traces to get a summary of operations for a function parameter
+position. It uses this summary decide if an argument can be evaluated eagerly
+and generates strictness signatures. The signatures also dictate the order of
+evaluation of arguments.
 
-This part of evaluation sheds light on the strictness of functions in our
-corpus. Conceptually, a function is strict if it evaluates all of its argument
-in a single pre-ordained order~\cite{oopsla19b} across all calls.
-Figure~\ref{fig:force_order} shows the number of evaluation orders of the
-functions in our corpus. XX(XX\%) functions have a single evaluation order. Out
-of those, XX functions evaluate all of their arguments. Evaluation orders
-greater than 5 are rare and are found only in XX functions.
+Because of the difficulty in assigning a unique strictness signature, $...$
+arguments are always lazy. Metaprogrammed arguments are also lazy as
+meta-programming relies on unevaluated argument text provided by a promise. The
+remaining operations are sources of \emph{accidental laziness}. We could decide
+to unevaluated, effectful, and reflective arguments lazy to preserve the
+semantics of legacy code. Or, we could make them strict to get rid of more
+promises at the risk of breaking code. The impact of this choice is not clear
+upfront. Hence, \lazr synthesizes multiple strictness signature
+``configurations`` to facilitate this assessment. It is worth noting that making
+arguments lazy if they are side-effecting has the potential to make everything
+lazy because it is dependent on how a client invokes the API. \lazr only makes
+the parameter lazy if an argument has performed a side-effect or reflective
+operation in the programs it has run. Including more programs will make more
+arguments lazy.
+
+Table~\ref{table:strictdist} presents a summary of strictness; the number of
+strict parameters, functions, and the packages in which these functions are
+defined; for all combinations of the sources. If laziness from a source is taken
+into account, it is marked with a \xmark{}, otherwise, it is marked with a
+\cmark{}. We observe that row \#0 corresponds to the configuration with maximum
+laziness, all three sources are taken into account for synthesizing signatures.
+Row \#7 corresponds to maximum strictness, all three sources are discarded and
+only metaprogrammed and $...$ arguments are treated lazy.
+
+
+
+\begin{table}
+  \vspace{-3mm}
+  \small
+  \caption{Strictness Distribution} \label{table:strictdist}
+  \centering
+  \begin{tabular}{lcccr|lr|lr}
+    \toprule
+    \#&\bf Unevaluted & \bf Side-Effecting & \bf Reflective & \multicolumn{2}{c}{\textbf{Parameters}} & \multicolumn{2}{c}{\textbf{Functions}}& \bf Packages\\
+    \midrule
+    0&\xmark{}&\xmark{}&\xmark{}&128305&65.25\%&44377&85.93\%&489\\
+    1&\xmark{}&\xmark{}&\cmark{}&134&0.07\%&124&0.24\%&47\\
+    2&\xmark{}&\cmark{}&\xmark{}&7871&4\%&5805&11.24\%&399\\
+    3&\xmark{}&\cmark{}&\cmark{}&408&0.21\%&385&0.75\%&93\\
+    4&\cmark{}&\xmark{}&\xmark{}&27050&13.76\%&11333&21.95\%&453\\
+    5&\cmark{}&\xmark{}&\cmark{}&13&0.01\%&12&0.02\%&11\\
+    6&\cmark{}&\cmark{}&\xmark{}&1213&0.62\%&813&1.57\%&199\\
+    7&\cmark{}&\cmark{}&\cmark{}&25&0.01\%&24&0.05\%&15\\
+    \bottomrule
+  \end{tabular}
+\end{table}
 
 
 \subsubsection{...}
@@ -1184,6 +1233,26 @@ spurious transitive laziness.
   \end{tabular}
 \end{table}
 
+\subsection{Orders of Evaluation}
+
+The argument evaluation orders observed for a function depend on its
+implementation and the control-flow paths exercised by its inputs. In this work
+we ignore this evaluation order. For evaluation robustness, we choose the
+definition order in the synthesized signatures. For assessing performance, the
+\Rsh just-in-time compiler uses the call order, i.e., the order in which
+arguments are passed to the function at the call site.
+
+Our notion of strictness departs from that of ~\citet{oopsla19b}. According to
+them, a function is strict if it evaluates all of its argument in a single
+pre-ordained order.
+
+\AG{add evaluation orders and contrast with side effects to assess impact.}
+%%the function and choose the definition order.
+%%Figure~\ref{fig:force_order} shows the number of evaluation orders of the
+%%functions in our corpus. XX(XX\%) functions have a single evaluation order. Out
+%%of those, XX functions evaluate all of their arguments. Evaluation orders
+%%greater than 5 are rare and are found only in XX functions.
+
 
 \section{Compile the Lazy Away}
 
@@ -1390,27 +1459,6 @@ functions with signatures.
 % \end{table}
 
 \subsection{Robustness (H2)} \label{Evaluation:Robustness}
-
-\begin{table}
-  \vspace{-3mm}
-  \small
-  \caption{Strictness Distribution} \label{table:strictdist}
-  \centering
-  \begin{tabular}{lcccr|lr|lr}
-    \toprule
-    \#&\bf Unevaluted & \bf Side-Effecting & \bf Reflective & \multicolumn{2}{c}{\textbf{Parameters}} & \multicolumn{2}{c}{\textbf{Functions}}& \bf Packages\\
-    \midrule
-    0&\xmark{}&\xmark{}&\xmark{}&128305&65.25\%&44377&85.93\%&489\\
-    1&\xmark{}&\xmark{}&\cmark{}&134&0.07\%&124&0.24\%&47\\
-    2&\xmark{}&\cmark{}&\xmark{}&7871&4\%&5805&11.24\%&399\\
-    3&\xmark{}&\cmark{}&\cmark{}&408&0.21\%&385&0.75\%&93\\
-    4&\cmark{}&\xmark{}&\xmark{}&27050&13.76\%&11333&21.95\%&453\\
-    5&\cmark{}&\xmark{}&\cmark{}&13&0.01\%&12&0.02\%&11\\
-    6&\cmark{}&\cmark{}&\xmark{}&1213&0.62\%&813&1.57\%&199\\
-    7&\cmark{}&\cmark{}&\cmark{}&25&0.01\%&24&0.05\%&15\\
-    \bottomrule
-  \end{tabular}
-\end{table}
 
 \begin{table}
   \vspace{-3mm}
