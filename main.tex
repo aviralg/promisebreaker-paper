@@ -1280,7 +1280,10 @@ stack. This has the effect of making more arguments lazy than needed.
 spurious transitive laziness.
 
 \subsubsection{Side-Effects}
-\begin{table}
+
+Now, we take a detailed look at the source of side-effects.
+
+\begin{wraptable}{r}{5cm}
   \vspace{-3mm}
   \small
   \caption{Promise Expression} \label{table:promexpr}
@@ -1295,9 +1298,21 @@ spurious transitive laziness.
     Promise&4.18\%&0\%\\
     \bottomrule
   \end{tabular}
-\end{table}
+\end{wraptable}
 
-\begin{table}
+Arguments perform side effects when they contain a symbol, or a function call.
+Occasionally, the interpreter wraps arguments inside other arguments which could
+lead to transitive effects. Table ~\ref{table:promexpr} shows the distribution
+of expression type inside side-effecting argument promises and contrasts it
+against all argument promises. Only 0.5\% arguments perform any effect. Out of
+these, 0.39\% contain a function call expression and 0.11\% contain a symbol. As
+expected, arguments containing a value don't perform any effect. All promises
+containing a symbol will perform at least one lookup upon evaluation. Similarly,
+promises containing function calls will perform local side-effects in the
+function's scope. Our algorithm is able to discard most of these ``benign''
+events.
+
+\begin{table}[!h]
   \vspace{-3mm}
   \small
   \caption{Effects} \label{table:effects}
@@ -1315,14 +1330,27 @@ spurious transitive laziness.
   \end{tabular}
 \end{table}
 
-\begin{table}
+Table~\ref{table:effects} shows the number of effects, lookups (L), definitions
+(D), assignments (A), removals (R), and errors (E) and the number of arguments,
+parameters, functions and packages that are responsible for those effects. We
+observe that lookups are the most common cause for making arguments lazy. This
+is followed by definitions and assignments. Removing bindings from environments
+is not a common operation. Errors in argument positions are rare. Functions
+performing lookups, definitions and assignments are spread across many packages.
+
+Comparing the number of events in this table against the total number of events
+from Table~\ref{table:events}, we find that our algorithm is able to filter
+89.4B variable lookups to 3.7M, 20.9B definitions to 1.1M, 7.6B assignments to
+235.8K, 360.7M removals to 2.8K, and 494 errors to 6.
+
+\begin{wraptable}{r}{4cm}
   \vspace{-3mm}
   \small
   \caption{Effect Sequence} \label{table:effectseq}
   \centering
   \begin{tabular}{lll}
     \toprule
-    \textbf{Effect Sequence}&\textbf{Argument \%}\\
+    \textbf{Sequence}&\textbf{Arguments}\\
     \midrule
     -&99.5\%\\
     L+&0.41\%\\
@@ -1331,8 +1359,15 @@ spurious transitive laziness.
     (L+D+)+&0.01\%\\
     \bottomrule
   \end{tabular}
-\end{table}
+\end{wraptable}
 
+An argument can perform multiple a combination of effects during
+evaluation.Table~\ref{table:effectseq} shows the sequence of operations
+performed by the arguments in our corpus. Majority of arguments, 99.5\% to be
+precise, do not perform any relevant effect. 0.41\% only perform a sequence of
+lookups, 0.04\% perform a sequence of definitions, 0.03\% perform assignments,
+and 0.01\% perform a sequence of lookups and definitions. From this, we conclude
+that majority of arguments have a simple pattern of events.
 
 \subsubsection{Qualitative Analysis}
 
@@ -1355,14 +1390,14 @@ side-effecting expressions.
 Another important source of non-local writes is the use of functions from
 \code{withr} package. It provides a set of functions to evaluate code in
 temporarily modified global state. It is typical of these code blocks to compute
-a value and assign it to the variable in the current scope.
-We observe side-effecting expressions passed to \code{with\_dir} which
-temporarily changes the current working directory, \code{with\_envvar} which changes the
-environment variables, \code{with\_locale} which changes the current locale,
-\code{with\_options} which changes global program options, \code{with\_par}, which changes
-graphical parameters for plotting, and \code{with\_seed} which changes the random
-number generation seed. The listing below shows some side-effecting
-calls to these functions that we observed in our corpus.
+a value and assign it to the variable in the current scope. We observe
+side-effecting expressions passed to \code{with\_dir} which temporarily changes
+the current working directory, \code{with\_envvar} which changes the environment
+variables, \code{with\_locale} which changes the current locale,
+\code{with\_options} which changes global program options, \code{with\_par},
+which changes graphical parameters for plotting, and \code{with\_seed} which
+changes the random number generation seed. The listing below shows some
+side-effecting calls to these functions that we observed in our corpus.
 
 \begin{lstlisting}
 with_envvar(c(R_ENVIRON_USER = ".Renviron"), { res <- ... })
