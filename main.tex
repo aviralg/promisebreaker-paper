@@ -181,7 +181,9 @@ evaluation of arguments may introduce errors if that code was performing side
 effects.
 
 \paragraph{The case for strictness.} Laziness is error-prone, inconsistent
-and costly! The combination of delayed evaluation and side-effects in a language
+and costly! \SK{previous sentence sounds a bit of an overstatement until next sentence clarifies that
+we mean that in the presence of side-effects and no type-annotations .otoh maybe that's the point...} 
+The combination of delayed evaluation and side-effects in a language
 without type annotations is an invitation to subtle programming errors. If a
 function has multiple evaluation orders and is called with effectful arguments,
 their effects will be observed to happen in various orders. Functional languages
@@ -191,7 +193,7 @@ boundaries of their interface to force a single evaluation order. The design and
 use of laziness is inconsistent because there are multiple points where
 evaluation is arbitrarily forced. These include right-hand side of assignments
 and function returns, neither of which is required in a lazy language.
-Furthermore, to support object-oriented programming, R allows both single- and
+Furthermore, to support object-oriented programming, R allows both single and
 multiple-dispatch; in order to perform dispatch, arguments must be evaluated
 eagerly. Last, there are costs to lazy evaluation. Each argument must be boxed
 in a data structure that holds a reference to the expression to evaluate, its
@@ -205,9 +207,9 @@ often comes down to the strength of its ecosystem. With tens of millions of
 lines of contributed library code, any change to the core semantics of the
 language risks changing the behavior of some library functions. Preserving the
 status quo is a pragmatic choice to protect the investment in legacy code bases.
-There is also a genuine need for lazy evaluation, it is the building block of
+There is also a genuine need for lazy evaluation: it is the building block of
 the meta-programming facilities of the language. Unevaluated arguments can be
-coerced back to their source code, that code can be modified, and evaluated in
+coerced back to their source code, that code can be modified and evaluated in
 an environment of the programmer's choice. Meta-programming is used to extend
 the language and to create embedded domain specific languages. While it is
 possible to imagine using macros instead, the number of libraries that use
@@ -215,12 +217,12 @@ meta-programming is sufficiently large that it would be non-trivial to refactor
 them.
 
 \paragraph{A pragmatic path forward.} How can an entire ecosystem migrate to
-a new semantics? A viable migration path should follow the following four
+a new semantics? A viable migration path should follow the following \SK{follow the following?} four
 tenets: ({\bf T1}) source code changes to legacy code should be kept to a
-minimum; ({\bf T2}) the migration should either be (semi-)automated, and require
-limit involvement of legacy developers; ({\bf T3}) the migration should have
+minimum; ({\bf T2}) the migration should either \SK{'both'? or is it 'either' and we are missing an 'or'} be (semi-)automated, and require
+limited involvement of legacy developers; ({\bf T3}) the migration should have
 measurable benefits; and ({\bf T4}) the migration should be testable with
-discrepancies easily attributed to a specific change.
+discrepancies easily attributed to a specific change \SK{I find this sentence hard to grasp}.
 %
 %
 We propose a migration path that will lead to a mostly strict ecosystem based on
@@ -232,53 +234,55 @@ Specifically, we propose an approach that follows the above guidelines.
   be non-invasive. We claim that the behavior most users expect from their
   code closely aligns to a strict semantics. This change will thus not affect
   their experience and will not break their code. The opt-in lazy semantics will
-  mostly be focused at library interfaces. There, signatures are supplied from
+  mostly be focused on \SK{intended for?} library interfaces. There, signatures are supplied from
   external signature files. These must only contain the functions which require
-  some of their arguments to be lazy. End-user code, as well as library code can
+  some of their arguments to be lazy. End-user code, as well as library code should
   remain mostly unchanged.
 \item[{\bf T2:}] A tool can leverage the structure of the R ecosystem to infer
   annotations for legacy library code. R packages are hosted in a curated
   repository called CRAN, a repository enforcing format and checks on the code
-  stored in it. In particular every program has runnable use-cases and tests.
+  stored in it. In particular, every program has runnable use-cases and tests.
   We use these to infer optimistic signatures for all packages. The inferred
   signature must be validated by a developer (or they can also be deployed and
   refined iteratively).
 \item[{\bf T3:}] To test and potentially reap the performance and memory benefits of decreasing
   the laziness of R programs, compilers should be extended to
   support strictness signatures. This will lead to code that evaluates most
-  arguments at the call-site and thus requires fewer resources for keeping track
-  of delayed computations, needs fewer switches in execution context for
+  arguments at the call-site (thus requiring fewer resources for keeping track
+  of delayed computations), needs fewer switches in execution context for
   evaluating arguments, and can potentially be better optimized.
 \item[{\bf T4:}] The robustness of the inferred signatures under different
-  calling contexts can be estimated, by running the transitive closure
+  calling contexts can be estimated by running the transitive closure
   of its clients and their tests. Programs that crash or depart from their
   expected behavior indicate erroneous strictness annotations.
 \end{itemize}
 
 Our long term aim is to propose such a migration path to the R community. In
-this paper we propose to evaluate the proposed migration path. We make
-the following contributions:
+this paper we propose to evaluate \SK{can we change this to 'we evaluate'?}  
+the proposed migration path. We make the following contributions:
 
 \begin{itemize}
-\item We propose \strictr, a non-invasive extension of the R language, where
+\item We introduce \strictr, a non-invasive extension of the R language, where
   optional signature files specify, for individual functions, which of their
   arguments are strict. The proposal is integrated in the R environment and
-  compatible with the package loading model. In GNUR, the reference
-  implementation of the language, the new semantics tested with an
-  implementation based on source-to-source rewriting of functions as they are
-  loaded.
+  compatible with the package loading model. In GNUR –the reference
+  implementation of the language– the new semantics was tested with an
+  implementation based on source-to-source rewriting of functions. The process 
+  takes place on demand, as functions are loaded.
 \item We implement \lazr, an infrastructure for large-scale inference of
   strictness signatures for legacy libraries. We evaluate \lazr on packages
-  hosted in the CRAN repository. For each package \lazr extracts all executable
+  hosted in the CRAN repository. For each package, \lazr extracts all executable
   code from vignettes (\ie runable snippets embedded in the package
-  documentation), examples and tests, and infers signatures for all
-  functions defined by the package. The process is shown to scale to the 500
+  documentation),examples and tests 
+  \SK{should 'examples and tests' be inside previous parens? I feel the sentence 
+  is too long, too many commas and 'and's} , and infers signatures for all
+  functions defined by the package. The process is shown to scale up to the 500
   most widely used packages in the R ecosystem.
 \item We conducted an experiment using the \Rsh optimizing just-in-time compiler
   to evaluate the benefits of unboxing and inlining
   delayed evaluation on a benchmark suite of small computational tasks. We show
   a median \speedupRshStrict speed up, ranging from \speedupRshStrictMin to \speedupRshStrictMax.
-\item We evaluate the robustness of the inferred signatures by testing them with
+\item We evaluate the robustness of the inferred signatures by testing them against
   2,000 packages that are transitive clients of the packages for which
   signatures were inferred. We report 0.3\% error rate, \ie signatures
   that cause executions to diverge from the reference semantics.
@@ -1668,7 +1672,8 @@ The lowest reduction observed is
 Surprisingly the number of remaining promises is
 still relatively high in some cases. As far as we were able to observe, they
 originate largely from two sources. One are default argument expressions, which
-are still bundled in promises. \OF{which bms and how much?} The other are special forms, \ie R builtins with a custom evaluation
+are still bundled in promises. \OF{which bms and how much?} The other are special forms, 
+\ie R builtins with a custom evaluation
 strategy, that are not yet natively supported in the \Rsh bytecode.
 
 \paragraph{Discussion}
