@@ -29,13 +29,27 @@
 \newcommand{\rdyn}{{\sf R-dyntrace}\xspace}
 \newcommand{\instr}{{\sf InstrumentR}\xspace}
 
-\lstset{language=R}
-
 \definecolor{LightGray}{RGB}{247, 247, 247}
 \definecolor{Gray}{rgb}{.3,.3,.3}
 \definecolor{DarkGray}{rgb}{.5,.5,.5}
 
-\lstset{ %
+%% https://www.davehofmann.de/defining-custom-language-templates-for-latex-listings/
+% Define Language
+\lstdefinelanguage{smalleR} {
+  % list of keywords
+  morekeywords={
+    for,
+    if,
+    else,
+    function
+  },
+  sensitive=true, % keywords are not case-sensitive
+  morecomment=[l]{\#}, % l is for line comment
+  morestring=[b]{"} % defines that strings are enclosed in double quotes
+}
+
+\lstset{
+  language={smalleR},
   columns=flexible,
   captionpos=b,
   frame=single,
@@ -49,24 +63,13 @@
   emphstyle=\sffamily,
   keywordstyle=\bfseries,
   commentstyle=\color{Gray}\em,
-  stringstyle=\color{Gray}
-}
-\lstdefinestyle{R}{ %
-  language=R,
-  deletekeywords={new, env, equal, c, runif, trace, args, exp, t, all, get,body,
-    names, is, environment, class, substitute, expression, list, null, Internal,
-    sample, diag, length, rep, nrow, stop, offset, pmax, Machine,check,names,merge,all,
-    double, parent, frame, par, methods, end, dir, apply, deparse, missing,any,
-    plot, as, integer, character, inherits, numeric, paste, eval, quote, call,
-    formula, df, log, sum, c, local, legend, file, scale, round, title, order,
-    drop, which, grid, print, ncol, dim, max, format, sort, rug, matrix, start,
-    unique, mean, df, attr, do, power},
-  otherkeywords={},
+  stringstyle=\color{Gray},
+  alsoletter={., _, $},
   breaklines=true
 }
 
-\newcommand{\code}[1]{\lstinline[style=R]|#1|\xspace}
-\renewcommand{\c}[1]{\lstinline[style=R]|#1|\xspace}
+\newcommand{\code}[1]{\lstinline |#1|\xspace}
+\renewcommand{\c}[1]{\lstinline |#1|\xspace}
 \newcommand{\strictr}{{\sf StrictR}\xspace}
 \newcommand{\lazr}{{\sf LazR}\xspace}
 \renewcommand{\Rsh}{{\sf\u R}\xspace}
@@ -369,7 +372,7 @@ other parameters. R functions are higher-order. The following snippet declares a
 function \code f which takes a variable number of arguments, whose parameters
 \code x and \code y, if missing, evaluate to \code y and \code{3*x}. The function
 returns a closure.
-\begin{lstlisting}[style=R]
+\begin{lstlisting}
 > f <- function(x=y, ..., y=3*x) { function(z) x+y+z }
 \end{lstlisting}\vspace{1mm}
 \noindent
@@ -404,7 +407,7 @@ R supports reflection and meta-programming. The \code{substitute(e,envir)}
 function yields the parse tree of the expression \code{e} after performing
 substitutions defined by the bindings in \code{envir}.
 \vspace{-1mm}
-\begin{lstlisting}[style=R]
+\begin{lstlisting}
 > substitute(expression(a + b), list(a = 1)))
 expression(1 + b)
 \end{lstlisting}
@@ -434,7 +437,7 @@ captured for future reference. The following snippet defines a function \code{f}
 that takes argument \code x and returns \code{x+x}. When called with an argument
 that has the side effect of printing to the console, the side effect is
 performed once as the second access to the promise is cached.
-\begin{lstlisting}[style=R]
+\begin{lstlisting}
 > f <- function(x) x+x
 > f( {print("Hi!");2} )
 "Hi!"
