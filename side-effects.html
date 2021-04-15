@@ -4135,9 +4135,10 @@ div.tocify {
 ## /Users/aviral/projects/promisebreaker-experiment/experiment/report/paper/data/parameters.fst
 ## /Users/aviral/projects/promisebreaker-experiment/experiment/report/paper/data/functions.fst
 ## /Users/aviral/projects/promisebreaker-experiment/experiment/report/paper/data/argument_type.fst
-## /Users/aviral/projects/promisebreaker-experiment/experiment/report/paper/data/direct_effects.fst</code></pre>
-<div id="overview" class="section level2" number="0.1">
-<h2 number="0.1"><span class="header-section-number">0.1</span> Overview</h2>
+## /Users/aviral/projects/promisebreaker-experiment/experiment/report/paper/data/direct_effects.fst
+## /Users/aviral/projects/promisebreaker-experiment/experiment/report/paper/data/indirect_effects.fst</code></pre>
+<div id="overview" class="section level1" number="1">
+<h1 number="1"><span class="header-section-number">1</span> Overview</h1>
 <pre><code>## &#39;data.frame&#39;:    11673 obs. of  14 variables:
 ##  $ formal_pos           : int  1 1 5 5 5 2 1 4 4 6 ...
 ##  $ force_pos            : int  2 4 1 4 5 0 0 2 3 5 ...
@@ -4154,34 +4155,43 @@ div.tocify {
 ##  $ pack_name            : chr  &quot;abind&quot; &quot;abind&quot; &quot;abind&quot; &quot;abind&quot; ...
 ##  $ fun_name             : chr  &quot;`abind`&quot; &quot;`abind`&quot; &quot;`abind`&quot; &quot;`abind`&quot; ...</code></pre>
 </div>
-<div id="argument-types" class="section level2" number="0.2">
-<h2 number="0.2"><span class="header-section-number">0.2</span> Argument Types</h2>
-<div id="htmlwidget-c650a7924c129fc0a7df" style="width:100%;height:auto;" class="datatables html-widget"></div>
-<script type="application/json" data-for="htmlwidget-c650a7924c129fc0a7df">{"x":{"filter":"none","data":[["1","2","3","4"],["Symbol","Value","Call","Promise"],[48.99,21.58,17.49,4.18],[0.11,0,0.39,0]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th> <\/th>\n      <th>expr_type<\/th>\n      <th>all_perc<\/th>\n      <th>se_perc<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"columnDefs":[{"className":"dt-right","targets":[2,3]},{"orderable":false,"targets":0}],"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script>
-<pre><code>## Symbol&amp;48.99\%&amp;0.11\%\\
-## Value&amp;21.58\%&amp;0\%\\
-## Call&amp;17.49\%&amp;0.39\%\\
-## Promise&amp;4.18\%&amp;0\%</code></pre>
+<div id="argument-types" class="section level1" number="2">
+<h1 number="2"><span class="header-section-number">2</span> Argument Types</h1>
+<div id="htmlwidget-a3b4a41a5b9464586c2a" style="width:100%;height:auto;" class="datatables html-widget"></div>
+<script type="application/json" data-for="htmlwidget-a3b4a41a5b9464586c2a">{"x":{"filter":"none","data":[["1","2","3","4"],["Symbol","Value","Call","Promise"],[46.19,20.61,16.44,7.38],[0.1,0,0.36,0]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th> <\/th>\n      <th>expr_type<\/th>\n      <th>all_perc<\/th>\n      <th>se_perc<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"columnDefs":[{"className":"dt-right","targets":[2,3]},{"orderable":false,"targets":0}],"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script>
+<pre><code>## Symbol&amp;46.19\%&amp;0.1\%\\
+## Value&amp;20.61\%&amp;0\%\\
+## Call&amp;16.44\%&amp;0.36\%\\
+## Promise&amp;7.38\%&amp;0\%</code></pre>
 </div>
-<div id="simplified-effect-sequence" class="section level2" number="0.3">
-<h2 number="0.3"><span class="header-section-number">0.3</span> Simplified Effect Sequence</h2>
-<div id="htmlwidget-d80c536e33874407ce21" style="width:100%;height:auto;" class="datatables html-widget"></div>
-<script type="application/json" data-for="htmlwidget-d80c536e33874407ce21">{"x":{"filter":"none","data":[["1","2","3","4","5"],["-","L+","D+","A+","(L+D+)+"],[292981897,1199186,126391,103033,16507],[99.5,0.41,0.04,0.03,0.01],[99.5,99.91,99.95,99.98,99.99]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th> <\/th>\n      <th>simplified_effect_seq<\/th>\n      <th>argument_count<\/th>\n      <th>perc<\/th>\n      <th>cumperc<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"columnDefs":[{"className":"dt-right","targets":[2,3,4]},{"orderable":false,"targets":0}],"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script>
-<pre><code>## -&amp;99.5\%\\
-## L+&amp;0.41\%\\
+<div id="simplified-effect-sequence" class="section level1" number="3">
+<h1 number="3"><span class="header-section-number">3</span> Simplified Effect Sequence</h1>
+<div id="htmlwidget-89a4cf7d823d2fde502f" style="width:100%;height:auto;" class="datatables html-widget"></div>
+<script type="application/json" data-for="htmlwidget-89a4cf7d823d2fde502f">{"x":{"filter":"none","data":[["1","2","3","4","5"],["-","L+","D+","A+","(L+D+)+"],[317969614,1199186,126391,103033,16507],[99.54,0.38,0.04,0.03,0.01],[99.54,99.92,99.96,99.99,100]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th> <\/th>\n      <th>simplified_effect_seq<\/th>\n      <th>argument_count<\/th>\n      <th>perc<\/th>\n      <th>cumperc<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"columnDefs":[{"className":"dt-right","targets":[2,3,4]},{"orderable":false,"targets":0}],"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script>
+<pre><code>## -&amp;99.54\%\\
+## L+&amp;0.38\%\\
 ## D+&amp;0.04\%\\
 ## A+&amp;0.03\%\\
 ## (L+D+)+&amp;0.01\%</code></pre>
 </div>
-<div id="effect-distribution" class="section level2" number="0.4">
-<h2 number="0.4"><span class="header-section-number">0.4</span> Effect Distribution</h2>
-<div id="htmlwidget-7c07ae5de140b2ac6a2d" style="width:100%;height:auto;" class="datatables html-widget"></div>
-<script type="application/json" data-for="htmlwidget-7c07ae5de140b2ac6a2d">{"x":{"filter":"none","data":[["1","2","3","4","5"],["L","D","A","R","E"],["3.7M","1.1M","235.8K","2.8K","0.0"],["1.2M","159.0K","122.7K","718.0","6.0"],["5.6K","3.0K","511.0","27.0","6.0"],["3.7K","2.6K","487.0","24.0","6.0"],[359,319,109,10,3]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th> <\/th>\n      <th>type<\/th>\n      <th>count<\/th>\n      <th>arguments<\/th>\n      <th>parameters<\/th>\n      <th>functions<\/th>\n      <th>packages<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"columnDefs":[{"className":"dt-right","targets":6},{"orderable":false,"targets":0}],"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script>
+<div id="effect-distribution" class="section level1" number="4">
+<h1 number="4"><span class="header-section-number">4</span> Effect Distribution</h1>
+<div id="htmlwidget-3ac1741f38c82525d36d" style="width:100%;height:auto;" class="datatables html-widget"></div>
+<script type="application/json" data-for="htmlwidget-3ac1741f38c82525d36d">{"x":{"filter":"none","data":[["1","2","3","4","5"],["L","D","A","R","E"],["3.7M","1.1M","235.8K","2.8K","0.0"],["1.2M","159.0K","122.7K","718.0","6.0"],["5.6K","3.0K","511.0","27.0","6.0"],["3.7K","2.6K","487.0","24.0","6.0"],[359,319,109,10,3]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th> <\/th>\n      <th>type<\/th>\n      <th>count<\/th>\n      <th>arguments<\/th>\n      <th>parameters<\/th>\n      <th>functions<\/th>\n      <th>packages<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"columnDefs":[{"className":"dt-right","targets":6},{"orderable":false,"targets":0}],"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script>
 <pre><code>## L&amp;3.7M&amp;1.2M&amp;5.6K&amp;3.7K&amp;359\\
 ## D&amp;1.1M&amp;159.0K&amp;3.0K&amp;2.6K&amp;319\\
 ## A&amp;235.8K&amp;122.7K&amp;511.0&amp;487.0&amp;109\\
 ## R&amp;2.8K&amp;718.0&amp;27.0&amp;24.0&amp;10\\
 ## E&amp;0.0&amp;6.0&amp;6.0&amp;6.0&amp;3</code></pre>
+</div>
+<div id="indirect-effects" class="section level1" number="5">
+<h1 number="5"><span class="header-section-number">5</span> Indirect Effects</h1>
+<div id="htmlwidget-4f4c1fdea4b37981487e" style="width:100%;height:auto;" class="datatables html-widget"></div>
+<script type="application/json" data-for="htmlwidget-4f4c1fdea4b37981487e">{"x":{"filter":"none","data":[["1","2","3","4"],["L","D","A","R"],["1.4K","978.0","303.0","34.0"],["1.1K","934.0","298.0","33.0"],[230,202,79,15]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th> <\/th>\n      <th>type<\/th>\n      <th>parameters<\/th>\n      <th>functions<\/th>\n      <th>packages<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"columnDefs":[{"className":"dt-right","targets":4},{"orderable":false,"targets":0}],"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script>
+<pre><code>## L&amp;1.4K&amp;1.1K&amp;230\\
+## D&amp;978.0&amp;934.0&amp;202\\
+## A&amp;303.0&amp;298.0&amp;79\\
+## R&amp;34.0&amp;33.0&amp;15</code></pre>
 </div>
 
 

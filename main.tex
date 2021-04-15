@@ -1361,13 +1361,39 @@ from Table~\ref{table:events}, we find that our algorithm is able to filter
   \end{tabular}
 \end{wraptable}
 
-An argument can perform multiple a combination of effects during
+An argument can perform a combination of effects during
 evaluation.Table~\ref{table:effectseq} shows the sequence of operations
 performed by the arguments in our corpus. Majority of arguments, 99.5\% to be
 precise, do not perform any relevant effect. 0.41\% only perform a sequence of
 lookups, 0.04\% perform a sequence of definitions, 0.03\% perform assignments,
 and 0.01\% perform a sequence of lookups and definitions. From this, we conclude
 that majority of arguments have a simple pattern of events.
+
+
+When making side-effecting arguments lazy, we also take transitivity into
+account. Unevaluated side-effecting arguments can be forwarded to callees which
+will make the corresponding callee arguments lazy.
+\begin{table}[!h]
+  \vspace{-3mm}
+  \small
+  \caption{Transitive Effects} \label{table:transeffects}
+  \centering
+  \begin{tabular}{llll}
+    \toprule
+    \textbf{Effect}&\textbf{Parameters}&\textbf{Functions}&\textbf{Packages}\\
+    \midrule
+    L&1.4K&1.1K&230\\
+    D&978&934&202\\
+    A&303&298&79\\
+    R&34&33&15\\
+    \bottomrule
+  \end{tabular}
+\end{table}
+Table~\ref{table:transeffects} shows the number of parameters that are made
+transitively lazy. These numbers are an upper bound. Our algorithm trades off
+precision for scalability, so when a side-effect happens, it marks all the
+arguments being evaluated as lazy. However, as the numbers indicate, the impact
+of this imprecision is limited.
 
 \subsubsection{Qualitative Analysis}
 
