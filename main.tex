@@ -1276,6 +1276,8 @@ are not performing any visible side-effects.
 
 
 Now, we discuss some examples where arguments remove a variable from a scope.
+This usually happens when a function calls the \code{base} package's
+\code{remove} or \code{rm} function.
 
 A frequent pattern that shows up is from the \code{knitr} package. The function
 \code{in_dir} evaluates a code block from an RMarkdown notebook in a specific
@@ -1320,6 +1322,20 @@ Eventually, it removes the variable using \code{rm}.
     ...
 }
 \end{lstlisting}
+
+Lastly, a very popular package, \code{rlang}, defines a function \code{env_bind}
+which can be used to create and remove bindings from an environment. When passed
+with the value \code{zap()}, it removes the corresponding symbol from the
+environment. Instead of using \code{base} package functions, it uses the C API
+function \code{R_removeVarFromFrame} exported by R to remove environment
+bindings.
+
+\begin{lstlisting}
+env_bind(current_env(), foo = zap())
+\end{lstlisting}
+
+Another function responsible for 
+
 \subsection{Summary}
 
 Table~\ref{table:strictdist} presents a summary of the distribution of
