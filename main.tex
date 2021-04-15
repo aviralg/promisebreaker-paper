@@ -1274,6 +1274,52 @@ expect_that(fe1 <- fixef(fm1), is_equivalent_to(1527.5))
 Since our analysis is conservative, at times we mis-classify arguments when they
 are not performing any visible side-effects.
 
+
+Now, we discuss some examples where arguments remove a variable from a scope.
+
+A frequent pattern that shows up is from the \code{knitr} package. The function
+\code{in_dir} evaluates a code block from an RMarkdown notebook in a specific
+directory. The code block is wrapped in \code{evaluate::evaluate} function which
+sets and removes handlers for intercepting abnormal conditions when evaluating
+the block. The removal of a handler results in a call to the \code{remove}
+function from the \code{base} package of R for removal.
+
+\begin{lstlisting}
+in_dir(input_dir(), evaluate(code, envir = env, ...))
+\end{lstlisting}
+
+The \code{evaluate} function is used quite often from many other sources. For
+example, the \code{testthat::expect_snapshot} function in the \code{testthat}
+testing library is used for storing a snapshot of the output of a code block for
+manual inspection. It internally evaluates the code block using the
+\code{evaluate} function.
+
+
+We also observe a lot of variable removals from the \code{BiocParallel} package.
+The following line of code results in a call to \code{bplapply} which performs a
+parallel map operation. This function internally calls a package scope cluster
+manager which removes references to clusters from an environment on cleanup
+using the \code{rm} function.
+
+\begin{lstlisting}
+bptry(bplapply(si, FUN1, ..., BPREDO = BPREDO[idx], BPPARAM = BPPARAM))
+\end{lstlisting}
+
+Another use of \code{rm} is in the \code{[.data.table} function which is used
+for subsetting a \code{data.table}. The function computes the number of rows of
+the data frame and assigns to a variable \code{.N} in the caller's environment.
+Eventually, it removes the variable using \code{rm}.
+
+\begin{lstlisting}
+[.data.table <- function (x, i, j, ...) {
+    ...
+    assign(".N", nrow(x), envir=parent.frame(), inherits=FALSE)
+    remove.N = TRUE
+    ...
+    if (remove.N) rm(list=".N", envir=parent.frame())
+    ...
+}
+\end{lstlisting}
 \subsection{Summary}
 
 Table~\ref{table:strictdist} presents a summary of the distribution of
