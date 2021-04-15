@@ -712,12 +712,56 @@ events and checking on every write if a function is being bound to a name.
 Functions can be nested to arbitrary depths in which case, function model object
 are linked to reflect their parent-child relationship.
 
+\begin{table}[!h]
+  \vspace{-3mm}
+  \small
+  \caption{Events} \label{table:events}
+  \centering
+  \begin{tabular}{lrr}
+    \toprule
+    \bf Event&\bf Count& \bf Time\\
+    \midrule
+    Alloc&125.3B&104.9h\\
+    Dealloc&101.6B&37.5h\\
+    EvalEntry&91.5B&9.9h\\
+    EvalExit&90.5B&9.7h\\
+    VarLkp&89.4B&101h\\
+    FunLkp&47.0B&13.7h\\
+    SplEntry&29.1B&23.2h\\
+    \bottomrule
+  \end{tabular}
+  \begin{tabular}{lrr}
+    \toprule
+    \bf Event&\bf Count& \bf Time\\
+    \midrule
+    SplExit&28.1B&8h\\
+    VarDef&20.9B&33.4h\\
+    BtnEntry&14.5B&9.5h\\
+    BtnExit&14.5B&5.6h\\
+    PromEntry&13.2B&12.1h\\
+    PromExit&13.2B&5.8h\\
+    VarAsn&7.6B&5.6h\\
+    \bottomrule
+  \end{tabular}
+  \begin{tabular}{lrr}
+    \toprule
+    \bf Event&\bf Count& \bf Time\\
+    \midrule
+    ClosureEntry&6.6B&234.5h\\
+    ClosureExit&6.3B&3.1h\\
+    PromLkp&5.8B&1.8h\\
+    PromExpr&2.8B&1.8h\\
+    VarRemoval&360.7M&10.4m\\
+    PromSubst&101.0M&4.7m\\
+    Error&494.0&0.1s\\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
 During execution, \lazr collects information about function calls, arguments,
-side-effects, and reflective environment access. from the model objects provided
-by the following event: \emph{function entry and exit}, \emph{promise evaluation
-entry and exit}, \emph{variable reads and writes}, \emph{promise value and
-expression reads}, and \emph{function lookup}. This information is stored in
-compressed tabular format using R's \c{fst} library.
+side-effects, and reflective environment access from the model objects provided
+by the multiples events presented in Table~\ref{table:events}. This information
+is stored in compressed tabular format using R's \c{fst} library.
 
 For signature generation, we use a custom R script that summarizes argument
 evaluation data per function from the tables obtained during tracing and
@@ -780,90 +824,6 @@ gives the number of scripts of each kind that were run and lines of code
 exercised.
 
 \subsection{Inference}
-
-\begin{wraptable}{r}{8cm}
-  \vspace{-3mm}
-  \small
-  \caption{Allocations} \label{table:allocations}
-  \centering
-  \begin{tabular}{lr}
-    \toprule
-    \bf Object&\bf Count\\
-    \midrule
-    Promise&16.0B\\
-    Environment&6.8B\\
-    Logical&6.1B\\
-    Character&5.5B\\
-    Language&2.9B\\
-    Integer&2.5B\\
-    List&849.7M\\
-    Real&639.0M\\
-    Closure&585.6M\\
-    \bottomrule
-  \end{tabular}
-  \begin{tabular}{lr}
-    \toprule
-    \bf Object&\bf Count\\
-    \midrule
-    Char&326.4M\\
-    Raw&288.7M\\
-    Symbol&204.7M\\
-    Dot&157.9M\\
-    Externalptr&66.6M\\
-    S4&30.3M\\
-    Complex&2.2M\\
-    Expression&1.6M\\
-    Weakref&25.2K\\
-    \bottomrule
-  \end{tabular}
-\end{wraptable}
-
-\begin{table}[!h]
-  \vspace{-3mm}
-  \small
-  \caption{Events} \label{table:events}
-  \centering
-  \begin{tabular}{lrr}
-    \toprule
-    \bf Event&\bf Count& \bf Time\\
-    \midrule
-    Alloc&125.3B&104.9h\\
-    Dealloc&101.6B&37.5h\\
-    EvalEntry&91.5B&9.9h\\
-    EvalExit&90.5B&9.7h\\
-    VarLkp&89.4B&101h\\
-    FunLkp&47.0B&13.7h\\
-    SplEntry&29.1B&23.2h\\
-    \bottomrule
-  \end{tabular}
-  \begin{tabular}{lrr}
-    \toprule
-    \bf Event&\bf Count& \bf Time\\
-    \midrule
-    SplExit&28.1B&8h\\
-    VarDef&20.9B&33.4h\\
-    BtnEntry&14.5B&9.5h\\
-    BtnExit&14.5B&5.6h\\
-    PromEntry&13.2B&12.1h\\
-    PromExit&13.2B&5.8h\\
-    VarAsn&7.6B&5.6h\\
-    \bottomrule
-  \end{tabular}
-  \begin{tabular}{lrr}
-    \toprule
-    \bf Event&\bf Count& \bf Time\\
-    \midrule
-    ClosureEntry&6.6B&234.5h\\
-    ClosureExit&6.3B&3.1h\\
-    PromLkp&5.8B&1.8h\\
-    PromExpr&2.8B&1.8h\\
-    VarRemoval&360.7M&10.4m\\
-    PromSubst&101.0M&4.7m\\
-    Error&494.0&0.1s\\
-    \bottomrule
-  \end{tabular}
-\end{table}
-
 \begin{wraptable}{r}{8cm}
   \vspace{-3mm}
   \small
@@ -973,7 +933,45 @@ the parameter lazy if an argument has performed a side-effect or reflective
 operation in the programs it has run. Including more programs will make more
 arguments lazy.
 
+\begin{wraptable}{r}{8cm}
+  \vspace{-3mm}
+  \small
+  \caption{Allocations} \label{table:allocations}
+  \centering
+  \begin{tabular}{lr}
+    \toprule
+    \bf Object&\bf Count\\
+    \midrule
+    Promise&16.0B\\
+    Environment&6.8B\\
+    Logical&6.1B\\
+    Character&5.5B\\
+    Language&2.9B\\
+    Integer&2.5B\\
+    List&849.7M\\
+    Real&639.0M\\
+    Closure&585.6M\\
+    \bottomrule
+  \end{tabular}
+  \begin{tabular}{lr}
+    \toprule
+    \bf Object&\bf Count\\
+    \midrule
+    Char&326.4M\\
+    Raw&288.7M\\
+    Symbol&204.7M\\
+    Dot&157.9M\\
+    Externalptr&66.6M\\
+    S4&30.3M\\
+    Complex&2.2M\\
+    Expression&1.6M\\
+    Weakref&25.2K\\
+    \bottomrule
+  \end{tabular}
+\end{wraptable}
+
 \AG{Describe the algorithm to track side effects and tradeoffs for scalability}
+
 
 \subsection{Results}
 
