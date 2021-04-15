@@ -1547,8 +1547,8 @@ applied to the bytecode and an optimizing compiler, that already does its best
 eliding promises as long as the default semantics allow it.
 To conduct our evaluation, we changed the first-tier
 compiler to eagerly evaluate all arguments at all call-sites, except for a
-manually curated list of exceptions.
-In the following we will refer
+manually curated list of exceptions. This eager code also serves as the source
+code for the optimizing tier. In the following we will refer
 to this modified implementation as \Rshstrict.
 
 Our main hypothesis regarding performance is that eager semantics lead to faster
