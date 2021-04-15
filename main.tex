@@ -1176,15 +1176,15 @@ spurious transitive laziness.
   \small
   \caption{Effects} \label{table:effects}
   \centering
-  \begin{tabular}{lllll}
+  \begin{tabular}{llllll}
     \toprule
-    \textbf{Effect}&\textbf{Count}&\textbf{Parameters}&\textbf{Functions}&\textbf{Packages}\\
+    \textbf{Effect}&\textbf{Count}&\textbf{Arguments}&\textbf{Parameters}&\textbf{Functions}&\textbf{Packages}\\
     \midrule
-    L&3739631&5539&3619&358\\
-    D&1069746&2972&2599&319\\
-    A&236985&510&486&109\\
-    R&1172&27&24&10\\
-    E&6&6&6&3\\
+    L&3739594&1723549&5539&3619&358\\
+    D&1069746&670614&2972&2599&319\\
+    A&236985&198227&510&486&109\\
+    R&1172&887&27&24&10\\
+    E&6&6&6&6&3\\
     \bottomrule
   \end{tabular}
 \end{table}
@@ -1198,19 +1198,81 @@ spurious transitive laziness.
     \toprule
     \textbf{Effect Sequence}&\textbf{Argument \%}\\
     \midrule
-    (L+D+)+&40.35\%\\
-    L+&29.75\%\\
-    D+&10.25\%\\
-    (L+A+)+&6.96\%\\
-    (D+A+)+D+&3.23\%\\
-    A+&2.48\%\\
-    (L+D+)+L+&1.69\%\\
-    (D+A+)+&1.42\%\\
-    (L+D+)+(L+A+)+(L+D+)+&0.99\%\\
-    (L+D+)+A+&0.5\%\\
+    L+&51.2\%\\
+    (L+D+)+&15.92\%\\
+    D+&13.41\%\\
+    (D+A+)+D+&5.19\%\\
+    A+&4.34\%\\
+    (L+A+)+&3.89\%\\
+    (D+A+)+&2.15\%\\
+    (L+D+)+L+&0.74\%\\
+    A+(D+A+)+&0.38\%\\
+    (L+D+)+A+&0.32\%\\
     \bottomrule
   \end{tabular}
 \end{table}
+
+
+\subsubsection{Qualitative Analysis}
+
+A common source of non-local writes is the \emph{shiny} package used for
+building interactive webapps in a reactive style. For example, consider the call
+to \code{bindEvent} below which attaches an observer expression \code{x} to an
+event \code{trigger()}. The observer expression performs a non-local side-effect
+using the \code{<<-} super-assignment operator. This operator mutates in the
+parent scope.
+
+\begin{lstlisting}
+bindEvent(trigger(), x = observe({\n    vals <<- c(vals, val())\n}))
+\end{lstlisting}
+
+This kind of pattern is common in applications using \emph{shiny} to update the
+program state in response to events. \code{bindCache} and
+\code{isolate} functions from this package are also called similarly with
+side-effecting expressions.
+
+Another important source of non-local writes is the use of functions from
+\code{withr} package. It provides a set of functions to evaluate code in
+temporarily modified global state. It is typical of these code blocks to compute
+a value and assign it to the variable in the current scope.
+We observe side-effecting expressions passed to \code{with\_dir} which
+temporarily changes the current working directory, \code{with\_envvar} which changes the
+environment variables, \code{with\_locale} which changes the current locale,
+\code{with\_options} which changes global program options, \code{with\_par}, which changes
+graphical parameters for plotting, and \code{with\_seed} which changes the random
+number generation seed. The listing below shows some side-effecting
+calls to these functions that we observed in our corpus.
+
+\begin{lstlisting}
+with_envvar(c(R_ENVIRON_USER = ".Renviron"), { res <- ... })
+with_dir(path_dir(wd), { base <- path_file(wd); ... })
+with_seed(seed <- sample.int(.Machine$integer.max, 1), runif(5))
+with_options(list(callr.cond_hndlr = function(x) cond <<- x), rs$run(do))
+with_par(list(las = 1), { thm <- theme_par(); ...})
+with_locale(c(LC_CTYPE = "C"), { name <- "A"; ...})
+\end{lstlisting}
+
+Frequently these side-effecting patterns occur in test cases written using the
+\code{testthat} library where the global state is modified temporarily to test
+its effect on the function under consideration.
+
+A very common pattern that leads to side-effects is when the result of an
+intermediate computation is assigned to a variable for subsequent use. In the
+call below, the intermediate result is assigned to \code{x} before being passed
+on to the \code{as.data.table} function.
+
+\begin{lstlisting}
+as.data.table(x <- as.character(sample(letters, 5)))
+\end{lstlisting}
+
+This pattern is particularly common in \emph{testthat} tests.
+
+\begin{listlist}
+expect_that(fe1 <- fixef(fm1), is_equivalent_to(1527.5))
+\end{lstlisting}
+
+Since our analysis is conservative, at times we mis-classify arguments when they
+are not performing any visible side-effects.
 
 \subsection{Summary}
 

@@ -28,7 +28,7 @@ source("analysis.R", local = knitr::knit_global())
 ```{r echo = FALSE, warning=FALSE, message=FALSE}
 effects_direct %>%
 filter(type == "L") %>%
-count(type, pack_name, fun_name, formal_pos, wt = count, name = "count") %>%
+count(type, pack_name, fun_name, formal_pos, wt = argument_count, name = "count") %>%
 arrange(desc(count)) %>%
 mutate(perc = round(100 * count / sum(count), 2)) %>%
 mutate(cumperc = cumsum(perc)) %>%
@@ -36,7 +36,7 @@ datatable()
 
 effects_direct %>%
 filter(type == "A") %>%
-count(type, pack_name, fun_name, formal_pos, wt = count, name = "count") %>%
+count(type, pack_name, fun_name, formal_pos, wt = argument_count, name = "count") %>%
 arrange(desc(count)) %>%
 mutate(perc = round(100 * count / sum(count), 2)) %>%
 mutate(cumperc = cumsum(perc)) %>%
@@ -44,7 +44,7 @@ datatable()
 
 effects_direct %>%
 filter(type == "D") %>%
-count(type, pack_name, fun_name, formal_pos, wt = count, name = "count") %>%
+count(type, pack_name, fun_name, formal_pos, wt = argument_count, name = "count") %>%
 arrange(desc(count)) %>%
 mutate(perc = round(100 * count / sum(count), 2)) %>%
 mutate(cumperc = cumsum(perc)) %>%
@@ -53,7 +53,7 @@ datatable()
 
 effects_direct %>%
 filter(type == "R") %>%
-count(type, pack_name, fun_name, formal_pos, wt = count, name = "count") %>%
+count(type, pack_name, fun_name, formal_pos, wt = argument_count, name = "count") %>%
 arrange(desc(count)) %>%
 mutate(perc = round(100 * count / sum(count), 2)) %>%
 mutate(cumperc = cumsum(perc)) %>%
@@ -63,9 +63,13 @@ datatable()
 ```{r echo = FALSE, warning=FALSE, message=FALSE}
 effects_summary <-
     effects_direct %>%
-    count(type, pack_name, fun_name, formal_pos, wt = count, name = "count") %>%
+    group_by(type, pack_name, fun_name, formal_pos) %>%
+    summarize(operation_count = sum(operation_count),
+              argument_count = sum(argument_count)) %>%
+    ungroup() %>%
     group_by(type) %>%
-    summarize(operations = sum(count),
+    summarize(operations = sum(operation_count),
+              arguments = sum(argument_count),
               parameters = n(),
               functions = length(unique(paste0(pack_name, "::", fun_name))),
               packages = length(unique(pack_name))) %>%
@@ -105,7 +109,7 @@ effects_seq_summary <-
     effects_direct %>%
     mutate(self_effect_seq = if_else(self_effect_seq == "", type, self_effect_seq)) %>%
     mutate(self_effect_seq = merge_effects(self_effect_seq)) %>%
-    count(self_effect_seq, wt = count, name = "count") %>%
+    count(self_effect_seq, wt = argument_count, name = "count") %>%
     arrange(desc(count)) %>%
     mutate(perc = round(100 * count / sum(count), 2)) %>%
     mutate(cumperc = cumsum(perc)) %>%
@@ -132,4 +136,20 @@ datatable()
 A table
 - How many L, A, D, R.
 - How many positions of how many functions
+- correlation with promise types
+- correlation with argument order
+- examples of cases
 
+
+
+argument_table
+- type, arg_type, expr_type, pack_name, fun_name, position, argument_count, effect_count
+
+
+argument_table
+- arg_id, pack_name, fun_name, formal_pos, self_effect_seq
+
+
+graph of type of things inside a promise
+
+join with how many promises do effects
