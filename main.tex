@@ -114,11 +114,19 @@
   tooling for developers to migrate the libraries and user code in a way that
   does not introduce errors. This paper reports on a dynamic analysis that
   infers strictness signatures for functions and capture both intentional and
-  accidental laziness. To assess the robustness of the inferred signatures, we
-  implemented a source-to-source refactoring that forces the evaluation of
-  arguments that have been annotated as strict. Finally, we report on the
-  performance benefits of migration by extending a just-in-time compiler with
-  support for strictness annotations.
+  accidental laziness.
+%% (o) I found this confusing as it lead me to wonder if the approach you
+%% propose to migrate the ecosystem is to do source-to-source transformation. So
+%% I would avoid that word here...
+%%
+%%  To assess the robustness of the inferred signatures, we
+%%  implemented a source-to-source refactoring that forces the evaluation of
+%%  arguments that have been annotated as strict.
+  To assess the robustness of the inferred signatures we tested them on 2,000
+  packages by eagerly evaluating the indicated arguments and found only 0.3\% of
+  the test to fail.  Finally, we report on the
+  performance benefits of eager evaluation on a just-in-time compiler for R,
+  where we observed an average speedup of \speedupRshStrict, ranging between \speedupRshStrictMin and \speedupRshStrictMax.
 \end{abstract}
 
 \begin{CCSXML}
@@ -156,16 +164,16 @@
 \maketitle
 \section{Introduction}
 
-The R programming language is widely used in data science. Unbeknownst to many
+The R programming language is widely used in data science. Apparently, unbeknownst to many
 of its end-users, function calls have a lazy semantics: arguments are suspended
 computations which are evaluated if and when they are needed. \citet{oopsla19b}
 provided a thorough observational study of a corpus consisting of 16,707
 packages written in R. For the most part, the corpus appears to have been
 written without reliance on laziness with the exception of code that leverages
 it for meta-programming. This paper argues that laziness should be the exception
-in R. We propose to make it a \emph{eager by default, lazy on demand} language
+in R. We propose to make it an \emph{eager by default, lazy on demand} language
 by introducing strictness annotations. The question we wish to answer is whether
-it is possible to switch the semantics of a language without causing undue
+it is possible to switch the semantics of the language without causing undue
 breakage in the legacy code that is in daily use. This concern is relevant
 because, even if programmers don't avail themselves of laziness, it is
 conceivable that their code accidentally depends on it. A change in the order of
@@ -190,7 +198,7 @@ in a data structure that holds a reference to the expression to evaluate, its
 environment and the result of evaluation. Allocating and deallocating these data
 structures put pressure on the memory manager. Delayed evaluation further
 complicates the work of compilers for the language by hindering optimizations
-and increasing the number of indirect calls.
+and increasing the number of indirections.
 
 \paragraph{The case for laziness.} The success of a programming language
 often comes down to the strength of its ecosystem. With tens of millions of
@@ -216,33 +224,34 @@ discrepancies easily attributed to a specific change.
 %
 %
 We propose a migration path that will lead to a mostly strict ecosystem based on
-an augmented semantics for R, an performant implementation of that semantics in
+an augmented semantics for R, a performant implementation of that semantics in
 the \Rsh compiler, and \lazr a tool for inferring strictness signatures.
 Specifically, we propose an approach that follows the above guidelines.
 \begin{itemize}
-\item[{\bf T1:}] The extensions to the semantics are designed to be
-  non-invasive, in our first iteration, only file that have functions requiring
-  some of their arguments to be lazy need annotations, and these annotations can
-  be added out of line in separate signature files. As the annotation are on
-  functions, the need for those will be mostly focused at library interfaces.
-  End-user code can remain unchanged. We claim that the behavior most R users
-  expect from their code closely aligns to a strict semantics. This change will
-  thus not affect their experience.
+\item[{\bf T1:}] The extensions to the R syntax and semantics are designed to
+  be non-invasive. We claim that the behavior most users expect from their
+  code closely aligns to a strict semantics. This change will thus not affect
+  their experience and will not break their code. The opt-in lazy semantics will
+  mostly be focused at library interfaces. There, signatures are supplied from
+  external signature files. These must only contain the functions which require
+  some of their arguments to be lazy. End-user code, as well as library code can
+  remain mostly unchanged.
 \item[{\bf T2:}] A tool can leverage the structure of the R ecosystem to infer
   annotations for legacy library code. R packages are hosted in a curated
-  repository called CRAN, that repository enforce format and checks on the code
+  repository called CRAN, a repository enforcing format and checks on the code
   stored in it. In particular every program has runnable use-cases and tests.
-  The can use those to infer signatures for all packages. The inferred signature
-  must be validated by a developer (or they can also be deployed and refined
-  iteratively).
-\item[{\bf T3:}] To evaluate the performance and memory benefits of decreasing
-  the laziness of R programs, the an optimizing compiler can be extended to
-  support strictness signatures. This will lead to code that performs fewer
-  allocations, thus needs less frequent garbage collection passes, and can
-  optimize evaluation of arguments by inlining it at the call site.
-\item[{\bf T4:}] To test the robustness of inferred signatures to different
-  calling contexts, each package can be tested by running the transitive closure
-  of its clients and their tests. Programs that crash or departed from their
+  We use these to infer optimistic signatures for all packages. The inferred
+  signature must be validated by a developer (or they can also be deployed and
+  refined iteratively).
+\item[{\bf T3:}] To test and potentially reap the performance and memory benefits of decreasing
+  the laziness of R programs, compilers should be extended to
+  support strictness signatures. This will lead to code that evaluates most
+  arguments at the call-site and thus requires fewer resources for keeping track
+  of delayed computations, needs fewer switches in execution context for
+  evaluating arguments, and can potentially be better optimized.
+\item[{\bf T4:}] The robustness of the inferred signatures under different
+  calling contexts can be estimated, by running the transitive closure
+  of its clients and their tests. Programs that crash or depart from their
   expected behavior indicate erroneous strictness annotations.
 \end{itemize}
 
@@ -255,21 +264,23 @@ the following contributions:
   optional signature files specify, for individual functions, which of their
   arguments are strict. The proposal is integrated in the R environment and
   compatible with the package loading model. In GNUR, the reference
-  implementation of the language, the new semantics is implemented by
-  source-to-source rewriting of functions as they created in the interpreter.
+  implementation of the language, the new semantics tested with an
+  implementation based on source-to-source rewriting of functions as they are
+  loaded.
 \item We implement \lazr, an infrastructure for large-scale inference of
   strictness signatures for legacy libraries. We evaluate \lazr on packages
   hosted in the CRAN repository. For each package \lazr extracts all executable
-  code from vignettes, examples and tests, and infers signatures for all
+  code from vignettes (\ie runable snippets embedded in the package
+  documentation), examples and tests, and infers signatures for all
   functions defined by the package. The process is shown to scale to the 500
   most widely used packages in the R ecosystem.
 \item We conducted an experiment using the \Rsh optimizing just-in-time compiler
   to evaluate the benefits of unboxing and inlining
   delayed evaluation on a benchmark suite of small computational tasks. We show
-  a median \speedupRshStrict speed up on those benchmarks.
+  a median \speedupRshStrict speed up, ranging from \speedupRshStrictMin to \speedupRshStrictMax.
 \item We evaluate the robustness of the inferred signatures by testing them with
   2,000 packages that are transitive clients of the packages for which
-  signatures were inferred. We report 0.3\% error rate, \emph{i.e.}~signatures
+  signatures were inferred. We report 0.3\% error rate, \ie signatures
   that cause executions to diverge from the reference semantics.
 \end{itemize}
 
