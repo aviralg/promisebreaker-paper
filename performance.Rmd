@@ -330,7 +330,9 @@ H3.2a.norm <- function(prom) {
   prom <- normalize(prom, T, "GNU R")
   prom$speedup <- 1/prom$speedup
   prom_ <- prom[prom$benchmark %in% selection & prom$warm == 1, ]
-  
+  prom_$benchmark <- factor(prom_$benchmark, levels = rev(unique(prom_$benchmark)))
+  rects <- data.frame(xstart = seq(0.5,13.5,1), xend = seq(1.5,14.5,1), 
+                      benchmark = selection)
   prom_plot <-
     ggplot(prom_, aes(benchmark, speedup, fill=experiment)) +
     geom_col(position="dodge") +
@@ -340,35 +342,35 @@ H3.2a.norm <- function(prom) {
     scale_x_discrete(labels = bm_plot_name) +
     scale_fill_grey(start = 0.2, end = 0.6) +
     coord_flip() +
-    geom_text(aes(label = ifelse(is.na(gnur), "", format(gnur, big.mark = ","))), y = 1.85, hjust = 1, vjust = 0.5, size = 2) +
-    geom_text(aes(label = ifelse(is.na(low), "", ifelse(low / gnur2 < 0.02, formatC(low, width = 4), ""))),
-              position = position_dodge(0.85),
-              hjust = 0,
-              vjust = 0.5,
-              size = 2) +
+    geom_text(aes(label = ifelse(is.na(gnur), "", format(gnur, big.mark = ","))),
+              y = 1.0, hjust = 0, vjust = 0, size = 1.6, angle = 15) +
+    # geom_text(aes(label = ifelse(is.na(low), "", ifelse(low / gnur2 < 0.02, formatC(low, width = 4), ""))),
+    #           position = position_dodge(0.85),
+    #           hjust = 0,
+    #           vjust = 0.5,
+    #           size = 2) +
     ylim(c(0.0, 1.8))
 
   save_graph(prom_plot, "rshPromNorm")
 }
-H3.2a(prom)
-H3.2a.linear(prom)
+H3.2a.table <- function(prom) {
+  prom$experiment = factor(prom$experiment, c("GNU R", "Ř", "Ř strict"))
+  prom <- prom[prom$benchmark %in% selection & prom$warm == 1, ]
+  prom <- prom[c("benchmark", "createdPromises", "experiment")]
+  prom <- prom %>% mutate(benchmark = bm_plot_name(benchmark))
+  prom <- reshape(prom, idvar = "benchmark", timevar = "experiment", direction = "wide")
+  prom <- prom %>% remove_rownames %>% column_to_rownames(var="benchmark")
+  colnames(prom) <- c("Ř strict", "Ř", "GNU R")
+  prom <- prom[c("GNU R", "Ř", "Ř strict")]
+  datatable(prom)
+}
+# H3.2a(prom)
+# H3.2a.linear(prom)
 H3.2a.norm(prom)
+# H3.2a.table(prom)
 ```
 
-
-
-  benchmark   experiment     kind   ms
-
-   nbody        rsh          time   1    perf
-   nbody       rsh str       time   1    perf
-   nbody       rsh bc        time   1    perf_bc
-   nbody      rsh str bc     time   1    perf_bc
-   nbody        rsh           gc    1    gcpr
-   nbody       rsh str        gc    1    gcpr
-   nbody       rsh bc         gc    1    gcpr_bc
-   nbody      rsh str bc      gc    1    gcpr_bc
-
-```{r echo=FALSE, warning=FALSE, message=FALSE, eval=TRUE}
+```{r echo=FALSE, warning=FALSE, message=FALSE, eval=FALSE}
 H3.2b <- function(perf, perf_bc, gcpr, gcpr_bc) {
 
   data <- data.frame(benchmark=character(),
@@ -408,24 +410,52 @@ H3.2b <- function(perf, perf_bc, gcpr, gcpr_bc) {
       }
     }
   }
+  data$mso <- data$ms
   for (b in unique(data$benchmark))
     for (e in unique(data$experiment)) {
       t <- data[data$benchmark == b & data$experiment == e & data$kind == "time", ]$ms
       g <- data[data$benchmark == b & data$experiment == e & data$kind == "gc", ]$ms
       data[data$benchmark == b & data$experiment == e & data$kind == "time", ]$ms <- t - g
     }
+  ss <<- data
   
-  data <- data[data$benchmark == "Storage", ]
+  most <- data.frame(benchmark=character(),
+                     experiment=character(),
+                     gcReduction=numeric(),
+                     stringsAsFactors=FALSE)
+  for (b in unique(data$benchmark))
+    for (e in unique(data$experiment)) {
+      t <- data[data$benchmark == b & data$experiment == e & data$kind == "time", ]$ms
+      g <- data[data$benchmark == b & data$experiment == e & data$kind == "gc", ]$ms
+      r <- g / t
+      most = most %>% add_row(benchmark = b, experiment = e, gcReduction = r)
+    }
+  
+  most$diff <- 0
+  for (b in unique(most$benchmark)) {
+      s <- most[most$benchmark == b & most$experiment == "Ř", ]$gcReduction
+      t <- most[most$benchmark == b & most$experiment == "Ř strict", ]$gcReduction
+      most[most$benchmark == b & most$experiment == "Ř", ]$diff <- abs(s - t)
+      most[most$benchmark == b & most$experiment == "Ř strict", ]$diff <- abs(s - t)
+      s <- most[most$benchmark == b & most$experiment == "Ř bc", ]$gcReduction
+      t <- most[most$benchmark == b & most$experiment == "Ř strict bc", ]$gcReduction
+      most[most$benchmark == b & most$experiment == "Ř bc", ]$diff <- abs(s - t)
+      most[most$benchmark == b & most$experiment == "Ř strict bc", ]$diff <- abs(s - t)
+  }
+  
+  sss <<- most
+  
+  data <- data[data$experiment == "Ř" | data$experiment == "Ř strict", ]
+  data <- data[data$benchmark == "spectralnorm", ]
 
   gc_plot <-
     ggplot(data, aes(experiment, ms, fill=forcats::fct_rev(kind))) +
     geom_bar(position = "stack", stat = "identity") +
     # labs(y = "Promises created", x = "", fill = "Experiment") +
-    # scale_x_discrete(labels = bm_plot_name) +
-    # theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
     # theme(axis.title.y = element_text(vjust = 5)) +
-    scale_fill_grey(start = 0.2, end = 0.6) +
-    coord_flip() +
+    scale_fill_grey(start = 0.6, end = 0.2) +
+    # coord_flip() +
     facet_wrap( ~ benchmark)
 
   save_graph(gc_plot, "rshGc")
@@ -434,7 +464,30 @@ H3.2b(perf, perf_bc, gcpr, gcpr_bc)
 ```
 
 ```{r echo=FALSE, warning=FALSE, message=FALSE, eval=TRUE}
+time_in_gc <- function(data) {
+  data <- data[data$benchmarkName %in% selection, ]
+  aa <<- data
+  res <- data.frame(b=character(), l=numeric(), s=numeric(), r=numeric())
+  for (b in unique(data$benchmarkName)) {
+      lazy <- data[data$benchmarkName == b & data$experiment == "Ř", ]$gc_time * 100
+      strict <- data[data$benchmarkName == b & data$experiment == "Ř strict", ]$gc_time * 100
+      res = res %>% add_row(b = b, l = lazy, s = strict, r = strict/lazy)
+  }
+  colnames(res) <- c("Benchmark", "GC time lazy", "GC time strict", "GC time strict/lazy")
+  datatable(res)
+}
+time_in_gc(gcpr)
+time_in_gc(gcpr_bc)
+```
+
+```{r echo=FALSE, warning=FALSE, message=FALSE, eval=TRUE}
 datatable(bmMap[c("Id", "Benchmark", "Suite")])
+```
+```{r echo=FALSE, warning=FALSE, message=FALSE, eval=FALSE}
+ggplot(mtcars, aes(x = wt, y = mpg)) + 
+  geom_point() +
+  geom_ribbon(aes(xmin=0, xmax=1), alpha=0.2) +
+  theme_minimal()
 ```
 
 ```{r echo=FALSE, warning=FALSE, message=FALSE, eval=FALSE}
