@@ -1325,18 +1325,18 @@ events.
     D&1.1M&159.0K&3.0K&2.6K&319\\
     A&235.8K&122.7K&511.0&487.0&109\\
     R&2.8K&718.0&27.0&24.0&10\\
-    E&6&6&6&6&3\\
     \bottomrule
   \end{tabular}
 \end{table}
 
 Table~\ref{table:effects} shows the number of effects, lookups (L), definitions
 (D), assignments (A), removals (R), and errors (E) and the number of arguments,
-parameters, functions and packages that are responsible for those effects. We
-observe that lookups are the most common cause for making arguments lazy. This
-is followed by definitions and assignments. Removing bindings from environments
-is not a common operation. Errors in argument positions are rare. Functions
-performing lookups, definitions and assignments are spread across many packages.
+parameters, functions and packages that are directly responsible for those
+effects. We observe that lookups are the most common cause for making arguments
+lazy. This is followed by definitions and assignments. Removing bindings from
+environments is not a common operation. Errors in argument positions were not
+observed. Functions performing lookups, definitions and assignments are spread
+across many packages.
 
 Comparing the number of events in this table against the total number of events
 from Table~\ref{table:events}, we find that our algorithm is able to filter
@@ -1386,6 +1386,7 @@ will make the corresponding callee arguments lazy.
     D&978&934&202\\
     A&303&298&79\\
     R&34&33&15\\
+    E&6&6&3\\
     \bottomrule
   \end{tabular}
 \end{table}
@@ -1516,7 +1517,20 @@ bindings.
 env_bind(current_env(), foo = zap())
 \end{lstlisting}
 
-Another function responsible for 
+We observe 0 cases where a function's argument produces an error on evaluation.
+However, we do observe 6 cases where an argument is transitively responsible for
+errors. Here is a call expression which accounts for 3 of those cases.
+
+\begin{lstlisting}
+get_str_output(context_eval(join(src), private$context, serialize))
+\end{lstlisting}
+
+Here, \code{V8::get_str_output} is called whose first argument in turn calls
+\code{V8::context_eval} which in turn calls \code{V8::join}. The \code{src}
+argument passed to join is bound to a promise that reads the contents from a
+file. The file is missing and this raises an error. This example is interesting
+because it shows how the error originates in a file reading function from
+\code{base} package making three caller functions transitively responsible.
 
 \subsection{Summary}
 
