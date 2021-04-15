@@ -35,9 +35,10 @@
 
 %% time in GC in  Ř-strict / time in GC in Ř
 %% TODO: these are just dummy values
-\newcommand{\speedupGCRshStrictMax}{$160\%$\xspace}
-\newcommand{\speedupGCRshStrictMin}{$80\%$\xspace}
+\newcommand{\speedupGCRshStrictMax}{$190\%$\xspace}
+\newcommand{\speedupGCRshStrictMin}{$50\%$\xspace}
 
-%% TODO: these are just dummy values
-\newcommand{\slowdownFromPromiseAlloc}{$5\%$\xspace}
-
+%% How much is due to reduced allocation
+%% https://rir-benchmarks.prl.fit.cvut.cz/diff?warmup=5&kind=diff&job_ids%5B%5D=1183876408&job_ids%5B%5D=1172677834&job_ids%5B%5D=1172663147&selection=promisebreaker
+\newcommand{\speedupBCRshStrictAlloc}{$1.1\times$\xspace}
+\newcommand{\speedupDueToReducedGC}{$38\%$\xspace}

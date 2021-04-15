@@ -1566,7 +1566,7 @@ In particular, we pose the following predictions:
 of \Rsh; (2) a significant portion of the speedup is due to reduced garbage
 collection pressure; (3) and there is an additional speedup due to improved compiler
 optimizations. In the following we will present our evidence in support of (1)
-and (3), and disprove (2).
+and (3), and partial evidence for (2).
 
 \paragraph{Methodology}
 
@@ -1666,16 +1666,21 @@ It turns out even an optimizing compiler has to allocate many promises for R
 code, as often times, they cannot be eliminated entirely. \Rshstrict allows for
 a large reduction in the number of promises allocated.
 Thus, we expected a significant portion of the overal speedup to originate from
-the reduced allocation rate. We measured the difference in garbage collection
-time and to our surprise found that it is miniscule, ranging from
-\speedupGCRshStrictMin to \speedupGCRshStrictMax.
+the reduced allocation rate. We measured the differences in garbage collection
+time and it ranged from \speedupGCRshStrictMin to \speedupGCRshStrictMax, but
+found the contribution to the overal speedup to be smaller than expected.
 The GNU R garbage collector, which is reused in \Rsh, has a fairly slow allocation path, which
 includes mutating a doubly-linked list. Therefore, some portion of the speedup
 could be due to the saved time in the allocation of promises, which is not counted.
 We therefore conducted an additional experiment, where we evaluated arguments to
 calls eagerly, but additionally allocated a promise, that we subsequently didn't
-use at all. In this variant benchmarks slowed down by TODO
-\slowdownFromPromiseAlloc... \OF{discuss with actual results}.
+use at all. This configuration led to an overal speedup of
+\speedupBCRshStrictAlloc instead of \speedupBCRshStrict, suggesting that overall
+about \speedupDueToReducedGC of the performance improvement in the bytecode interpreter is due to the
+reduced allocation. Unfortunately a similar experiment is not easily possible
+for the optimizing tier of \Rsh, since its compiler would just optimize away all
+unneccessary allocations. We conjecture that the contribution should be even
+smaller in that case, because it allocates much less promises to start with.
 
 \paragraph{Discussion}
 
@@ -1693,7 +1698,7 @@ resulted in fewer instruction cache misses.
 
 We also found some instances where both tiers sped up similarly,
 however the underlying reasons were very different.
-Take for instance the \lstinline{Binarytrees} benchmark, which showed in both
+Take for instance the \lstinline{bin} benchmark, which showed in both
 the bytecode interpreter and the native compiler a speedup of about $1.5\times$
 in the strict mode. In native the execution time decreased from 79ms to 53ms, in
 the interpreter from 143ms to 97ms per iteration. In the interpreter the speedup
