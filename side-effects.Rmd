@@ -23,64 +23,168 @@ params:
 source("analysis.R", local = knitr::knit_global())
 ```
 
-## Functions ordered by number of effects
+## Overview
+
 
 ```{r echo = FALSE, warning=FALSE, message=FALSE}
-effects_direct %>%
-filter(type == "L") %>%
-count(type, pack_name, fun_name, formal_pos, wt = argument_count, name = "count") %>%
-arrange(desc(count)) %>%
-mutate(perc = round(100 * count / sum(count), 2)) %>%
-mutate(cumperc = cumsum(perc)) %>%
-datatable()
-
-effects_direct %>%
-filter(type == "A") %>%
-count(type, pack_name, fun_name, formal_pos, wt = argument_count, name = "count") %>%
-arrange(desc(count)) %>%
-mutate(perc = round(100 * count / sum(count), 2)) %>%
-mutate(cumperc = cumsum(perc)) %>%
-datatable()
-
-effects_direct %>%
-filter(type == "D") %>%
-count(type, pack_name, fun_name, formal_pos, wt = argument_count, name = "count") %>%
-arrange(desc(count)) %>%
-mutate(perc = round(100 * count / sum(count), 2)) %>%
-mutate(cumperc = cumsum(perc)) %>%
-datatable()
-
-
-effects_direct %>%
-filter(type == "R") %>%
-count(type, pack_name, fun_name, formal_pos, wt = argument_count, name = "count") %>%
-arrange(desc(count)) %>%
-mutate(perc = round(100 * count / sum(count), 2)) %>%
-mutate(cumperc = cumsum(perc)) %>%
-datatable()
+str(direct_effects)
 ```
 
+## Argument Types
+
 ```{r echo = FALSE, warning=FALSE, message=FALSE}
-effects_summary <-
-    effects_direct %>%
-    group_by(type, pack_name, fun_name, formal_pos) %>%
-    summarize(operation_count = sum(operation_count),
-              argument_count = sum(argument_count)) %>%
-    ungroup() %>%
-    group_by(type) %>%
-    summarize(operations = sum(operation_count),
+
+total_promise_count <- sum(argument_type$argument_count)
+
+all_argument_dist <-
+    argument_type %>%
+    filter(arg_type == "promise") %>%
+    mutate(expr_type = str_to_title(expr_type)) %>%
+    mutate(expr_type = case_when(expr_type == "Promise" ~ "Promise",
+                                 expr_type == "Language" ~ "Call",
+                                 expr_type == "Symbol" ~ "Symbol",
+                                 TRUE ~ "Value")) %>%
+    count(expr_type, wt=argument_count, name = "argument_count") %>%
+    mutate(all_perc = round(100 * argument_count / total_promise_count, 2)) %>%
+    arrange(desc(all_perc)) %>%
+    select(expr_type, all_perc)
+
+se_argument_dist <-
+     direct_effects %>%
+     mutate(expr_type = str_to_title(expr_type)) %>%
+     mutate(expr_type = case_when(expr_type == "Promise" ~ "Promise",
+                                  expr_type == "Language" ~ "Call",
+                                  expr_type == "Symbol" ~ "Symbol",
+                                  TRUE ~ "Value")) %>%
+     count(expr_type, wt= argument_count, name = "argument_count") %>%
+     mutate(se_perc = round(100 * argument_count / total_promise_count, 2)) %>%
+     arrange(desc(se_perc)) %>%
+     select(expr_type, se_perc) %>%
+     add_row(expr_type = "Value", se_perc= 0)
+    
+argument_dist <- 
+    all_argument_dist %>%
+    left_join(se_argument_dist, by = "expr_type")
+
+datatable(argument_dist)
+
+
+argument_dist %>%
+pmap_chr(function(expr_type, all_perc, se_perc) {
+    paste(expr_type, as_perc(all_perc), as_perc(se_perc), sep = "&")
+}) %>%
+paste(collapse = "\\\\\n") %>%
+cat()
+```
+
+
+## Simplified Effect Sequence
+
+```{r echo = FALSE, warning=FALSE, message=FALSE}
+merge_effects <- function(seq) {
+    seq %>%
+    str_replace_all("(L\\+D\\+)+", "(L+D+)+") %>%
+    str_replace_all("(D\\+A\\+)+", "(D+A+)+") %>%
+    str_replace_all("(L\\+A\\+)+", "(L+A+)+") %>%
+    str_replace_all("(D\\+R\\+)+", "(D+R+)+")
+}
+
+effect_seq_table <-
+    direct_effects %>%
+    mutate(simplified_effect_seq = merge_effects(simplified_effect_seq)) %>%
+    count(simplified_effect_seq, wt = argument_count, name = "argument_count")
+
+se_promise_count <- sum(effect_seq_table$argument_count)
+non_se_promise_count <- total_promise_count - se_promise_count
+
+
+effect_seq_table <-
+    effect_seq_table %>%
+    add_row(simplified_effect_seq = "-", argument_count = non_se_promise_count) %>%
+    arrange(desc(argument_count)) %>%
+    mutate(perc = round(100 * argument_count / sum(argument_count), 2)) %>%
+    mutate(cumperc = cumsum(perc)) %>%
+    slice(1:5)
+
+datatable(effect_seq_table)
+
+effect_seq_table %>%
+pmap_chr(function(simplified_effect_seq, argument_count, perc, cumperc) {
+    paste(simplified_effect_seq, as_perc(perc), sep = "&")
+}) %>%
+paste(collapse = "\\\\\n") %>%
+cat()
+```
+
+## Effect Distribution
+
+```{r echo = FALSE, warning=FALSE, message=FALSE}
+
+lookup_table <- 
+    direct_effects %>%
+    filter(lookup_count != 0) %>%
+    summarize(type = "L",
+              count = sum(lookup_count),
               arguments = sum(argument_count),
-              parameters = n(),
-              functions = length(unique(paste0(pack_name, "::", fun_name))),
-              packages = length(unique(pack_name))) %>%
-    ungroup() %>%
-    mutate(type =  factor(type, levels = c("L", "D", "A", "R", "E"))) %>%
-    arrange(type)
+              parameters = length(unique(paste0(pack_name, fun_name, formal_pos, "::"))),
+              functions = length(unique(paste0(pack_name, fun_name, "::"))),
+              packages = length(unique(paste0(pack_name, "::"))))
 
-datatable(effects_summary)
+define_table <-
+    direct_effects %>%
+    filter(define_count != 0) %>%
+    summarize(type = "D",
+              count = sum(define_count),
+              arguments = sum(argument_count),
+              parameters = length(unique(paste0(pack_name, fun_name, formal_pos, "::"))),
+              functions = length(unique(paste0(pack_name, fun_name, "::"))),
+              packages = length(unique(paste0(pack_name, "::"))))
+
+assign_table <- 
+    direct_effects %>%
+    filter(assign_count != 0) %>%
+    summarize(type = "A",
+              count = sum(assign_count),
+              arguments = sum(argument_count),
+              parameters = length(unique(paste0(pack_name, fun_name, formal_pos, "::"))),
+              functions = length(unique(paste0(pack_name, fun_name, "::"))),
+              packages = length(unique(paste0(pack_name, "::"))))
+
+remove_table <-
+    direct_effects %>%
+    filter(remove_count != 0) %>%
+    summarize(type = "R",
+              count = sum(define_count),
+              arguments = sum(argument_count),
+              parameters = length(unique(paste0(pack_name, fun_name, formal_pos, "::"))),
+              functions = length(unique(paste0(pack_name, fun_name, "::"))),
+              packages = length(unique(paste0(pack_name, "::"))))
+
+error_table <- 
+    direct_effects %>%
+    filter(error_count != 0) %>%
+    summarize(type = "E",
+              count = sum(lookup_count),
+              arguments = sum(argument_count),
+              parameters = length(unique(paste0(pack_name, fun_name, formal_pos, "::"))),
+              functions = length(unique(paste0(pack_name, fun_name, "::"))),
+              packages = length(unique(paste0(pack_name, "::"))))
+
+effect_dist <-
+    bind_rows(lookup_table,
+              define_table,
+              assign_table,
+              remove_table,
+              error_table) %>%
+    mutate(count = label_number_si(accuracy=0.1)(count),
+           arguments = label_number_si(accuracy=0.1)(arguments),
+           parameters = label_number_si(accuracy=0.1)(parameters),
+           functions = label_number_si(accuracy=0.1)(functions))
+
+datatable(effect_dist)
 
 
-effects_summary %>%
+effect_dist %>%
 pmap_chr(function(...) {
     paste(..., sep = "&")
 }) %>%
@@ -88,68 +192,3 @@ paste(collapse = "\\\\\n") %>%
 cat()
 ```
 
-
-## Effect sequence
-
-```{r echo = FALSE, warning=FALSE, message=FALSE}
-
-merge_effects <- function(seq) {
-    seq %>%
-    str_replace_all("[L]+", "L+") %>%
-    str_replace_all("[A]+", "A+") %>%
-    str_replace_all("[D]+", "D+") %>%
-    str_replace_all("[R]+", "R+") %>%
-    str_replace_all("(L\\+D\\+)+", "(L+D+)+") %>%
-    str_replace_all("(D\\+A\\+)+", "(D+A+)+") %>%
-    str_replace_all("(L\\+A\\+)+", "(L+A+)+") %>%
-    str_replace_all("(D\\+R\\+)+", "(D+R+)+")
-}
-
-effects_seq_summary <-
-    effects_direct %>%
-    mutate(self_effect_seq = if_else(self_effect_seq == "", type, self_effect_seq)) %>%
-    mutate(self_effect_seq = merge_effects(self_effect_seq)) %>%
-    count(self_effect_seq, wt = argument_count, name = "count") %>%
-    arrange(desc(count)) %>%
-    mutate(perc = round(100 * count / sum(count), 2)) %>%
-    mutate(cumperc = cumsum(perc)) %>%
-    slice(1:100)
-
-
-datatable(effects_seq_summary)
-
-
-effects_seq_summary %>%
-pmap_chr(function(self_effect_seq, count, perc, cumperc) {
-    paste(self_effect_seq, as_perc(perc), sep = "&")
-}) %>%
-paste(collapse = "\\\\\n") %>%
-cat()
-
-
-effects_direct %>%
-filter(is.na(self_effect_seq) | self_effect_seq == "") %>%
-datatable()
-```
-
-
-A table
-- How many L, A, D, R.
-- How many positions of how many functions
-- correlation with promise types
-- correlation with argument order
-- examples of cases
-
-
-
-argument_table
-- type, arg_type, expr_type, pack_name, fun_name, position, argument_count, effect_count
-
-
-argument_table
-- arg_id, pack_name, fun_name, formal_pos, self_effect_seq
-
-
-graph of type of things inside a promise
-
-join with how many promises do effects

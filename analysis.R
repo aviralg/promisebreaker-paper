@@ -69,12 +69,14 @@ read_lazy(client, "client")
 read_lazy(parameters, "parameters.fst")
 read_lazy(functions, "functions.fst")
 read_lazy(effects_direct, "effects_direct.fst")
+read_lazy(direct_effects, "direct_effects.fst")
 read_lazy(argument_type, "argument_type.fst")
 read_lazy(arg_ref, "arg_ref.fst")
 read_lazy(exitval_raw, "exitval_raw.csv")
 read_lazy(stdout_raw, "stdout_raw.csv")
 read_lazy(allocation, "allocation.fst")
 read_lazy(execution, "execution.fst")
+read_lazy(argument_type, "argument_type.fst")
 
 arg_ref <-
     arg_ref %>%
@@ -89,3 +91,10 @@ functions <-
     functions %>%
     filter(pack_name %in% corpus)
 
+argument_type <-
+    argument_type %>%
+    filter(pack_name %in% corpus)
+
+direct_effects <-
+    direct_effects %>%
+    filter(pack_name %in% corpus)

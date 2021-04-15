@@ -1280,6 +1280,22 @@ stack. This has the effect of making more arguments lazy than needed.
 spurious transitive laziness.
 
 \subsubsection{Side-Effects}
+\begin{table}
+  \vspace{-3mm}
+  \small
+  \caption{Promise Expression} \label{table:promexpr}
+  \centering
+  \begin{tabular}{llllll}
+    \toprule
+    \textbf{Expression}&\textbf{All \%}&\textbf{SE \%}\\
+    \midrule
+    Symbol&48.99\%&0.11\%\\
+    Value&21.58\%&0\%\\
+    Call&17.49\%&0.39\%\\
+    Promise&4.18\%&0\%\\
+    \bottomrule
+  \end{tabular}
+\end{table}
 
 \begin{table}
   \vspace{-3mm}
@@ -1290,10 +1306,10 @@ spurious transitive laziness.
     \toprule
     \textbf{Effect}&\textbf{Count}&\textbf{Arguments}&\textbf{Parameters}&\textbf{Functions}&\textbf{Packages}\\
     \midrule
-    L&3739594&1723549&5539&3619&358\\
-    D&1069746&670614&2972&2599&319\\
-    A&236985&198227&510&486&109\\
-    R&1172&887&27&24&10\\
+    L&3.7M&1.2M&5.6K&3.7K&359\\
+    D&1.1M&159.0K&3.0K&2.6K&319\\
+    A&235.8K&122.7K&511.0&487.0&109\\
+    R&2.8K&718.0&27.0&24.0&10\\
     E&6&6&6&6&3\\
     \bottomrule
   \end{tabular}
@@ -1308,16 +1324,11 @@ spurious transitive laziness.
     \toprule
     \textbf{Effect Sequence}&\textbf{Argument \%}\\
     \midrule
-    L+&51.2\%\\
-    (L+D+)+&15.92\%\\
-    D+&13.41\%\\
-    (D+A+)+D+&5.19\%\\
-    A+&4.34\%\\
-    (L+A+)+&3.89\%\\
-    (D+A+)+&2.15\%\\
-    (L+D+)+L+&0.74\%\\
-    A+(D+A+)+&0.38\%\\
-    (L+D+)+A+&0.32\%\\
+    -&99.5\%\\
+    L+&0.41\%\\
+    D+&0.04\%\\
+    A+&0.03\%\\
+    (L+D+)+&0.01\%\\
     \bottomrule
   \end{tabular}
 \end{table}
