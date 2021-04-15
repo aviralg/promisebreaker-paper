@@ -933,15 +933,17 @@ parameters per function.
 \end{figure}
 
 7.3\% functions have 0 parameters, 19.6\% have 1, and 5.0\% have over 10. There
-are 15 functions with over 50 parameters that come from 10 packages.
-\c{ComplexHeatmap::pheatmap} (51), \c{network::plot.network.default} (52),
-\c{rpart.plot::get.layout} (53), \c{sna::gplot} (54), \c{Hmisc::latex.default}
-(55), \c{VennDiagram::draw.quintuple.venn} (57) \c{pROC::plot.roc.roc} (58),
-\c{rpart.plot::draw.node.numbers} (60), \c{gplots::heatmap.2} (63),
-\c{Hmisc::event.chart} (66), \c{ComplexHeatmap::Heatmap} (83),
-\c{ggplot2::theme} (95), \c{ergm::control.ergm} (117), \c{rpart.plot::prp}
-(119), and \c{rpart.plot::check.if.dot.arg.supported.by.rpart.rules} (122) with
-the highest number of parameters.
+are 15 functions with over 50 parameters that come from 10 packages. Of those,
+\c{rpart.plot::check.if.dot.arg.supported.by.rpart.rules} has the highest, 122
+parameters.
+
+%\c{ComplexHeatmap::pheatmap} (51), \c{network::plot.network.default}
+%(52), \c{rpart.plot::get.layout} (53), \c{sna::gplot} (54),
+%\c{Hmisc::latex.default} (55), \c{VennDiagram::draw.quintuple.venn} (57)
+%\c{pROC::plot.roc.roc} (58), \c{rpart.plot::draw.node.numbers} (60),
+%\c{gplots::heatmap.2} (63), \c{Hmisc::event.chart} (66),
+%\c{ComplexHeatmap::Heatmap} (83), \c{ggplot2::theme} (95),
+%\c{ergm::control.ergm} (117), \c{rpart.plot::prp} (119), and
 
 Now, we turn our attention to the algorithm used by \lazr to infer strictness.
 As discussed in section \ref{subsection:lazr}, \lazr uses execution traces to
