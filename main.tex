@@ -1622,8 +1622,10 @@ In particular, we pose the following predictions:
 (1) eager semantics should improve performance of most benchmarks for both tiers
 of \Rsh; (2) a significant portion of the speedup is due to reduced garbage
 collection pressure; (3) and there is an additional speedup due to improved compiler
-optimizations. In the following we will present our evidence in support of all
-three predictions.
+optimizations. In the following we will present our evidence in support of (1)
+and (3), and disprove (2).
+
+\paragraph{Methodology}
 
 We evaluate the effects of our modifications on the Ř benchmark suite.
 To ease the discussion, the results are presented on a representative subset of
@@ -1632,9 +1634,6 @@ each benchmark. As should be no surprise given the results presented so far,
 only a handful of functions, such as
 \lstinline{tryCatch} had to be kept lazy for all the benchmarks to compute
 the correct results.
-
-\paragraph{Methodology}
-
 All of the following experiments are run on a dedicated benchmark machine, with
 all background tasks disabled. The system features an Intel i7-6700K CPU, stepping 3,
 microcode 0xe2 with 4 cores and 8 threads. The system has 32 GB of RAM and is
@@ -1661,7 +1660,6 @@ $t_e = 1, t_i = 15$ and found a mean speedup of \speedupRsh, ranging between
 \begin{figure}[h]
   \centering
   \input{graphs/rshStrictPerf.tex}
-  \vspace{-1cm}
   \caption{Speedup of \Rshstrict}
   \label{fig:speedup}
 \end{figure}
@@ -1677,7 +1675,6 @@ For \speedupRshStrictSignificant out of \benchmarkSuiteSize benchmarks we measur
 \begin{figure}[h]
   \centering
   \input{graphs/rshStrictPerfBC.tex}
-  \vspace{-1cm}
   \caption{Speedup of \Rshstrict without optimizations}
   \label{fig:speedup-bc}
 \end{figure}
@@ -1691,7 +1688,7 @@ interpreter also gains a speedup of \speedupBCRshStrict, ranging from
 %
 Thus, we conclude that in our benchmark suite both a naive interpreter, as well as a speculatively
 optimizing native compiler achieve better performance on a strict dialect of R.
-Even though the speedup is very similar in numbers, the reasons seem to be quite
+Even though the speedup is very similar in numbers, the reasons seem to be
 different at times. We'll get back to that point in the discussion at the end of
 this section.
 
@@ -1699,33 +1696,11 @@ this section.
 
 \begin{figure}[h]
   \centering
-  \input{graphs/rshStrictPerf.tex}
-  \vspace{-1cm}
-  \caption{Time spent in GC}
-  \label{fig:gc-time}
-\end{figure}
-
-Even an optimizing compiler has to allocate many promises for R
-code, as often times, they cannot be eliminated entirely.
-Thus we expect a significant portion of the speedup to originate from
-the reduced allocation rate. We measured the time spent in garbage collection
-and as can be seen in \autoref{fig:gc-time}, indeed a significant reduction occurs.
-These numbers have to be taken with a grain of salt. The GNU R garbage
-collector, which is reused in \Rsh, has a fairly slow allocation path, which
-includes mutating a doubly-linked list. Therefore, some portion of the speedup
-is due to the saved time in the allocation of promises, which is not counted.
-Therefore, these numbers underestimate the effect on memory management overhead.
-%
-\begin{figure}[h]
-  \centering
   \input{graphs/rshProm.tex}
-  \vspace{-1cm}
   \caption{Promises allocated}
   \label{fig:gc-pressure}
 \end{figure}
-%
-For an additional estimation of how much promises occur and are avoided by a
-strict R, we measure the number of promises allocated in the
+We measure the number of promises allocated in the
 benchmark suite per iteration for GNU R, Ř and Ř-strict. The results are shown in
 \autoref{fig:gc-pressure}. The first jump from GNU R's bytecode interpreter to
 the optimizing just-in-time compiler \Rsh, leads to an \promiseAlocationReductionGnurRsh
@@ -1743,30 +1718,47 @@ originate largely from two sources. One are default argument expressions, which
 are still bundled in promises. \OF{which bms and how much?} The other are special forms, \ie R builtins with a custom evaluation
 strategy, that are not yet natively supported in the \Rsh bytecode.
 
+It turns out even an optimizing compiler has to allocate many promises for R
+code, as often times, they cannot be eliminated entirely. \Rshstrict allows for
+a large reduction in the number of promises allocated.
+Thus, we expected a significant portion of the overal speedup to originate from
+the reduced allocation rate. We measured the difference in garbage collection
+time and to our surprise found that it is miniscule, ranging from
+\speedupGCRshStrictMin to \speedupGCRshStrictMax.
+The GNU R garbage collector, which is reused in \Rsh, has a fairly slow allocation path, which
+includes mutating a doubly-linked list. Therefore, some portion of the speedup
+could be due to the saved time in the allocation of promises, which is not counted.
+We therefore conducted an additional experiment, where we evaluated arguments to
+calls eagerly, but additionally allocated a promise, that we subsequently didn't
+use at all. In this variant benchmarks slowed down by TODO
+\slowdownFromPromiseAlloc... \OF{discuss with actual results}.
+
 \paragraph{Discussion}
 
-It was surprising to see that the resulting speedup of both tiers were
-extremely similar, however the underlying reasons were at times very different.
+In both tiers we observed a proportional reduction of the time spent in tracing
+the heap and allocating promises.
+However, surprisingly, that was not the main contribution to the speedups.
+We investigated the remaining difference using the \lstinline{perf} profiler
+and found that the overheads of lazy evaluation are to be found in setting up the
+execution context for promise evaluation. This includes marking it as being
+executed to detect recursive evaluation dependencies and either calling the interpreters
+main eval-loop on the code of the promise, or calling the natively compiled
+function. In particular, in the native backend having the promises inlined at the
+call-site, instead of in a separate native function, invoked by the callee,
+resulted in fewer instruction cache misses.
+
+We also found some instances where both tiers sped up similarly,
+however the underlying reasons were very different.
 Take for instance the \lstinline{Binarytrees} benchmark, which showed in both
 the bytecode interpreter and the native compiler a speedup of about $1.5\times$
 in the strict mode. In native the execution time decreased from 79ms to 53ms, in
-the interpreter from 143ms to 97ms per iteration. However, the reasons for the
-seemingly similar speedup are very different. In both tiers we observed a
-proportional reduction of the time spent in tracing the heap for garbage collection,
-that accounted for only about $5\%$ of the speedup. We investigated the
-remaining difference using \lstinline{perf} and found that for the bytecode interpreter the overheads of
-lazy evaluation in that benchmark were in promise allocation (\ie acquiring an
-appropriately sized chunk of memory from the freelist) and setting up the
-execution context for promise evaluation. This includes marking it as being
-executed to detect recursive evaluation dependencies and calling the interpreters
-main eval-loop on the code of the promise.
-In the native code there is also some reduction in promise allocation and
-evaluation overhead, however a significant part of the speedup is due to better
-optimizations. Previously the local variables of the innermost function in
-that benchmark are kept in a first-class R environment, since \Rsh does not yet
+the interpreter from 143ms to 97ms per iteration. In the interpreter the speedup
+comes from the effects described above. On the other hand in the second tier
+a part of the speedup is due to better optimizations: Previously the local
+environment of the innermost function was live, since \Rsh does not yet
 support speculative environment elision for recursive functions. But thanks to eager
 evaluation of the arguments, the argument promises do not leak the environment
-and therefore \Rsh is able to speculatively elide it.
+and therefore \Rsh is able to elide it.
 
 \section{Discussion}
 
