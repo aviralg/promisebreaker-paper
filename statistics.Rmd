@@ -1,0 +1,77 @@
+---
+title: "Statistics"
+output:
+    html_document:
+        toc: true
+        toc_depth: 3
+        toc_float: true
+        number_sections: true
+        theme: cerulean
+        highlight: pygments
+        code_folding: hide
+        fig_width: 9
+        fig_height: 3
+        css: style.css
+params:
+    datadir: "./data"
+    graphdir: "./graphs"
+    macrodir: "./macros"
+---
+
+```{r echo = FALSE, warning=FALSE, message=FALSE}
+## https://bookdown.org/yihui/rmarkdown-cookbook/source-script.html
+source("analysis.R", local = knitr::knit_global())
+```
+
+## Allocations
+
+```{r echo = FALSE, warning=FALSE, message=FALSE}
+allocation <-
+    allocation %>% 
+    select(type, allocated) %>%
+    arrange(desc(allocated)) %>%
+    mutate(type = str_to_title(type),
+           allocated = label_number_si(accuracy = 0.1)(allocated))
+    
+allocation %>% datatable()
+
+allocation %>%
+pmap_chr(function(type, allocated) {
+    paste(type, allocated, sep = "&")
+}) %>%
+paste(collapse = "\\\\\n") %>%
+paste0("\\\\\n") %>%
+cat()
+```
+
+## Executions
+
+```{r echo = FALSE, warning=FALSE, message=FALSE}
+execution <-
+    execution %>% 
+    select(exec, execution_count, total_time) %>%
+    arrange(desc(execution_count)) %>%
+    mutate(execution_count = label_number_si(accuracy = 0.1)(execution_count),
+           total_time = total_time / 3600)
+    
+execution %>% datatable()
+
+
+execution %>%
+pmap_chr(function(exec, execution_count, total_time) {
+    total_time <- if(total_time > 1) { 
+        paste0(round(total_time, 1), "h")
+    } else if(total_time * 60 > 1) {
+        paste0(round(total_time * 60, 1), "m")
+    } else {
+        paste0(round(total_time * 3600, 1), "s")
+    }
+    
+    event <- paste(str_to_title(str_split(exec, fixed("_"))[[1]]), collapse = "")
+    
+    paste(event, execution_count, total_time, sep = "&")
+}) %>%
+paste(collapse = "\\\\\n") %>%
+paste0("\\\\\n") %>%
+cat()
+```

@@ -73,7 +73,8 @@ read_lazy(argument_type, "argument_type.fst")
 read_lazy(arg_ref, "arg_ref.fst")
 read_lazy(exitval_raw, "exitval_raw.csv")
 read_lazy(stdout_raw, "stdout_raw.csv")
-
+read_lazy(allocation, "allocation.fst")
+read_lazy(execution, "execution.fst")
 
 arg_ref <-
     arg_ref %>%

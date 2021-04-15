@@ -41,6 +41,9 @@ reflection:
 validation:
 	make analysis ANALYSIS=validation
 
+statistics:
+	make analysis ANALYSIS=statistics
+
 performance:
 	make analysis ANALYSIS=performance
 
