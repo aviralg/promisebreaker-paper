@@ -276,12 +276,28 @@ H3.2a.norm <- function(prom) {
   prom$suite_short = lapply(prom$suite, shorten_suite)
   prom$gnur <- NA
   prom[prom$experiment == "Ř" & prom$warm == 1, ]$gnur <- prom[prom$experiment == "GNU R" & prom$warm == 1, ]$createdPromises
+  for (b in unique(prom$benchmark)) {
+    n <- prom[prom$benchmark == b & prom$experiment == "Ř" & prom$warm == 1, ]$gnur
+    n[2:length(n)] <- NA
+    prom[prom$benchmark == b & prom$experiment == "Ř" & prom$warm == 1, ]$gnur <- n
+  }
   prom$gnur2 <- NA
   prom[prom$experiment == "Ř" & prom$warm == 1, ]$gnur2 <- prom[prom$experiment == "GNU R" & prom$warm == 1, ]$createdPromises
   prom[prom$experiment == "Ř strict" & prom$warm == 1, ]$gnur2 <- prom[prom$experiment == "GNU R" & prom$warm == 1, ]$createdPromises
   prom$low <- NA
   prom[prom$experiment == "Ř" & prom$warm == 1, ]$low <- prom[prom$experiment == "Ř" & prom$warm == 1, ]$createdPromises
-  prom[prom$experiment == "Ř strict" & prom$warm == 1, ]$low <- prom[prom$experiment == "Ř strict" & prom$warm == 1, ]$createdPromises
+  for (b in unique(prom$benchmark)) {
+    n <- prom[prom$benchmark == b & prom$experiment == "Ř" & prom$warm == 1, ]$low
+    n[2:length(n)] <- NA
+    prom[prom$benchmark == b & prom$experiment == "Ř" & prom$warm == 1, ]$low <- n
+  }
+  prom$low2 <- NA
+  prom[prom$experiment == "Ř strict" & prom$warm == 1, ]$low2 <- prom[prom$experiment == "Ř strict" & prom$warm == 1, ]$createdPromises
+  for (b in unique(prom$benchmark)) {
+    n <- prom[prom$benchmark == b & prom$experiment == "Ř strict" & prom$warm == 1, ]$low2
+    n[2:length(n)] <- NA
+    prom[prom$benchmark == b & prom$experiment == "Ř strict" & prom$warm == 1, ]$low2 <- n
+  }
   prom$ms <- prom$createdPromises
   prom <- normalize(prom, T, "GNU R")
   prom$speedup <- 1/prom$speedup
@@ -306,11 +322,23 @@ H3.2a.norm <- function(prom) {
     scale_fill_grey(start = 0.2, end = 0.6) +
     coord_flip() +
     geom_text(aes(label = ifelse(is.na(gnur), "", format(gnur, big.mark = ","))), y = 1.85, hjust = 1, vjust = 0.5, size = 2) +
+    # geom_text(aes(label = ifelse(is.na(low), "", ifelse(low / gnur2 < 0.02, formatC(low, width = 4), ""))),
+    #           position = position_dodge(0.85),
+    #           hjust = -1,
+    #           # vjust = 0.5,
+    #           size = 1.6) +
     geom_text(aes(label = ifelse(is.na(low), "", ifelse(low / gnur2 < 0.02, formatC(low, width = 4), ""))),
-              position = position_dodge(0.89),
+              y = 0.01,
               hjust = 0,
               vjust = 0.5,
-              size = 1.8) +
+              nudge_x = 0.25,
+              size = 1.5) +
+    geom_text(aes(label = ifelse(is.na(low2), "", ifelse(low2 / gnur2 < 0.02, formatC(low2, width = 4), ""))),
+              y = 0.01,
+              hjust = 0,
+              vjust = 0.5,
+              nudge_x = -0.25,
+              size = 1.5) +
     guides(fill = guide_legend(reverse = TRUE)) +
     ylim(c(0.0, 1.8))
 

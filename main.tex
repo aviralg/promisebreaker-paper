@@ -633,23 +633,27 @@ predetermined order.
 libraries at scale. The dynamic analysis in \lazr traces
 the evaluation of promises, of effects happening during promise evaluation, and
 reflective access to promises. In these traces we look for signals, that a
-certain function parameter needs to be lazily evaluated. From the signals we
-generate strictness signatures, with the goal of breaking as few clients as
-possible. To that end we explore all possible combinations of the signals we
-identified and evaluate their robustness.
-The strictness signals fall into three categories: \emph{meta-programming},
-\emph{conditional evaluation}, and \emph{effect ordering}. By meta-programming we
-classify situations where a callee reflectively accesses the argument expression
-passed by the caller. This is the main approach for meta-programming in R, \eg
+certain function parameter must be lazily evaluated. For example, if a
+callee reflectively accesses an argument expression, then the parameters
+must be lazy. This is the main approach for meta-programming in R, \eg
 allowing custom evaluation strategies to build domain specific languages, and it
-relies on lazy evaluation. Conditional evaluation means, that an argument is
+relies on lazy evaluation. From the signals we generate strictness signatures,
+with the goal of breaking as few clients as possible.
+%% comment (o): here I don't mention ... on purpose, because I think it is just
+%% a limitation of the approach and not a laziness signal...
+Some signals are weaker
+and it is not a priori clear how to treat them, therefore we explore all
+possible combinations and evaluate their robustness. These weaker signals fall
+into three categories: \emph{conditional evaluation}, \emph{effect ordering},
+and \emph{reflective arguments}. Conditional evaluation means, that an argument is
 sometimes not evaluated at all. This could mean that the
 callee is purposely deciding which arguments to evaluate --- for instance
-something akin to a maybe monad. Finally, most argument promises do not have
+something akin to a maybe monad. Secondly, most argument promises do not have
 observable effects. Thus, if arguments are effectful, it can be
-an indication, that the caller has some expectation of the callee to decide on
-their order. For all of theses cases the laziness could be on purpose, or
-accidental. However, we cannot assess intent on scale, and we don't have to. The
+an indication, that the caller has some expectation for the callee to decide on
+their order. Finally, as a third signal, arguments reflecting on the call-stack
+often rely on the order of evaluation. For all of theses cases the laziness
+could be on purpose, or accidental. However, we cannot assess intent on scale, and we don't have to. The
 goal is to not break client code, \ie identify laziness required to preserve
 the result, regardless whether it is accidental or not.
 
@@ -796,22 +800,19 @@ incorrectly made lazy.
 
 \subsection{Corpus}\label{sec:corpus}
 
-\begin{wraptable}{r}{8cm}
+\begin{wraptable}{r}{6cm}
   \vspace{-3mm}
   \small
   \centering
-  \caption{Corpus}\label{table:corpus}
+  \caption{Synthesis Corpus}\label{table:corpus}
   \vspace{-3mm}
-  \begin{tabular}{lrrrl}
+  \begin{tabular}{lrrr}
     \toprule
-    &\bf Tests&\bf Examples&\bf Vignettes&\\
+    &\bf Tests&\bf Examples&\bf Vignettes\\
     \midrule
-    \multirow{2}{*}
-    {Scripts}&5.8K&20.2K&631&\it Corpus\\
-    &9.8K&41.1K&1.7K&\it Client\\\hline
-    \multirow{2}{*}
-    {LOC}&406.4K&207.0K&48.7K&\it Corpus \\
-    &751.2K&348.8K&112.3K&\it Client \\
+    {Scripts}&5.8K&20.2K&631\\
+    \midrule
+    {LOC}&406.4K&207.0K&48.7K\\
     \bottomrule
   \end{tabular}
 \end{wraptable}%%
@@ -829,14 +830,14 @@ functionality.
 
 We synthesized signatures for functions from 500 packages. The criterion was to
 select packages which had the most clients, \emph{i.e.}, packages which are the
-most widely used in the ecosystem. The chosen packages have a total of 15,362 dependent client
-packages, ranging from maximum 2,669 dependents for \emph{ggplot2} to minimum 5
-for \emph{spatstat.linnet} with an average 125.4 dependents. The selected 500
-packages have 2.2M lines of R code and 2.7M lines of native code. For
-synthesizing signatures for their functions, we analyzed the execution traces
-obtained from their examples, tests, and vignettes. Table ~\ref{table:corpus}
-gives the number of scripts of each kind that were run and lines of code
-exercised.
+most widely used in the ecosystem. The chosen packages have a total of 15,362
+dependent client packages, ranging from maximum 2,669 dependents for
+\emph{ggplot2} to minimum 5 for \emph{spatstat.linnet} with an average 125.4
+dependents. The selected 500 packages have 2.2M lines of R code and 2.7M lines
+of native code. For synthesizing signatures for their functions, we analyzed the
+execution traces obtained from their examples, tests, and vignettes. Table
+~\ref{table:corpus} presents the number of scripts of each kind that were run
+and lines of code exercised.
 
 \begin{table}
   \vspace{-3mm}
@@ -936,17 +937,16 @@ arguments.
 
 \subsection{Experimental Setup}\label{sec:lazr-experiment}
 
-Our analysis pipeline starts with setting up a
-container image that includes all the dependencies for installing analysis code and
-R packages. This
-provides a reliable reproducible setup across the two machines. Next, we mirror
-CRAN and Bioconductor repositories and install their R packages. This is
-followed by generation of execution traces. These traces are analyzed to generate
-tabular data files and strictness signatures. Our analysis pipeline is managed
-by a Makefile which has rules for every step. This makes it easy to administer
-the experiments on multiple machines. Whenever possible, we parallelize the
-steps using GNU parallel~\cite{tange2011a}. Experiments were performed on two
-Intel Xeon 6140, 2.30GHz machines with 72 cores and 256GB of RAM each.
+Our analysis pipeline starts with setting up a container image that includes all
+the dependencies for installing analysis code and R packages. This provides a
+reliable reproducible setup across the two machines. Next, we mirror CRAN and
+Bioconductor repositories and install their R packages. This is followed by
+generation of execution traces. These traces are analyzed to generate tabular
+data files and strictness signatures. Our analysis pipeline is managed by a
+Makefile which has rules for every step. This makes it easy to administer the
+experiments on multiple machines. Whenever possible, we parallelize the steps
+using GNU parallel~\cite{tange2011a}. Experiments were performed on two Intel
+Xeon 6140, 2.30GHz machines with 72 cores and 256GB of RAM each.
 
 \section{Results}\label{sec:results}
 
@@ -1082,6 +1082,35 @@ transitively involved in effects and reflective operations.
 
 \subsection{Robustness} \label{Evaluation:Robustness}
 
+\begin{wraptable}{r}{6cm}
+  \vspace{-3mm}
+  \small
+  \centering
+  \caption{Client Corpus}\label{table:clientcorpus}
+  \vspace{-3mm}
+  \begin{tabular}{lrrr}
+    \toprule
+    &\bf Tests&\bf Examples&\bf Vignettes\\
+    \midrule
+    {Scripts} &9.8K&41.1K&1.7K\\
+    \midrule
+    {LOC} &751.2K&348.8K&112.3K\\
+    \bottomrule
+  \end{tabular}
+\end{wraptable}%%
+
+
+For assessing the robustness of the strictness signatures, we run client
+programs to exercise the functions with signatures. For client programs, we have
+selected 2000 dependent packages of the 500 packages from the synthesis corpus.
+They have 4.5M lines of R code and 4.7M lines of native (C, C++, and Fortran)
+code. We run their examples, tests, and vignettes and measure the number of
+programs that break due to the strictness signatures. Table
+~\ref{table:clientcorpus} gives the number of scripts of each kind that were run
+and lines of code exercised.
+
+
+
 \AG{add evaluation orders and contrast with side effects to assess impact.}
 %%the function and choose the definition order.
 %%Figure~\ref{fig:force_order} shows the number of evaluation orders of the
@@ -1125,14 +1154,21 @@ transitively involved in effects and reflective operations.
   \end{tabular}
 \end{table}
 
-For validation, we selected 2000 dependent packages of the synthesis
-corpus. They have 4.5M lines of R code and 4.7M lines of native (C, C++, and
-Fortran) code. We run their examples, tests, and vignettes to exercise the
+For validation, we selected 2000 dependent packages of the synthesis corpus.
+They have 4.5M lines of R code and 4.7M lines of native (C, C++, and Fortran)
+code. We run their examples, tests, and vignettes twice without any signatures
+to filter programs which finish successfully with the same output in both runs.
+This provides us with a baseline set of deterministic programs.
+
+
+to exercise the
 functions with signatures. This allows us to asses the amount of breakage
 introduced by \lazr strictness signatures in client code. The results are
 summarized in Table~\ref{table:strictfail}. For each configuration we report the
-percentage of failing tests, failing examples from vignettes, and failures
-reported by testthat.
+percentage of failing tests, vignettes, examples, and tests.
+
+
+
 
 TODO discuss the results
 
@@ -1834,10 +1870,10 @@ $t_e = 1, t_i = 15$. We found a mean speedup of \speedupRsh, ranging between
 \end{figure}
 
 First, we compare \Rsh against \Rshstrict. This experiment estimates the end-to-end
-improvement on performance, that a change to eager semantics in the R language
+improvement on performance that a change to eager semantics in the R language
 would have on \Rsh. The execution times were measured with $t_e = 4, t_i = 25$.
 \autoref{fig:speedup} shows a boxplot for the execution times of \Rsh-strict,
-normalized to \Rsh. Overal, we observe a mean speedup of
+normalized to \Rsh. Overall, we observe a mean speedup of
 \speedupRshStrict, ranging from \speedupRshStrictMin to \speedupRshStrictMax.
 For \speedupRshStrictSignificant out of \benchmarkSuiteSize benchmarks we measure a significant increase in performance.
 %
@@ -1855,10 +1891,10 @@ The results are presented in \autoref{fig:speedup-bc}. We found that the bytecod
 interpreter also gains a speedup of \speedupBCRshStrict, ranging from
 \speedupBCRshStrictMin to \speedupBCRshStrictMax.
 %
-Thus, we conclude that in our benchmark suite both a naive interpreter, as well as a speculatively
-optimizing native compiler achieve better performance on a strict dialect of R.
+Thus, we conclude that in our benchmark suite both a naive interpreter and a speculatively
+optimizing native compiler, achieve better performance on a strict dialect of R.
 Even though the speedup is very similar in numbers, the reasons seem to be
-different at times. We'll get back to that point in the discussion at the end of
+different at times. We will get back to that point in the discussion at the end of
 this section.
 
 \paragraph{Garbage Collection}
@@ -1889,22 +1925,22 @@ are still bundled in promises. \OF{which bms and how much?} The other are specia
 \ie R builtins with a custom evaluation
 strategy, that are not yet natively supported in the \Rsh bytecode.
 
-It turns out even an optimizing compiler has to allocate many promises for R
+It turns out that even an optimizing compiler has to allocate many promises for R
 code, as often times, they cannot be eliminated entirely. \Rshstrict allows for
-a large reduction in the number of promises allocated.
-Thus, we expected a significant portion of the overal speedup to originate from
+a larger reduction in the number of promises allocated.
+Thus, we expected a significant portion of the overall speedup to originate from
 the reduced allocation rate. We measured the differences in garbage collection
 time and it ranged from \speedupGCRshStrictMin to \speedupGCRshStrictMax, but
 found the contribution to the overal speedup to be smaller than expected.
 The GNU R garbage collector, which is reused in \Rsh, has a fairly slow allocation path, which
 includes mutating a doubly-linked list. Therefore, some portion of the speedup
-could be due to the saved time in the allocation of promises, which is not counted.
+could be due to the saved time in the allocation of promises, which is not counted in the GC time.
 We therefore conducted an additional experiment, where we evaluated arguments to
-calls eagerly, but additionally allocated a promise, that we subsequently didn't
-use at all. This configuration led to an overal speedup of
-\speedupBCRshStrictAlloc instead of \speedupBCRshStrict, suggesting that overall
+calls eagerly, but additionally allocated a promise only to be subsequently discarded. 
+This configuration led to an overall speedup of
+\speedupBCRshStrictAlloc instead of \speedupBCRshStrict, suggesting that
 about \speedupDueToReducedGC of the performance improvement in the bytecode interpreter is due to the
-reduced allocation. Unfortunately a similar experiment is not easily possible
+reduced allocation. Unfortunately, a similar experiment cannot be as easily conducted
 for the optimizing tier of \Rsh, since its compiler would just optimize away all
 unneccessary allocations. We conjecture that the contribution should be even
 smaller in that case, because it allocates much less promises to start with.
@@ -1916,29 +1952,56 @@ the heap and allocating promises.
 However, surprisingly, that was not the main contribution to the speedups.
 We investigated the remaining difference using the \lstinline{perf} profiler
 and found that the overheads of lazy evaluation are to be found in setting up the
-execution context for promise evaluation. This includes marking it as being
-executed to detect recursive evaluation dependencies and either calling the interpreters
-main eval-loop on the code of the promise, or calling the natively compiled
-function. In particular, in the native backend having the promises inlined at the
-call-site, instead of in a separate native function, invoked by the callee,
+execution context for promise evaluation. This includes marking it as 'executing'
+to detect recursive evaluation dependencies, and either calling the interpreters
+main eval-loop on the code of the promise or calling the natively compiled
+function. In the case of the native backend, having the promises inlined at the
+call-site instead of in a separate native function invoked by the callee,
 resulted in fewer instruction cache misses.
 
 We also found some instances where both tiers sped up similarly,
 however the underlying reasons were very different.
 Take for instance the \lstinline{bin} benchmark, which showed in both
 the bytecode interpreter and the native compiler a speedup of about $1.5\times$
-in the strict mode. In native the execution time decreased from 79ms to 53ms, in
-the interpreter from 143ms to 97ms per iteration. In the interpreter the speedup
-comes from the effects described above. On the other hand in the second tier
-a part of the speedup is due to better optimizations: Previously the local
-environment of the innermost function was live, since \Rsh does not yet
-support speculative environment elision for recursive functions. But thanks to eager
+in the strict mode. In native, the execution time decreased from 79ms to 53ms. In
+the interpreter, time went from 143ms to 97ms per iteration. In the former case, the speedup
+comes from the effects described above; \SK{please review from here to the end of the paragraph} for the latter, part of the speedup is due to a better optimizations: Previously the local
+environment of the innermost function was live (since \Rsh does not yet
+support speculative environment elision for recursive functions). Thanks to eager
 evaluation of the arguments, the argument promises do not leak the environment
 and therefore \Rsh is able to elide it.
 
 \section{Conclusion}\label{sec:conclusion}
 
-
+In R function arguments are passed lazily. They are not evaluated at the
+call-site, instead the evaluation is suspended until the callee needs them. The
+definition of \emph{need} is quite liberal here, as for example local
+re-binding, returning, and many builtin functions are strict. As was reported in
+previous work, this leads to many programs being on the eager side of the
+spectrum for a lazy languages. Why is R strict at all? It turns out that
+allowing users to reflectively alter argument expressions, before evaluating
+them, is a very expressive and powerful meta-programming technique, enjoyed by
+many package authors in the R ecosystem, to build embedded domain specific languages
+and so on. It is part of what makes R appealing to its users, even
+if they do not realize that the language they use has a lazy core. However,
+the joy is limited when it comes to writing robust R code --- as both caller and
+callee co-determine what a function actually does --- and also when implementing
+the language itself. When we turned R into a mostly strict mode, the \Rsh just-in-time
+compiler ran \speedupRshStrict faster through our benchmarks, without any
+further changes. Taken everything into account, we believe that R should be
+strict by default, giving package authors the option to opt-in to laziness. We
+provide a strategy for R as an ecosystem to get there, by automatically inferring
+robust strictnes signatures for package code. These signatures try to capture
+the desired and accidental laziness of arguments passed to R packages, thereby
+allowing most of the client code to run unchanged --- in our experiments only
+\robustnesResult of all depending packages tests failed. Such automatically
+generated strictnes signatures can then subsequently be refined by the package authors and
+users. The change to the language would be beneficial in several ways.
+Implementations would become faster, compilers and program analysis easier to
+perform, users would be presented with a more commonly expected call semantic
+and it would open up the path for further evolution. Currently many standard
+techniques, such as gradually typed function signatures and efficient just-in-time
+optimizations are difficult to apply to R because of laziness.
 
 
 %%\section*{Acknowledgments}
