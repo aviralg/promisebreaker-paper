@@ -1156,12 +1156,36 @@ and lines of code exercised.
 First, we run the client scripts twice without any signatures to filter programs
 which finish successfully with the same output in both runs. This provides us
 with a baseline for deterministic programs against which we can compare the
-effectiveness of our signatures. Then, we run these programs eight time, once
-for each signature configuration, and count the number of programs that fair or
-produce a different output compared to the baseline output. The results are
-summarized in Table~\ref{table:strictfail}. The rows represent signature
-configurations. For each configuration we report the number and percentage of
-failing programs, further broken down into failures per script type.
+effectiveness of our signatures. Then, we run these programs eight times, once
+for each signature configuration, and count the number of programs that fail or
+produce a different output compared to the baseline output.
+
+We rely on the output of programs for measuring correctness, \emph{i.e.}, we
+believe that programs that produce the same output with and without signatures
+produce the same result. Our rationale is that the top-level expressions in R
+scripts print their result on the console unless it is stored in a variable or
+explicitly disabled by surrounding the expressions in a call to the
+\code{invisible} function. R also prints messages on library loading, function
+shadowing, warnings, and errors. A simple heuristic to test our belief is to
+check for the degree of duplication in programs' output. If the outputs are
+unique they can be used as a ``fingerprint'' for the program and a change in its
+result by applying strictness signatures will likely change the output. This
+will be then be counted as a failure against that signature configuration.
+
+We extracted XXXX client programs of which XXXX programs were deterministic. Of
+these deterministic programs, only XXXX produced the same output. The results of
+applying signatures to the deterministic programs are summarized in
+Table~\ref{table:strictfail}. Each row represents a signature configuration. For
+each configuration we report the number and percentage of failing programs,
+further broken down into failures per script type. The letters \emph{U},
+\emph{S}, and \emph{R} represent unevaluated, side-effecting and reflective
+arguments. The \emph{+} sign signifies that the corresponding arguments are
+treated lazy in the signature configuration and \emph{-} sign means they are
+evaluated eagerly. For example, $+U+E+R$ means that arguments that are
+unevaluated, side-effecting, and reflective are treated lazy whereas $-U-E-R$
+means that these arguments are evaluated strictly.
+
+
 
 
 
