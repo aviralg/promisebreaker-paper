@@ -1154,14 +1154,21 @@ transitively involved in effects and reflective operations.
   \end{tabular}
 \end{table}
 
-For validation, we selected 2000 dependent packages of the synthesis
-corpus. They have 4.5M lines of R code and 4.7M lines of native (C, C++, and
-Fortran) code. We run their examples, tests, and vignettes to exercise the
+For validation, we selected 2000 dependent packages of the synthesis corpus.
+They have 4.5M lines of R code and 4.7M lines of native (C, C++, and Fortran)
+code. We run their examples, tests, and vignettes twice without any signatures
+to filter programs which finish successfully with the same output in both runs.
+This provides us with a baseline set of deterministic programs.
+
+
+to exercise the
 functions with signatures. This allows us to asses the amount of breakage
 introduced by \lazr strictness signatures in client code. The results are
 summarized in Table~\ref{table:strictfail}. For each configuration we report the
-percentage of failing tests, failing examples from vignettes, and failures
-reported by testthat.
+percentage of failing tests, vignettes, examples, and tests.
+
+
+
 
 TODO discuss the results
 
