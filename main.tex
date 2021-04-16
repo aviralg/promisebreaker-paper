@@ -654,23 +654,27 @@ predetermined order.
 libraries at scale. The dynamic analysis in \lazr traces
 the evaluation of promises, of effects happening during promise evaluation, and
 reflective access to promises. In these traces we look for signals, that a
-certain function parameter needs to be lazily evaluated. From the signals we
-generate strictness signatures, with the goal of breaking as few clients as
-possible. To that end we explore all possible combinations of the signals we
-identified and evaluate their robustness.
-The strictness signals fall into three categories: \emph{meta-programming},
-\emph{conditional evaluation}, and \emph{effect ordering}. By meta-programming we
-classify situations where a callee reflectively accesses the argument expression
-passed by the caller. This is the main approach for meta-programming in R, \eg
+certain function parameter must be lazily evaluated. For example, if a
+callee reflectively accesses an argument expression, then the parameters
+must be lazy. This is the main approach for meta-programming in R, \eg
 allowing custom evaluation strategies to build domain specific languages, and it
-relies on lazy evaluation. Conditional evaluation means, that an argument is
+relies on lazy evaluation. From the signals we generate strictness signatures,
+with the goal of breaking as few clients as possible.
+%% comment (o): here I don't mention ... on purpose, because I think it is just
+%% a limitation of the approach and not a laziness signal...
+Some signals are weaker
+and it is not a priori clear how to treat them, therefore we explore all
+possible combinations and evaluate their robustness. These weaker signals fall
+into three categories: \emph{conditional evaluation}, \emph{effect ordering},
+and \emph{reflective arguments}. Conditional evaluation means, that an argument is
 sometimes not evaluated at all. This could mean that the
 callee is purposely deciding which arguments to evaluate --- for instance
-something akin to a maybe monad. Finally, most argument promises do not have
+something akin to a maybe monad. Secondly, most argument promises do not have
 observable effects. Thus, if arguments are effectful, it can be
-an indication, that the caller has some expectation of the callee to decide on
-their order. For all of theses cases the laziness could be on purpose, or
-accidental. However, we cannot assess intent on scale, and we don't have to. The
+an indication, that the caller has some expectation for the callee to decide on
+their order. Finally, as a third signal, arguments reflecting on the call-stack
+often rely on the order of evaluation. For all of theses cases the laziness
+could be on purpose, or accidental. However, we cannot assess intent on scale, and we don't have to. The
 goal is to not break client code, \ie identify laziness required to preserve
 the result, regardless whether it is accidental or not.
 
