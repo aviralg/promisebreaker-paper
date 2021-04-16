@@ -1422,16 +1422,14 @@ codetools::checkSymOrString <- function(e, signal = stop) {
 \subsubsection{Reflection}
 
 R allows reflective access to parent scope through \code{as.environment} and
-\code{pos.to.env} functions when called with argument \code{-1}.
-They return the environment of the caller with respect to call in which they are
-evaluated. Consider the following example in which function f is called with the
-same argument \code{as.environment(-1)} for both \code{x} and \code{y}
-parameters. The first argument \code{x} is evaluated immediately inside
-function \code{f} and the second argument \code{y} is evaluated inside the
-\code{id} function. \code{x} evaluates to the environment of the parent of
-\code{f} which is the \code{global} environment, whereas \code{y} evaluates to
-the environment of \code{f} which is the parent of \code{id} inside of which
-\code{y} is evaluated.
+\code{pos.to.env} functions when called with argument \code{-1}. They return the
+environment of the caller with respect to call in which they are evaluated.
+Consider the following example in which function \code{f} is passed the same
+arguments. Argument \code{x} is evaluated immediately inside \code{f} and
+argument \code{y} is evaluated inside \code{id}. \code{x} evaluates to the
+environment of the parent of \code{f} which is the \code{global} environment,
+whereas \code{y} evaluates to the environment of \code{f} which is the parent
+caller of \code{id}.
 %
 \begin{lstlisting}
 id <- function(a) a
@@ -1439,26 +1437,18 @@ f <- function(x, y) { x; id(y); }
 f(x = as.environment(-1), y = as.environment(-1))
 \end{lstlisting}
 %
-There are two points to note here. First, the strictness of \code{f} with
-respect to \code{x} and \code{y} depends on how \code{f} is called. Second,
-\code{f} will now be lazy in argument \code{y}, otherwise we will end up
-evaluating inside \code{f}. Erroneously evaluating \code{y} strictly would
-result in an incorrect environment, but not an error, which could turn into a
-debugging nightmare.
-\code{as.environment} is internally implemented using \code{pos.to.env} so the
-two functions have same semantics when called with \code{-1} as the argument.
-It is interesting to note that there are other functions providing reflective
-access to call stack frames such as \code{parent.frame}, \code{sys.frame}, etc.
-However, these take into account the current evaluation environment to identify
-the parent caller. A promise evaluates the argument expression inside the
-caller's environment. So, a call to \code{parent.frame()} directly inside the
-argument will use the caller's environment to identify the parent dynamic scope.
-This makes its result independent of the point at which the promise is
-evaluated.
+This implies that strictness of \code{f} with respect to \code{x} and \code{y}
+depends on how \code{f} is called. \code{f} will now be lazy in argument
+\code{y}, otherwise we will end up evaluating inside \code{f}. Erroneously
+evaluating \code{y} strictly would result in an incorrect environment, but not
+an error, which could turn into a debugging nightmare. \code{as.environment} is
+internally implemented using \code{pos.to.env} so the two functions have same
+semantics when called with \code{-1} as the argument.
 
-Another wrinkle introduced by this setup is that it can transitively affect the
-strictness of other function arguments. Imagine \code{f} is called from \code{g}
-as shown below.
+This can transitively affect the strictness of other function arguments. If
+\code{f} is called from \code{g} as shown below, we will have to make \code{g}
+non-strict in \code{u} and \code{v}. Their results depend upon how they are
+evaluated inside \code{f}.
 
 \begin{lstlisting}
 g <- function(u, v) {
@@ -1466,20 +1456,25 @@ g <- function(u, v) {
 }
 g(as.environment(-1), as.environment(-1))
 \end{lstlisting}
-%
-Clearly, in this case we have to make \code{g} non-strict in \code{u} and
-\code{v}. Their results depend upon how they are evaluated inside \code{f}.
+% 
+
+R provides other functions for reflective access to call stack frames such as
+\code{parent.frame}, \code{sys.frame}, etc. These functions take into account
+the current evaluation environment to identify the parent caller. A promise
+evaluates the argument expression inside the caller's environment. So, a call to
+\code{parent.frame()} directly inside the argument will use the caller's
+environment to identify the dynamic parent scope. This makes its result
+independent of the point at which the promise is evaluated.
+
 %
 We identified 2710 arguments which directly call \code{as.environment(-1)} and
 \code{pos.to.env(-1)} in our corpus. They correspond to 2 parameters from 2
 functions, \code{R.oo::.getFunctionByName}, and \code{backports:::get0}.
 %
-\code{R.oo:::.getFunctionByName} is a private function of \code{R.oo} package
-which searches for a function by name in different scopes, configured by its
-arguments. Its fourth parameter, \code{callEnvir}, has a default value of
-\code{as.environment(-1)}. It is called 2707 times. The relevant part of its
-definition is that \code{callEnvir} is evaluated by assigning it to
-\code{envirT} before it is passed down to the \code{exists} function.
+\code{R.oo:::.getFunctionByName}, searches for a function by
+name in different scopes. Its argument \code{callEnvir}, has a default value of
+\code{as.environment(-1)} which is evaluated by assigning it to \code{envirT}
+before it is passed down to the \code{exists} function.
 %
 \begin{lstlisting}
 function(name, where = c("ns", "search", "ns*"),
@@ -1492,10 +1487,9 @@ function(name, where = c("ns", "search", "ns*"),
 }
 \end{lstlisting}
 %
-\code{backports::get0} is a private function of \code{backports} package which
-looks up a variable in a scope, similar in spirit to
-\code{R.oo:::.getFunctionByName}. This function is called 3 times, always with
-the default value \code{pos.to.env(-1)} for \code{envir} argument. Unlike
+\code{backports::get0} looks up a variable in a scope, similar in spirit to
+\code{R.oo:::.getFunctionByName}. This function is always called with the
+default value \code{pos.to.env(-1)} for its \code{envir} argument. Unlike
 \code{R.oo:::.getFunctionByName}, \code{backports:::get0} passes \code{envir}
 unevaluated to \code{mget}. \code{mget} in turn evaluates \code{envir} and looks
 up variable referred to by \code{x} in \code{envir}. Clearly, with the default
