@@ -1919,7 +1919,7 @@ time and it ranged from \speedupGCRshStrictMin to \speedupGCRshStrictMax, but
 found the contribution to the overal speedup to be smaller than expected.
 The GNU R garbage collector, which is reused in \Rsh, has a fairly slow allocation path, which
 includes mutating a doubly-linked list. Therefore, some portion of the speedup
-could be due to the saved time in the allocation of promises, which is not counted.
+could be due to the saved time in the allocation of promises, which is not counted in the GC time.
 We therefore conducted an additional experiment, where we evaluated arguments to
 calls eagerly, but additionally allocated a promise only to be subsequently discarded. 
 This configuration led to an overall speedup of
@@ -1937,23 +1937,22 @@ the heap and allocating promises.
 However, surprisingly, that was not the main contribution to the speedups.
 We investigated the remaining difference using the \lstinline{perf} profiler
 and found that the overheads of lazy evaluation are to be found in setting up the
-execution context for promise evaluation. This includes marking it as being
-executed to detect recursive evaluation dependencies and either calling the interpreters
-main eval-loop on the code of the promise, or calling the natively compiled
-function. In particular, in the native backend having the promises inlined at the
-call-site, instead of in a separate native function, invoked by the callee,
+execution context for promise evaluation. This includes marking it as 'executing'
+to detect recursive evaluation dependencies, and either calling the interpreters
+main eval-loop on the code of the promise or calling the natively compiled
+function. In the case of the native backend, having the promises inlined at the
+call-site instead of in a separate native function invoked by the callee,
 resulted in fewer instruction cache misses.
 
 We also found some instances where both tiers sped up similarly,
 however the underlying reasons were very different.
 Take for instance the \lstinline{bin} benchmark, which showed in both
 the bytecode interpreter and the native compiler a speedup of about $1.5\times$
-in the strict mode. In native the execution time decreased from 79ms to 53ms, in
-the interpreter from 143ms to 97ms per iteration. In the interpreter the speedup
-comes from the effects described above. On the other hand in the second tier
-a part of the speedup is due to better optimizations: Previously the local
-environment of the innermost function was live, since \Rsh does not yet
-support speculative environment elision for recursive functions. But thanks to eager
+in the strict mode. In native, the execution time decreased from 79ms to 53ms. In
+the interpreter, time went from 143ms to 97ms per iteration. In the former case, the speedup
+comes from the effects described above; \SK{please review from here to the end of the paragraph} for the latter, part of the speedup is due to a better optimizations: Previously the local
+environment of the innermost function was live (since \Rsh does not yet
+support speculative environment elision for recursive functions). Thanks to eager
 evaluation of the arguments, the argument promises do not leak the environment
 and therefore \Rsh is able to elide it.
 
