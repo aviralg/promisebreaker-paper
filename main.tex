@@ -250,7 +250,7 @@ this paper we evaluate this migration path and make the following contributions:
 \item We conduct an experiment using the \Rsh optimizing just-in-time compiler
   to evaluate the benefits of unboxing and inlining delayed evaluation on a
   benchmark suite of small computational tasks. We show a median
-  \speedupRshStrict speed up, ranging from \speedupRshStrictMin to
+  \speedupRshStrict speedup, ranging from \speedupRshStrictMin to
   \speedupRshStrictMax.
 \item We evaluate the robustness of the inferred signatures by testing them
   against 2,000 clients of the packages for which signatures were inferred. We
@@ -296,7 +296,7 @@ that automatically infers strictness annotations using a genetic algorithm. The
 approach relies on a dynamic analysis, as it does not approximate and cannot
 guarantee termination on all inputs. As the annotations are based on a
 heuristic, developers must manually validate their soundness. The authors report
-an average 8.5\% speedup (with a maximum speed up of 89\%). \citet{lazyprof}
+an average 8.5\% speedup (with a maximum speedup of 89\%). \citet{lazyprof}
 solve the complementary problem of suggesting laziness annotations for
 call-by-value $\lambda$ calculus using a dynamic analysis. They introduce the
 notion of laziness potential, a predictor of the benefit obtained by making an
@@ -322,11 +322,11 @@ d'\^etre} for delayed evaluation seems to be meta-programming. In that work a
 function was deemed to be strict if it had a single evaluation order for its
 arguments. Our approach is inspired by that work, but we do not require a single
 evaluation order for a function, instead we choose to look at clients and
-declare parameter lazy if some clients call the function with effectful
+declare a parameter lazy if some clients call the function with effectful
 arguments. \citet{oopsla20b} empirically inferred \emph{type} signatures for
 functions by observing the type of arguments and return values. The authors
 validated these signatures by inserting type checking code inside functions and
-monitor type failures on client programs. This approach inspired our strictness
+monitoring type failures on client programs. This approach inspired our strictness
 inference, but types are easier to check for soundness than strictness. For
 types, one simply inserts code that checks that, if an argument is eventually
 evaluated, it evaluates to the expected type. For strictness, we have to worry
@@ -345,7 +345,7 @@ applications~\cite{OB20}. A more successful experience is the migration from PHP
 to Hack at Facebook. The key to success was a close feedback loop between
 language changes and their impact on the ecosystem at large. As all Hack users
 share an employer and a source code repository, it was possible to test changes
-and develop tools which target at relevant usage patterns.\footnote{Private
+and develop tools targeted at relevant usage patterns.\footnote{Private
   communication with the developers of Hack.} One last relevant thread of work
 is the migratory typing of \citet{matthias06} where a gradual type system is
 added to a variant of the Scheme programming language to enable gradual
@@ -373,7 +373,7 @@ function \code f which takes a variable number of arguments, whose parameters
  > f <- function(x=y, ..., y=3*x) { function(z) x+y+z }
 \end{lstlisting}\vspace{1mm}
 \noindent
-Function \code f can be called with a single argument matching \code x, as in
+The \code f function can be called with a single argument matching \code x, as in
 \code{f(3)}, with named arguments, as in \code{f(y=4,x=2)}, with a variable
 number of arguments, for example \code{f(1,2,3,4,y=5)}, multiple arguments
 captured by \code{...}, or with no arguments at all, \code{f()}, which creates a
@@ -384,15 +384,15 @@ if it was later substituted by a default value. A vararg parameter, written
 \code{...}, accepts an arbitrary number of arguments, including missing
 arguments. A vararg can be materialized into a list with \code{list(...)}. Most
 frequently varargs are passed forward to a called function. This enables the
-function to expose its callee's interface to the callers without listing
+function to expose its callee's interface to the callers without listing the
 callee's parameters and their default values.
 
 \paragraph{Attributes}
 Values can be tagged by user-defined attributes. For instance, one can attach
-the attribute \code{dim} to the value \code{x<-c(1,2,3,4)} by evaluating
-\code{attr(x,"dim")<-c(2,2)}. Once done, arithmetic functions will treat \code x
+the attribute \code{dim} to the value \code{x <- c(1,2,3,4)} by evaluating
+\code{attr(x,"dim") <- c(2,2)}. Once done, arithmetic functions will treat \code x
 as a \code{2x2} matrix. Another attribute is \code{class} which can be bound to
-a list of names. For instance, \code{class(x)<-"human"}, sets the class of
+a list of names. For instance, \code{class(x) <- "human"} sets the class of
 \code{x} to \code{human}. Attributes are used for object-oriented dispatch. The
 ``S3 object system'' supports single dispatch on the class of the first argument
 of a function, whereas the ``S4 object system'' allows dispatch on all
@@ -406,7 +406,7 @@ function yields the parse tree of the expression \code{e} after performing
 substitutions defined by the bindings in \code{envir}.
 \vspace{-1mm}
 \begin{lstlisting}
- > substitute(expression(a + b), list(a = 1)))
+ > substitute(expression(a + b), list(a = 1))
  expression(1 + b)
 \end{lstlisting}
 \noindent
@@ -420,22 +420,22 @@ functions currently being present on the call-stack.
 
 \paragraph{Effects} While R strives to be functional, it has many imperative
 features such as assignment to local variables \code{<-}, assignment to
-variables in an enclosing scope \code{<<-}, assignment in a programmatically
-chosen scope \code{assign()}. R support non-local returns either through
-exception or by delayed evaluation of a \code{return} statement. Of course,
+variables in an enclosing scope \code{<<-}, and assignment in a programmatically
+chosen scope \code{assign()}. R supports non-local returns either through
+exceptions or by delayed evaluation of a \code{return} statement. Of course,
 there are all sorts of external effects and no monads.
 
 \paragraph{Delayed Evaluation}
 
 The combination of side effects, frequent interaction with C, and absence of
 types has pushed R to be more eager than other lazy languages. Strictly
-speaking, R's not lazy as it evaluates arguments that it does not need to.\SK{I didn't understand previous sentence}  Let
+speaking, R is not lazy as it evaluates arguments that it does not need to.\SK{I didn't understand previous sentence}  Let
 us review its design. Arguments to a function are bundled into a thunk called a
 \emph{promise}. Logically, a promise combines an expression's code, its
 environment, and its value. To access the value of a promise, one must
 \emph{force} it. Forcing a promise triggers evaluation and the computed value is
 captured for future reference. The following snippet defines a function \code{f}
-that takes argument \code x and returns \code{x+x}. When called with an argument
+that takes an argument \code x and returns \code{x+x}. When called with an argument
 that has the side effect of printing to the console, the side effect is
 performed once as the second access to the promise is cached.
 \begin{lstlisting}
@@ -468,8 +468,8 @@ only provides a small interface for operating on promises:
 
 \noindent
 While R does not provide built-in lazy data structures, they can be encoded. R
-evaluates promises aggressively. The sequencing operator \code{a;b} will
-evaluate both \code a and \code b, assignment \code{x<-a} evaluates \code a, and
+evaluates promises aggressively. The sequencing operator \code{a:b} will
+evaluate both \code a and \code b, assignment \code{x <- a} evaluates \code a, and
 \code{return} also triggers evaluation. In addition, many core functions are
 strict.
 
