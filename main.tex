@@ -1121,11 +1121,12 @@ and lines of code exercised.
 First, we run the client scripts twice without any signatures to filter programs
 which finish successfully with the same output in both runs. This provides us
 with baseline deterministic programs against which we can compare the
-effectiveness of our signatures. We extracted XXXX runnable programs from the
-2000 client packages from which XXXX programs yielded the same result on both
-runs. These are the programs against which we present the outcome of applying
-our signatures.
+effectiveness of our signatures. We extracted 49,484 runnable programs from the
+2000 client packages from which 42,637 programs yielded the same result on both
+runs. These are the programs for which we present the outcome of applying our
+signatures.
 
+%% NOTE: is this useful discussion?
 We consider an application of signature successful if it produces the same
 output as it produced without applying any signature. We believe that programs
 that produce the same output with and without signatures compute the same
@@ -1137,9 +1138,7 @@ shadowing, warnings, and errors. A simple heuristic to test this claim is to
 check for the degree of duplication in programs' output. If the outputs are
 unique they can be used as a ``fingerprint'' for the programs and a change in
 the programs' result by applying strictness signatures will likely change the
-output. In our baseline deterministic programs, XXXX\% had unique outputs.
-This will be then be counted as a failure for that signature
-configuration.
+output. In our baseline deterministic programs, 55.8\% had unique outputs.
 
 %\begin{table}[!h]
 %  \small
