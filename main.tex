@@ -1930,9 +1930,7 @@ The lowest reduction observed is
 \promiseAlocationReductionGnurRshStrictMin.
 Surprisingly the number of remaining promises is
 still relatively high in some cases. As far as we were able to observe, they
-originate largely from two sources. One are default argument expressions, which
-are still bundled in promises. \OF{which bms and how much?} The other are special forms,
-\ie R builtins with a custom evaluation
+originate largely from special forms, \ie R builtins with a custom evaluation
 strategy, that are not yet natively supported in the \Rsh bytecode.
 
 It turns out that even an optimizing compiler has to allocate many promises for R
