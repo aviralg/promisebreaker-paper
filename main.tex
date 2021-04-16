@@ -1269,6 +1269,7 @@ including a rich set of APIs for metaprogramming. For this, it frequently uses
 \code{PREXPR} from C code.
 
 \subsubsection{Unevaluated Arguments}
+
 Of the 294.45M total arguments in our corpus, 30.4M argument promises were not
 evaluated. They correspond to 52,083 parameters of 26,398 functions from 473
 packages. These functions are non-strict in the corresponding parameters.
@@ -1317,23 +1318,18 @@ with \never parameters are called more than once. This suggests that a lack of
 call diversity could be one of factors for \never arguments' existence. With
 better call diversity, the \never parameters will turn into \sometimes.
 
-\paragraph{Qualitative Analysis}
-
 We analyzed a sample of functions with \sometimes and \never parameters to
 identify usage patterns.
 %
-First, we look at \sometimes parameters. A common patter occurring in 30
-packages is the following definition of \code{\%||\%} function.
+A patter occurring in 30 packages is the following definition of \code{\%||\%}
+function.
 %
 \begin{lstlisting}
 lazyeval::\%||\% <- function(x, y) if(is.null(x)) y else x
 \end{lstlisting}
 %
 This function evaluates its second argument \code{y} only if \code{x} is
-\code{NULL}. This makes \code{y} a \sometimes parameter. This pattern suggests
-that \code{y} is a \sometimes parameter for a reason and should not be evaluated
-unless needed. However, there are other functions with multiple paths where
-evaluating the \sometimes argument is expected to be benign. For example, in
+\code{NULL}. This makes \code{y} a \sometimes parameter. Similarly, in
 \code{bayesplot::is_whole_number} function, the \code{tol} argument is only
 evaluated when \code{x} is a numeric value.
 %
@@ -1363,23 +1359,20 @@ and in other iterations, we don't. The way this code is written suggests that
 \code{expr} should not be evaluated strictly.
 %
 S3 generics result in many \sometimes and \never parameters. These functions
-dynamically dispatch to a specific implementation with the same name based on
-the first argument's class. In this case, the first argument is always evaluated
-but the remaining arguments might not be needed by the specific method. Across
-all executions, we observed that \code{n} and \code{m} are evaluated sometimes
-but \code{r} is never evaluated.
+dynamically dispatch to a specific implementation based on the argument's class.
+In the following example, the first argument is always evaluated but \code{n}
+and \code{m} were only evaluated sometimes and \code{r} was never evaluated.
 %
 \begin{lstlisting}
 abind::acorn <- function(x, n=6, m=5, r=1, ...) UseMethod('acorn')
 \end{lstlisting}
 
-Next, we turn our attention to \never parameters.
-%
-The most common case is when an argument is not used in some branch of the
-function. Due to lack of call diversity, the branch in which the argument is
-used is never taken and the parameter is classified as \never. For example,
-\code{discretize} function of package \code{actuar} only uses \code{xlim} if
-\code{from} and \code{to} parameters are missing.
+
+The most common cause for \never arguments is when they are not used in some
+branch of a function. For example, \code{discretize} function of package
+\code{actuar} only uses \code{xlim} if \code{from} and \code{to} parameters are
+missing. Due to lack of call diversity, the branch in which the argument is used
+is never taken and the parameter is classified as \never.
 \begin{lstlisting}
 actuar:::discretize <- function (cdf, from, to, ..., xlim = NULL) {
     ...
@@ -1389,39 +1382,24 @@ actuar:::discretize <- function (cdf, from, to, ..., xlim = NULL) {
 }
 \end{lstlisting}
 %
-Another pattern leading to \never parameters is when a function is called with a
-certain interface even if it does not use those arguments. R calls a package's
-\code{.onLoad} function with arguments \code{libname} and \code{pkgname} when
-the package is loaded. The \code{.onLoad} hook of \code{assertive.base} package
-ignores them.
-\begin{lstlisting}
-assertive.base::.onLoad <- function(libname, pkgname) {
-    options(assertive.severity = "stop")
-}
-\end{lstlisting}
-%
-The \code{proxy} package defines over a dozen methods with the interface
-\code{function(a, b, c, d, n) ...} that implement different proximity metrics by
-using only a subset of the arguments.
-This also happens in method dispatch when the generic method defines a parameter
-which is not used by the specific method. For example \code{bit64} package
-defines \code{unipos} generic method with a parameter \code{incomparables} which
-is not used by its only concrete implementation \code{unipos.integer64}
+Another cause of \never parameters is when a function implements a certain
+interface even if it does not use those arguments. The \code{proxy} package
+defines over a dozen methods with the interface \code{function(a, b, c, d, n)
+  ...} that implement different proximity metrics by using only a subset of the
+arguments.
 
-Sometimes arguments don't need to be used by design.
-The \code{tail} operation in package \code{dbplyr} is not defined for
-\code{tbl_lazy} objects. So the function throws an error when called without
-using any of its arguments.
+Arguments can be \never by design. The \code{tail} operation
+in package \code{dbplyr} is not defined for \code{tbl_lazy} objects. So the
+function throws an error when called without using any of its arguments.
 \begin{lstlisting}
 dbplyr::tail.tbl_lazy <- function(x, n = 6L, ...) {
     stop("tail() is not supported by sql sources", call. = FALSE)
 }
 \end{lstlisting}
 %
-Sometimes packages implement a specialized compatible wrapper.
-\code{jsonlite} package implements \code{stop} function with the same interface
-as R's \code{base} package's \code{stop} function but ignores its \code{call.}
-argument.
+Another example is the \code{jsonlite} package which implements \code{stop}
+function with the same interface as R's \code{base} package's \code{stop}
+function but ignores its \code{call.} argument.
 \begin{lstlisting}
 jsonlite::stop <- function(..., call. = FALSE) {
     base::stop(..., call. = FALSE)
