@@ -114,7 +114,7 @@
   necessary to change the semantics of the language implementations and provide
   tooling for developers to migrate the libraries and user code in a way that
   does not introduce errors. This paper reports on a dynamic analysis that
-  infers strictness signatures for functions and capture both intentional and
+  infers strictness signatures for functions to capture both intentional and
   accidental laziness.
 %% (o) I found this confusing as it lead me to wonder if the approach you
 %% propose to migrate the ecosystem is to do source-to-source transformation. So
@@ -124,10 +124,10 @@
 %%  implemented a source-to-source refactoring that forces the evaluation of
 %%  arguments that have been annotated as strict.
   To assess the robustness of the inferred signatures we tested them on 2,000
-  packages by eagerly evaluating the indicated arguments and found only 0.3\% of
-  the test to fail.  Finally, we report on the
+  packages by eagerly evaluating the indicated arguments and found only
+  \robustnesResult of the test to fail.  Finally, we report on
   performance benefits of eager evaluation on a just-in-time compiler for R,
-  where we observed an average speedup of \speedupRshStrict, ranging between \speedupRshStrictMin and \speedupRshStrictMax.
+  where we achieved an average speedup of \speedupRshStrict.
 \end{abstract}
 
 \begin{CCSXML}
@@ -181,6 +181,7 @@ conceivable that their code accidentally depends on it. A change in the order of
 evaluation of arguments may introduce errors if that code was performing side
 effects.
 
+\vspace{-0.5em}
 \paragraph{The case for strictness.} Laziness is error-prone, inconsistent
 and costly! \SK{previous sentence sounds a bit of an overstatement until next sentence clarifies that
 we mean that in the presence of side-effects and no type-annotations .otoh maybe that's the point...} 
@@ -202,6 +203,7 @@ environment and the result of evaluation. Allocating and deallocating these data
 structures put pressure on the memory manager. Delayed evaluation further
 complicates the work of compilers for the language by hindering optimizations
 and increasing the number of indirections.
+\vspace{-1em}
 
 \paragraph{The case for laziness.} The success of a programming language
 often comes down to the strength of its ecosystem. With tens of millions of
@@ -258,7 +260,7 @@ Specifically, we propose an approach that follows the above guidelines.
   expected behavior indicate erroneous strictness annotations.
 \end{itemize}
 
-Our long term aim is to propose such a migration path to the R community. In
+\noindent Our long term aim is to propose such a migration path to the R community. In
 this paper we propose to evaluate \SK{can we change this to 'we evaluate'?}  
 the proposed migration path. We make the following contributions:
 
@@ -266,22 +268,17 @@ the proposed migration path. We make the following contributions:
 \item We introduce \strictr, a non-invasive extension of the R language, where
   optional signature files specify, for individual functions, which of their
   arguments are strict. The proposal is integrated in the R environment and
-  compatible with the package loading model. In GNUR –the reference
-  implementation of the language– the new semantics was tested with an
-  implementation based on source-to-source rewriting of functions. The process 
-  takes place on demand, as functions are loaded.
+  compatible with the package loading model. In the reference implementation GNU R
+  the proposed semantic is implemented using instrumentation.
 \item We implement \lazr, an infrastructure for large-scale inference of
   strictness signatures for legacy libraries. We evaluate \lazr on packages
   hosted in the CRAN repository. For each package, \lazr extracts all executable
-  code from vignettes (\ie runable snippets embedded in the package
-  documentation),examples and tests 
-  \SK{should 'examples and tests' be inside previous parens? I feel the sentence 
-  is too long, too many commas and 'and's} , and infers signatures for all
-  functions defined by the package. The process is shown to scale up to the 500
+  code from the package documentation, examples and tests, and infers signatures
+  for the api. The process is shown to scale up to the 500
   most widely used packages in the R ecosystem.
 \item We evaluate the robustness of the inferred signatures by testing them against
   2,000 packages that are transitive clients of the packages for which
-  signatures were inferred. We report 0.3\% error rate, \ie signatures
+  signatures were inferred. We report \robustnesResult error rate, \ie signatures
   that cause executions to diverge from the reference semantics.
 \item We conducted an experiment using the \Rsh optimizing just-in-time compiler
   to evaluate the benefits of unboxing and inlining
@@ -289,7 +286,7 @@ the proposed migration path. We make the following contributions:
   a median \speedupRshStrict speed up, ranging from \speedupRshStrictMin to \speedupRshStrictMax.
 \end{itemize}
 
-Our conclusions are that a semi-automated migration is viable; for community
+\noindent Our conclusions are that a semi-automated migration is viable; for community
 review we intend to reduce the error rate by folding all clients of packages
 together to infer combined signatures\OF{unclear what you mean by combined}.
 
@@ -473,17 +470,17 @@ in scope, including other parameters. Promises cannot be forced recursively,
 that is an error. Promises are mostly encapsulated and hidden from user code. R
 only provides a small interface for operating on promises:
 \begin{itemize}
-\item {\bf\small\code{delayedAssign(x,exp,eenv,aenv)}}: creates a promise
+\item[] {\hskip -1em \bf\small\code{delayedAssign(x,exp,eenv,aenv)}}: creates a promise
   with body \code{exp} and binds it to variable \code x (where \code x is a
   symbol). Environment \code{eenv} is used to evaluate the promise, and
   \code{aenv} is used to perform the assignment.
-\item {\bf\small\code{substitute(e,env)}}: substitutes variables in \code e
+\item[] {\hskip -1em \bf\small\code{substitute(e,env)}}: substitutes variables in \code e
   with their values found in environment \code{env}, returns an
   \code{expression} (a parse tree).
-\item {\bf\small\code{force(x)}}: forces the promise \code x. This replaces a
+\item[] {\hskip -1em \bf\small\code{force(x)}}: forces the promise \code x. This replaces a
   common programming idiom, \code{x<-x}, which forces \code x by assigning it
   to itself.
-\item {\bf\small\code{forceAndCall(n,f,...)}}: call \code{f} with the
+\item[] {\hskip -1em \bf\small\code{forceAndCall(n,f,...)}}: call \code{f} with the
   arguments specified in the varargs of which the first \code{n} are forced
   before the call.
 \end{itemize}
@@ -508,11 +505,11 @@ code.
 A signature file contains strictness signatures for functions of one or more
 packages. The format is straightforward, a sequence of signature \emph{sig}
 such that each function strictness signature is of the form
-
+%
 \[
 \mathit{sig}~~::=~~\mathsf{strict}~\mathsf{`package}::\mathsf{function`}~~\langle i, j, k, \dots\rangle
 \]
-
+%
 Here {\sf package} is the name of the package in which the function occurs and
 {\sf function} is the name of the function. The sequence of integers specify
 which argument positions must be evaluated lazily.
@@ -701,11 +698,13 @@ time is incremented on every event. Every model object records the birth and
 death of the raw R object being modeled. For environments, the model object also
 keeps track of last read and write times. For promises, start and end of forcing
 are recorded. This information is used to classify side-effects.
-
+%
 For performance, model objects are cached in a table keyed by the R object's
-address. Cache are updated on allocation and deallocation events. This prevents
-duplication of model objects when the same R object is encountered multiple
-times. The call stack is modeled together with the promises that are under
+address.
+%% Cache are updated on allocation and deallocation events. This prevents
+%% duplication of model objects when the same R object is encountered multiple
+%% times.
+The call stack is modeled together with the promises that are under
 evaluation. This helps identify if an event, say a side-effect, occurs inside a
 promise. Furthermore, as R uses \emph{longjmp} to do non-local returns, \lazr
 deals with such events by calling the exit callbacks of interrupted calls and
@@ -738,13 +737,13 @@ inclusion in the paper.
 \paragraph{Signature Inference}
 
 Now, we turn our attention to the algorithm used by \lazr to infer strictness.
-Execution traces tell us if an argument \emph{(a)} is
-evaluated, \emph{(b)} is passed to a $...$ parameter, \emph{(c)} is
-accessed by meta-programming, \emph{(d)} performs a non-local effect, and \emph{(e)} accesses
+Execution traces tell us if an argument is
+evaluated, is passed to a $...$ parameter, is
+accessed by meta-programming, performs a non-local effect, and accesses
 parent environments reflectively. We merge this information from all
 execution traces to get a summary of operations for a function parameter
-position. Using this summary we make two decisions: \emph{(1)} which
-arguments to evaluate strictly, and \emph{(2)} in which order to evaluate the arguments.
+position. Using this summary we make two decisions: which
+arguments to evaluate strictly, and in which order to evaluate the arguments.
 The first decision to make an argument strict is not always a straightforward
 one. Many cases will fall under accidental laziness and we have to decide
 if we make conditionally evaluated, effectful, or reflectively accessed
@@ -762,7 +761,7 @@ callers expect the arguments to be evaluated in the order in which they are
 passed at the call-site. If the argument is side-effecting, then the callers are
 relying upon the function's implementation and the code path exercised by the
 input to evaluate arguments in a specific order. This may not be the same as the
-order in which the arguments are passed. If the arguments are ``pure'', then the
+order in which the arguments are passed. If the arguments are pure, then the
 evaluation order does not matter.
 
 \paragraph{Arguments with Side-Effects}
@@ -799,7 +798,7 @@ possible that the environment is modified but the promise does not read the
 modified value. Handling this level of precision would require keeping track of
 logical times for individual bindings in an environment which is unlikely to
 scale.
-
+%
 For identifying error sources, the algorithm simply walks over the stack,
 marking all promises along the way. There are no environments or predicates to
 consider.
@@ -818,9 +817,10 @@ incorrectly made lazy.
 
 \subsection{Corpus}\label{sec:corpus}
 
-\begin{wraptable}{r}{7cm}
+\begin{wraptable}{r}{8cm}
   \vspace{-3mm}
   \small
+  \centering
   \caption{Corpus}\label{table:corpus}
   \vspace{-3mm}
   \begin{tabular}{lrrrl}
@@ -905,7 +905,7 @@ exercised.
   \end{tabular}
 \end{table}
 
-\begin{table}
+\begin{wraptable}{r}{5.5cm}
   \vspace{-3mm}
   \small
   \caption{Allocations} \label{table:allocations}
@@ -940,7 +940,7 @@ exercised.
     Weakref&25.2K\\
     \bottomrule
   \end{tabular}
-\end{table}
+\end{wraptable}
 
 During execution, \lazr collects information about function calls, arguments,
 side-effects, and reflective environment access from the model objects provided
@@ -1503,8 +1503,6 @@ spurious transitive laziness.
 
 \subsubsection{Side-Effects}
 
-Now, we take a detailed look at the source of side-effects.
-%
 \begin{wraptable}{r}{5cm}
   \vspace{-3mm}
   \small
@@ -1521,7 +1519,7 @@ Now, we take a detailed look at the source of side-effects.
     \bottomrule
   \end{tabular}
 \end{wraptable}
-%
+
 Arguments perform side effects when they contain a symbol, or a function call.
 Occasionally, the interpreter wraps arguments inside other arguments which could
 lead to transitive effects. Table ~\ref{table:promexpr} shows the distribution
@@ -1534,7 +1532,7 @@ promises containing function calls will perform local side-effects in the
 function's scope. Our algorithm is able to discard most of these ``benign''
 events.
 
-\begin{table}[!h]
+\begin{table}
   \vspace{-3mm}
   \small
   \caption{Effects} \label{table:effects}
@@ -1565,11 +1563,11 @@ from Table~\ref{table:events}, we find that our algorithm is able to filter
 89.4B variable lookups to 3.7M, 20.9B definitions to 1.1M, 7.6B assignments to
 235.8K, 360.7M removals to 2.8K, and 494 errors to 6.
 
-\begin{wraptable}{r}{4cm}
-  \vspace{-3mm}
+\begin{table}
   \small
-  \caption{Effect Sequence} \label{table:effectseq}
+  \begin{minipage}{.3\linewidth}
   \centering
+  \caption{Effect Sequence} \label{table:effectseq}
   \begin{tabular}{lll}
     \toprule
     \textbf{Sequence}&\textbf{Arguments}\\
@@ -1581,7 +1579,23 @@ from Table~\ref{table:events}, we find that our algorithm is able to filter
     (L+D+)+&0.01\%\\
     \bottomrule
   \end{tabular}
-\end{wraptable}
+  \end{minipage}%
+  \begin{minipage}{.6\linewidth}
+  \centering
+  \caption{Transitive Effects} \label{table:transeffects}
+  \begin{tabular}{llll}
+    \toprule
+    \textbf{Effect}&\textbf{Parameters}&\textbf{Functions}&\textbf{Packages}\\
+    \midrule
+    L&1.4K&1.1K&230\\
+    D&978&934&202\\
+    A&303&298&79\\
+    R&34&33&15\\
+    E&6&6&3\\
+    \bottomrule
+  \end{tabular}
+  \end{minipage}
+\end{table}
 
 An argument can perform a combination of effects during
 evaluation.Table~\ref{table:effectseq} shows the sequence of operations
@@ -1594,23 +1608,6 @@ that majority of arguments have a simple pattern of events.
 When making side-effecting arguments lazy, we also take transitivity into
 account. Unevaluated side-effecting arguments can be forwarded to callees which
 will make the corresponding callee arguments lazy.
-\begin{table}[!h]
-  \vspace{-3mm}
-  \small
-  \caption{Transitive Effects} \label{table:transeffects}
-  \centering
-  \begin{tabular}{llll}
-    \toprule
-    \textbf{Effect}&\textbf{Parameters}&\textbf{Functions}&\textbf{Packages}\\
-    \midrule
-    L&1.4K&1.1K&230\\
-    D&978&934&202\\
-    A&303&298&79\\
-    R&34&33&15\\
-    E&6&6&3\\
-    \bottomrule
-  \end{tabular}
-\end{table}
 Table~\ref{table:transeffects} shows the number of parameters that are made
 transitively lazy. These numbers are an upper bound. Our algorithm trades off
 precision for scalability, so when a side-effect happens, it marks all the
@@ -1961,6 +1958,9 @@ evaluation of the arguments, the argument promises do not leak the environment
 and therefore \Rsh is able to elide it.
 
 \section{Conclusion}\label{sec:conclusion}
+
+
+
 
 %%\section*{Acknowledgments}
 %% TODO: Thank Flip
