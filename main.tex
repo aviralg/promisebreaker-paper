@@ -854,14 +854,18 @@ functionality.
 
 We synthesized signatures for functions from 500 packages. The criterion was to
 select packages which had the most clients, \emph{i.e.}, packages which are the
-most widely used in the ecosystem. The chosen packages have a total of 15,362 dependent client
-packages, ranging from maximum 2,669 dependents for \emph{ggplot2} to minimum 5
-for \emph{spatstat.linnet} with an average 125.4 dependents. The selected 500
-packages have 2.2M lines of R code and 2.7M lines of native code. For
-synthesizing signatures for their functions, we analyzed the execution traces
-obtained from their examples, tests, and vignettes. Table ~\ref{table:corpus}
-gives the number of scripts of each kind that were run and lines of code
-exercised.
+most widely used in the ecosystem. The chosen packages have a total of 15,362
+dependent client packages, ranging from maximum 2,669 dependents for
+\emph{ggplot2} to minimum 5 for \emph{spatstat.linnet} with an average 125.4
+dependents. The selected 500 packages have 2.2M lines of R code and 2.7M lines
+of native code. For synthesizing signatures for their functions, we analyzed the
+execution traces obtained from their examples, tests, and vignettes. For
+validation, we selected 2000 dependent packages of the synthesis corpus. They
+have 4.5M lines of R code and 4.7M lines of native (C, C++, and Fortran) code.
+We run their examples, tests, and vignettes to exercise the functions with
+signatures. This allows us to asses the amount of breakage introduced by \lazr
+strictness signatures in client code. Table ~\ref{table:corpus} gives the number
+of scripts of each kind that were run and lines of code exercised.
 
 \begin{table}
   \vspace{-3mm}
