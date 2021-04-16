@@ -117,7 +117,7 @@
   and accidental laziness. To assess the robustness of the inferred signatures
   we tested them on 2,000 R packages and found that inference was wrong in
   \robustnesResult of the arguments that had been labeled strict. Finally, we
-  report on the potential for performance improvements due to strictness by
+  report on the potential for performance improvements due to strictness. By
   modifying a just-in-time compiler to remove promises, we achieved an average
   speedup of \speedupRshStrict.
 \end{abstract}
@@ -177,23 +177,23 @@ effects.
 and costly! The combination of delayed evaluation and side-effects in a language
 without type annotations is an invitation to subtle errors. If a function that
 has multiple evaluation orders is called with effectful arguments, their effects
-will be observed to happen randomly. Functional languages prevent by reflecting
+will be observed to happen randomly. Functional languages prevent this by reflecting
 effects in their type system. R developers cannot do this, instead they
-routinely add code force evaluation at the boundaries of libraries. The design
+routinely add code to force evaluation at the boundaries of libraries. The design
 of laziness is inconsistent because there are multiple points where evaluation
 is arbitrarily forced, \emph{e.g}, right-hand side of assignments and function
 returns. To support object-oriented multiple dispatch, all dispatched arguments
 are evaluated eagerly. Last, there are costs to laziness. Each argument must be
-boxed in a data structure that the expression to evaluate, its environment and
-space for the result. Allocating and deallocating these data structures put
+boxed in a data structure with the expression to evaluate, its environment and
+space for the result. Allocating and deallocating these data structures puts
 pressure on the memory manager. Delayed evaluation also hinders compiler
-optimizations and increasing indirections.
+optimizations and increases indirections.
 
 \paragraph{The case for laziness.} The success of a programming language
 comes down to the strength of its ecosystem. With tens of millions of lines of
 contributed library code, any change to the semantics of a language risks
 breaking some library functions. Preserving the status quo is a pragmatic choice
-to protect ecosystem. There is also a genuine need for lazy evaluation: it is
+to protect the ecosystem. There is also a genuine need for lazy evaluation: it is
 the building block of R's meta-programming facilities. Unevaluated arguments can
 be coerced back to their source code, that code can be modified and evaluated in
 an environment of the programmer's choice. Meta-programming is used for language
@@ -204,30 +204,29 @@ refactored would be significant.
 \paragraph{A pragmatic path forward.} How to  migrate an entire ecosystem?
 A viable migration path should abide by four tenets: ({\bf T1}) minimal legacy
 code changes, ({\bf T2}) semi-automated migration with limited developer
-involvement, ({\bf T3}) measurable benefits, and ({\bf T4}) outcomes should be
-testable.\\ We propose a migration path towards a mostly strict language
+involvement, ({\bf T3}) measurable benefits, and ({\bf T4}) testable outcomes.\\
+We propose a migration path towards a mostly strict language
 with the following characteristics.
 \vspace{1mm}
 \begin{compactitem}[---]
 \item {\bf T1:} Our extensions to the R syntax and semantics is non-invasive.
   The behavior expected by most users closely aligns to a strict semantics. Our
-  extension does not require chances in end-user code. For libraries, strictness
-  signatures comes as external files.
-  unchanged.
+  extension does not require changes in end-user code. For libraries, strictness
+  signatures come as external files.
 \item {\bf T2:} We propose to infer annotations for legacy library code. R
   packages are hosted in a curated repository called CRAN which requires every
-  program to be runnable and tested. We leverage tests in a dynamic analysis
-  that infers candidate signatures for all packages. The signature are then
+  package to be runnable and tested. We leverage tests in a dynamic analysis
+  that infers candidate signatures for all packages. The signatures are then
   expected to be refined iteratively by developers.
-\item {\bf T3:} An incentive for library developers to adopt strictness
-  annotations, would be to have a compiler that optimizes the program to remove
+\item {\bf T3:} One incentive for library developers to adopt strictness
+  annotations would be to have a compiler that optimizes the program to remove
   laziness. A compiler extended to support strictness signatures would evaluate
   most arguments at the call-site (thus requiring fewer resources for keeping
-  track of delayed computations), needs fewer switches in execution context for
-  evaluating arguments, and can potentially optimize code more thoroughly.
+  track of delayed computations), need fewer switches in execution context for
+  evaluating arguments, and could potentially optimize code more thoroughly.
 \item {\bf T4:} The robustness of the inferred signatures under different
   calling contexts can be estimated by running the transitive closure
-  of its clients and their tests. Programs that crash or depart from their
+  of their clients and their tests. Programs that crash or depart from their
   expected behavior indicate erroneous strictness annotations.
 \end{compactitem}
 
@@ -248,7 +247,7 @@ this paper we evaluate this migration path and make the following contributions:
   code from the package documentation, examples and tests, and infers signatures
   for all functions. The process is shown to scale to the 500 most widely used
   packages in the R ecosystem.
-\item We conducted an experiment using the \Rsh optimizing just-in-time compiler
+\item We conduct an experiment using the \Rsh optimizing just-in-time compiler
   to evaluate the benefits of unboxing and inlining delayed evaluation on a
   benchmark suite of small computational tasks. We show a median
   \speedupRshStrict speed up, ranging from \speedupRshStrictMin to
@@ -265,7 +264,7 @@ this paper we evaluate this migration path and make the following contributions:
 \noindent Our conclusions are that a semi-automated migration is viable as
 user-visible changes are small and the inference gives promising results. For
 community review we intend to further reduce the error rate by improving the
-precision our analysis and using all available clients to infer signatures
+precision of our analysis and using all available clients to infer signatures
 rather than only the tests bundled with a package.
 
 {\small \medskip\noindent\emph{Availability.} Our work is in open source, experiments are
