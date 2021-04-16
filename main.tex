@@ -1020,13 +1020,14 @@ parameters.
 %\c{ComplexHeatmap::Heatmap} (83), \c{ggplot2::theme} (95),
 %\c{ergm::control.ergm} (117), \c{rpart.plot::prp} (119), and
 
-Table~\ref{table:strictdist} presents a summary of the distribution of
-parameters, functions, and packages that correspond to unevaluated, effectful or
-reflective arguments. Row \#0 tells that there are 128.3K parameters from 44.4K
-functions whose arguments are evaluated across all calls and they don't perform
-any effect or reflective operation. Similarly, row \#7 tells us that 25
-parameters from 24 functions are not evaluated in at least one call, but whey
-they are evaluated, they perform a side-effect and a reflective operation.
+Table~\ref{table:strictdist} presents a summary of the lazy arguments of the
+signatures in terms of a distribution of parameters, functions, and packages
+that correspond to unevaluated, effectful or reflective arguments. Row \#0 (with
+tick-mark against \emph{Unevaluated}) tells that there are 128.3K parameters
+from 44.4K functions whose arguments are evaluated across all calls and they
+don't perform any effect or reflective operation. Similarly, row \#7 tells us
+that 25 parameters from 24 functions are not evaluated in at least one call, but
+whey they are evaluated, they perform a side-effect and a reflective operation.
 Similarly, row \#4 tells us that 27.1K parameters from 11.3K functions are never
 evaluated. A careful study of these rows yields the following insights. First,
 arguments passed to majority of parameters, 65.25\%, are always evaluated and
@@ -1044,7 +1045,7 @@ packages.
 \begin{table}
   \vspace{-3mm}
   \small
-  \caption{Strictness Distribution} \label{table:strictdist}
+  \caption{Signature Summary} \label{table:strictdist}
   \centering
   \begin{tabular}{lcccr|lr|lr}
     \toprule
@@ -1174,11 +1175,8 @@ arguments. The \emph{+} sign signifies that the corresponding arguments are
 treated lazy in the signature configuration and \emph{-} sign means they are
 evaluated eagerly. For example, $+U+E+R$ means that arguments that are
 unevaluated, side-effecting, and reflective are treated lazy whereas $-U-E-R$
-means that these arguments are evaluated strictly.
-
-
-
-
+means that these arguments are evaluated strictly. From the table we can make
+some interesting observations. 
 
 
 TODO discuss the results
