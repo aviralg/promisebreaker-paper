@@ -1859,34 +1859,7 @@ the containerization to be uniform. All measurements are recorded repeatedly and
 keep a historical record to spot unstable behavior. This lead us to exclude the
 \lstinline{convolution} benchmark from the suite, which appears to have a
 bi-modal performance profile, likely caused by the llvm backend of \Rsh.
-Table~\ref{table:bms} presents our benchmark selection.
-
-\begin{wraptable}{r}{7cm}
-  \vspace{-3mm}
-  \small
-  \caption{Benchmarks}\label{table:bms}
-  \vspace{-3mm}
-  \begin{tabular}{lll}
-    \toprule
-    \bf Id&\bf Benchmark&\bf Suite\\
-    \midrule
-    bnc&Bounce&Are we fast\\
-    mnd&Mandelbrot&Are we fast\\
-    sto&Storage&Are we fast\\
-    flx&Flexclust&Real thing\\
-    bin&Binarytrees&Shootout\\
-    fst&Fasta&Shootout\\
-    far&Fastaredux&Shootout\\
-    fnk&Fannkuchredux&Shootout\\
-    knu&Knucleotide&Shootout\\
-    nbo&Nbody&Shootout\\
-    pdg&Pidigits&Shootout\\
-    rgx&Regexdna&Shootout\\
-    rev&Reversecomplement&Shootout\\
-    spn&Spectralnorm&Shootout\\
-    \bottomrule
-  \end{tabular}
-\end{wraptable}%%
+Table~\ref{table:bms} in the appendix presents our benchmark selection.
 
 Performance measurements are gathered by running $t_e$ invocations of \Rsh on
 each benchmark. Within each invocation we measure the execution time of $t_i$
@@ -2043,5 +2016,37 @@ optimizations are difficult to apply to R because of laziness.
 %%\section*{Acknowledgments}
 %% TODO: Thank Flip
 \bibliography{bib/jv, bib/aviral, bib/ml, bib/bib}
+
+\appendix
+
+\section{Benchmark Selection}
+
+\begin{table}[!h]
+  \vspace{-3mm}
+  \small
+  \caption{Benchmarks}\label{table:bms}
+  \vspace{-3mm}
+  \begin{tabular}{lll}
+    \toprule
+    \bf Id&\bf Benchmark&\bf Suite\\
+    \midrule
+    bnc&Bounce&Are we fast\\
+    mnd&Mandelbrot&Are we fast\\
+    sto&Storage&Are we fast\\
+    flx&Flexclust&Real thing\\
+    bin&Binarytrees&Shootout\\
+    fst&Fasta&Shootout\\
+    far&Fastaredux&Shootout\\
+    fnk&Fannkuchredux&Shootout\\
+    knu&Knucleotide&Shootout\\
+    nbo&Nbody&Shootout\\
+    pdg&Pidigits&Shootout\\
+    rgx&Regexdna&Shootout\\
+    rev&Reversecomplement&Shootout\\
+    spn&Spectralnorm&Shootout\\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
 
 \end{document}
