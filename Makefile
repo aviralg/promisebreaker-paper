@@ -44,6 +44,9 @@ validation:
 statistics:
 	make analysis ANALYSIS=statistics
 
+metaprogramming:
+	make analysis ANALYSIS=metaprogramming
+
 performance:
 	make analysis ANALYSIS=performance
 

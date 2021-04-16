@@ -23,14 +23,14 @@ params:
 source("analysis.R", local = knitr::knit_global())
 ```
 
-## Overview
+# Overview
 
 
 ```{r echo = FALSE, warning=FALSE, message=FALSE}
 str(direct_effects)
 ```
 
-## Argument Types
+# Argument Types
 
 ```{r echo = FALSE, warning=FALSE, message=FALSE}
 
@@ -78,7 +78,7 @@ cat()
 ```
 
 
-## Simplified Effect Sequence
+# Simplified Effect Sequence
 
 ```{r echo = FALSE, warning=FALSE, message=FALSE}
 merge_effects <- function(seq) {
@@ -116,7 +116,7 @@ paste(collapse = "\\\\\n") %>%
 cat()
 ```
 
-## Effect Distribution
+# Effect Distribution
 
 ```{r echo = FALSE, warning=FALSE, message=FALSE}
 
@@ -192,3 +192,35 @@ paste(collapse = "\\\\\n") %>%
 cat()
 ```
 
+# Indirect Effects
+
+```{r echo = FALSE, warning=FALSE, message=FALSE}
+
+direct_par_name <- unique(paste0(direct_effects$pack_name, direct_effects$fun_name, direct_effects$formal_pos))
+direct_fun_name <- unique(paste0(direct_effects$pack_name, direct_effects$fun_name))
+direct_pack_name <- unique(direct_effects$pack_name)
+
+indirect_effect_summary <-
+    indirect_effects %>%
+    mutate(par_name = paste0(pack_name, fun_name, formal_pos),
+           fun_name = paste0(pack_name, fun_name)) %>%
+    filter(!(par_name %in% direct_par_name)) %>%
+    group_by(type) %>%
+    summarize(parameters = length(unique(par_name)),
+              functions = length(unique(fun_name)),
+              packages = length(unique(pack_name))) %>%
+    ungroup() %>%
+    arrange(desc(parameters)) %>%
+    mutate(parameters = label_number_si(accuracy=0.1)(parameters),
+           functions = label_number_si(accuracy=0.1)(functions))
+    
+datatable(indirect_effect_summary)
+
+
+indirect_effect_summary %>%
+pmap_chr(function(...) {
+    paste(..., sep = "&")
+}) %>%
+paste(collapse = "\\\\\n") %>%
+cat()
+```

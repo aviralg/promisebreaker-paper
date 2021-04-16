@@ -648,9 +648,9 @@ experimenting with the alternative in our \Rsh implementation. We do not have
 sufficient experience to determine if one is superior.
 
 
-\section{Inferring Strictness with LazR}
+\section{LazR: Inferring Strictness Signatures}
 
-This section describes how to infer strictness annotations at scale.
+This section describes how we infer strictness annotations at scale.
 
 \subsection{Infrastructure}
 
@@ -670,7 +670,7 @@ the experiments on multiple machines. Whenever possible, we parallelize the
 steps using GNU parallel~\cite{tange2011a}. Experiments were performed on two
 Intel Xeon 6140, 2.30GHz machines with 72 cores and 256GB of RAM each.
 
-\subsection{LazR} \label{subsection:lazr}
+\subsubsection{LazR}
 
 The low-level \rdyn allows registering callbacks with raw R objects at various
 points inside the R interpreter. Extracting meaningful information from these
@@ -712,12 +712,56 @@ events and checking on every write if a function is being bound to a name.
 Functions can be nested to arbitrary depths in which case, function model object
 are linked to reflect their parent-child relationship.
 
+\begin{table}[!h]
+  \vspace{-3mm}
+  \small
+  \caption{Events} \label{table:events}
+  \centering
+  \begin{tabular}{lrr}
+    \toprule
+    \bf Event&\bf Count& \bf Time\\
+    \midrule
+    Alloc&125.3B&104.9h\\
+    Dealloc&101.6B&37.5h\\
+    EvalEntry&91.5B&9.9h\\
+    EvalExit&90.5B&9.7h\\
+    VarLkp&89.4B&101h\\
+    FunLkp&47.0B&13.7h\\
+    SplEntry&29.1B&23.2h\\
+    \bottomrule
+  \end{tabular}
+  \begin{tabular}{lrr}
+    \toprule
+    \bf Event&\bf Count& \bf Time\\
+    \midrule
+    SplExit&28.1B&8h\\
+    VarDef&20.9B&33.4h\\
+    BtnEntry&14.5B&9.5h\\
+    BtnExit&14.5B&5.6h\\
+    PromEntry&13.2B&12.1h\\
+    PromExit&13.2B&5.8h\\
+    VarAsn&7.6B&5.6h\\
+    \bottomrule
+  \end{tabular}
+  \begin{tabular}{lrr}
+    \toprule
+    \bf Event&\bf Count& \bf Time\\
+    \midrule
+    ClosureEntry&6.6B&234.5h\\
+    ClosureExit&6.3B&3.1h\\
+    PromLkp&5.8B&1.8h\\
+    PromExpr&2.8B&1.8h\\
+    VarRemoval&360.7M&10.4m\\
+    PromSubst&101.0M&4.7m\\
+    Error&494.0&0.1s\\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
 During execution, \lazr collects information about function calls, arguments,
-side-effects, and reflective environment access. from the model objects provided
-by the following event: \emph{function entry and exit}, \emph{promise evaluation
-entry and exit}, \emph{variable reads and writes}, \emph{promise value and
-expression reads}, and \emph{function lookup}. This information is stored in
-compressed tabular format using R's \c{fst} library.
+side-effects, and reflective environment access from the model objects provided
+by the multiples events presented in Table~\ref{table:events}. This information
+is stored in compressed tabular format using R's \c{fst} library.
 
 For signature generation, we use a custom R script that summarizes argument
 evaluation data per function from the tables obtained during tracing and
@@ -781,7 +825,42 @@ exercised.
 
 \subsection{Inference}
 
-\begin{wraptable}{r}{8cm}
+Now, we turn our attention to the algorithm used by \lazr to infer strictness
+from the aforementioned corpus. \lazr uses execution traces to synthesize
+strictness signatures. Execution traces tell us if an argument \emph{(a)} is
+evaluated, \emph{(b)} is passed to a $...$ parameter, \emph{(c)} is
+metaprogrammed, \emph{(d)} performs a non-local effect, and \emph{(e)} accesses
+parent environment reflectively. \lazr merges this information from all
+execution traces to get a summary of operations for a function parameter
+position. Using this summary, \lazr has to make two decisions: \emph{(1)} which
+arguments to evaluate strictly, and \emph{(2)} in which order to evaluate the arguments.
+
+The first decision to make an argument strict is not always a straightforward
+one. $...$ arguments are always lazy because of the difficulty in assigning a
+unique strictness signature. Meta-programmed arguments are also lazy as
+meta-programming relies on unevaluated argument text provided by a promise. The
+remaining operations are sources of \emph{accidental laziness}. We could decide
+to make unevaluated, effectful, and reflective arguments lazy to preserve the
+semantics of legacy code. Deciding strictness of an argument based on how the
+client invokes the API has the potential to make more arguments lazy as more
+programs are included. We could also choose to ignore these sources of laziness
+and make the corresponding arguments strict to get rid of more promises at the
+risk of breaking code. The impact of this choice is not clear upfront. To
+facilitate this assessment \lazr synthesizes eight strictness signature
+``configurations``. These configurations represent the combinations obtained
+from flipping the strictness of arguments based on the three operation types.
+
+The next step is to identify the order of evaluation of strict arguments. \lazr
+chooses to evaluate arguments in the definition order. This provides a
+consistent order for all calls to the function. However, it is likely that
+callers expect the arguments to be evaluated in the order in which they are
+passed at the call-site. If the argument is side-effecting, then the callers are
+relying upon the function's implementation and the code path exercised by the
+input to evaluate arguments in a specific order. This may not be the same as the
+order in which the arguments are passed. If the arguments are ``pure'', then the
+evaluation order does not matter.
+
+\begin{wraptable}{r}{7cm}
   \vspace{-3mm}
   \small
   \caption{Allocations} \label{table:allocations}
@@ -817,52 +896,65 @@ exercised.
     \bottomrule
   \end{tabular}
 \end{wraptable}
+Our goal in this work is to show that it is feasible to migrate R code at scale.
+Hence, scalability is a key goal behind the design of \lazr. This is a
+challenging problem because R creates a lot of objects, especially promises.
+Table~\ref{table:allocations} presents the number of R objects encountered by
+\lazr during the signature synthesis phase. To this end, \lazr implements a fast
+and conservative algorithm for identifying side-effecting and reflective
+arguments.
 
-\begin{table}[!h]
-  \vspace{-3mm}
-  \small
-  \caption{Events} \label{table:events}
-  \centering
-  \begin{tabular}{lrr}
-    \toprule
-    \bf Event&\bf Count& \bf Time\\
-    \midrule
-    Alloc&125.3B&104.9h\\
-    Dealloc&101.6B&37.5h\\
-    EvalEntry&91.5B&9.9h\\
-    EvalExit&90.5B&9.7h\\
-    VarLkp&89.4B&101h\\
-    FunLkp&47.0B&13.7h\\
-    SplEntry&29.1B&23.2h\\
-    \bottomrule
-  \end{tabular}
-  \begin{tabular}{lrr}
-    \toprule
-    \bf Event&\bf Count& \bf Time\\
-    \midrule
-    SplExit&28.1B&8h\\
-    VarDef&20.9B&33.4h\\
-    BtnEntry&14.5B&9.5h\\
-    BtnExit&14.5B&5.6h\\
-    PromEntry&13.2B&12.1h\\
-    PromExit&13.2B&5.8h\\
-    VarAsn&7.6B&5.6h\\
-    \bottomrule
-  \end{tabular}
-  \begin{tabular}{lrr}
-    \toprule
-    \bf Event&\bf Count& \bf Time\\
-    \midrule
-    ClosureEntry&6.6B&234.5h\\
-    ClosureExit&6.3B&3.1h\\
-    PromLkp&5.8B&1.8h\\
-    PromExpr&2.8B&1.8h\\
-    VarRemoval&360.7M&10.4m\\
-    PromSubst&101.0M&4.7m\\
-    Error&494.0&0.1s\\
-    \bottomrule
-  \end{tabular}
-\end{table}
+\paragraph{Side-Effects}
+
+There are three categories of effects we are interested in: reads, writes, and
+errors. Technically, reads are not an effect. For the purpose of this work
+we classify it as such because of its interplay with writes. A write is an
+assignment, definition or removal of a variable. When a write event occurs
+during program execution, \lazr walks over the stack, ignoring all active calls,
+to find the innermost promise being evaluated. If there is no promise being
+evaluated, the algorithm bails out, effectively ignoring the event. Otherwise,
+it checks if the write's environment is created inside the promise. It does this
+by comparing the logical time of environment's birth to the logical starting
+time of promise's evaluation. If the environment is created inside the promise,
+then the write is local and the algorithm exits. Otherwise, the promise is
+marked as the ``direct'' cause for the effect and its metadata is recorded for
+later analysis. Then, stack walking resumes until the next promise is
+encountered. Time points are again compared to ensure non-locality of the
+environment and the promise is now held ``transitively'' responsible for the
+effect. This continues until the stack frames are exhausted or on encountering a
+promise to which the environment is local. The algorithm to detect reads uses a
+slightly modified predicate. Apart from checking the locality of the read's
+environment, it also checks if the environment is modified after the promise is
+created and before it is evaluated. This extra condition filters spurious reads
+since most promises contain symbols that are looked up in the caller's
+environment upon evaluation. If the caller's environment is not modified,
+evaluating the arguments strictly will have no consequence. On the other hand,
+if it is updated, the changed binding be read by the promise. If this promise is
+evaluated strictly, \textit{i.e.}, immediately after creation, it will read the
+older bindings from the environment. It is important to note that we are
+effectively ``tainting'' the entire environment in this algorithm which makes it
+imprecise, leading to spurious lookups being considered as legitimate. It is
+possible that the environment is modified but the promise does not read the
+modified value. Handling this level of precision would require keeping track of
+logical times for individual bindings in an environment which is unlikely to
+scale.
+
+For identifying error sources, the algorithm simply walks over the stack,
+marking all promises along the way. There are no environments or predicates to
+consider.
+
+\paragraph{Reflection}
+
+We are interested in calls to \code{as.environment(-1)} and
+\code{pos.to.end(-1)} from promises. When a call to these functions is made, the
+algorithm first ensures that the argument is \code{-1}. Then, it walks the
+stack, marking the topmost promise as ``directly'' responsible for the
+reflective call. Subsequent promises on the stack are made ``transitively''
+responsible. This makes the algorithm imprecise because unless the innermost
+promise is directly nested inside an outer promise, the outer promise is being
+incorrectly made lazy.
+
+\subsection{Results}
 
 \begin{wraptable}{r}{8cm}
   \vspace{-3mm}
@@ -933,62 +1025,137 @@ parameters per function.
 \end{figure}
 
 7.3\% functions have 0 parameters, 19.6\% have 1, and 5.0\% have over 10. There
-are 15 functions with over 50 parameters that come from 10 packages.
-\c{ComplexHeatmap::pheatmap} (51), \c{network::plot.network.default} (52),
-\c{rpart.plot::get.layout} (53), \c{sna::gplot} (54), \c{Hmisc::latex.default}
-(55), \c{VennDiagram::draw.quintuple.venn} (57) \c{pROC::plot.roc.roc} (58),
-\c{rpart.plot::draw.node.numbers} (60), \c{gplots::heatmap.2} (63),
-\c{Hmisc::event.chart} (66), \c{ComplexHeatmap::Heatmap} (83),
-\c{ggplot2::theme} (95), \c{ergm::control.ergm} (117), \c{rpart.plot::prp}
-(119), and \c{rpart.plot::check.if.dot.arg.supported.by.rpart.rules} (122) with
-the highest number of parameters.
+are 15 functions with over 50 parameters that come from 10 packages. Of those,
+\c{rpart.plot::check.if.dot.arg.supported.by.rpart.rules} has the highest, 122
+parameters.
 
-Now, we turn our attention to the algorithm used by \lazr to infer strictness.
-As discussed in section \ref{subsection:lazr}, \lazr uses execution traces to
-synthesize strictness signatures. Execution traces tell us if an argument
-\emph{(a)} is evaluated, \emph{(b)} is passed to a $...$ parameter, \emph{(c)}
-is metaprogrammed, \emph{(d)} performs a non-local effect, and \emph{(e)}
-accesses parent environment reflectively. \lazr merges this information from all
-execution traces to get a summary of operations for a function parameter
-position. It uses this summary decide if an argument can be evaluated eagerly
-and generates strictness signatures. The signatures also dictate the order of
-evaluation of arguments.
+%\c{ComplexHeatmap::pheatmap} (51), \c{network::plot.network.default}
+%(52), \c{rpart.plot::get.layout} (53), \c{sna::gplot} (54),
+%\c{Hmisc::latex.default} (55), \c{VennDiagram::draw.quintuple.venn} (57)
+%\c{pROC::plot.roc.roc} (58), \c{rpart.plot::draw.node.numbers} (60),
+%\c{gplots::heatmap.2} (63), \c{Hmisc::event.chart} (66),
+%\c{ComplexHeatmap::Heatmap} (83), \c{ggplot2::theme} (95),
+%\c{ergm::control.ergm} (117), \c{rpart.plot::prp} (119), and
 
-Because of the difficulty in assigning a unique strictness signature, $...$
-arguments are always lazy. Meta-programmed arguments are also lazy as
-meta-programming relies on unevaluated argument text provided by a promise. The
-remaining operations are sources of \emph{accidental laziness}. We could decide
-to unevaluated, effectful, and reflective arguments lazy to preserve the
-semantics of legacy code. Or, we could make them strict to get rid of more
-promises at the risk of breaking code. The impact of this choice is not clear
-upfront. Hence, \lazr synthesizes multiple strictness signature
-``configurations`` to facilitate this assessment. It is worth noting that making
-arguments lazy if they are side-effecting has the potential to make everything
-lazy because it is dependent on how a client invokes the API. \lazr only makes
-the parameter lazy if an argument has performed a side-effect or reflective
-operation in the programs it has run. Including more programs will make more
-arguments lazy.
+Table~\ref{table:strictdist} presents a summary of the distribution of
+parameters, functions, and packages that correspond to unevaluated, effectful or
+reflective arguments. Row \#0 tells that there are 128.3K parameters from 44.4K
+functions whose arguments are evaluated across all calls and they don't perform
+any effect or reflective operation. Similarly, row \#7 tells us that 25
+parameters from 24 functions are not evaluated in at least one call, but whey
+they are evaluated, they perform a side-effect and a reflective operation.
+Similarly, row \#4 tells us that 27.1K parameters from 11.3K functions are never
+evaluated. A careful study of these rows yields the following insights. First,
+arguments passed to majority of parameters, 65.25\%, are always evaluated and
+don't perform any side-effects or reflective operations. So, they can be made
+unconditionally strict . Of the remaining parameters, only unevaluated arguments
+correspond to 13.76\% parameters, followed by only side-effecting arguments to
+4\% parameters, and only reflective promises to 0.07\% parameters. The remaining
+combinations amount to less than a percent each. It is important to note that a
+function can appear in multiple rows as different parameters can belong to
+different categories. Same reasoning applies to packages. Another interesting
+pattern in the data is that arguments performing reflective operations
+(alternate rows \#1, \#3, \#5, \#7) come from relatively few functions and
+packages.
 
-Now, we take a detailed look at the different sources of laziness.
+\begin{table}
+  \vspace{-3mm}
+  \small
+  \caption{Strictness Distribution} \label{table:strictdist}
+  \centering
+  \begin{tabular}{lcccr|lr|lr}
+    \toprule
+    \#&\bf Unevaluted & \bf Side-Effecting & \bf Reflective & \multicolumn{2}{c}{\textbf{Parameters}} & \multicolumn{2}{c}{\textbf{Functions}}& \bf Packages\\
+    \midrule
+    0&\xmark{}&\xmark{}&\xmark{}&128305&65.25\%&44377&85.93\%&489\\
+    1&\xmark{}&\xmark{}&\cmark{}&134&0.07\%&124&0.24\%&47\\
+    2&\xmark{}&\cmark{}&\xmark{}&7871&4\%&5805&11.24\%&399\\
+    3&\xmark{}&\cmark{}&\cmark{}&408&0.21\%&385&0.75\%&93\\
+    4&\cmark{}&\xmark{}&\xmark{}&27050&13.76\%&11333&21.95\%&453\\
+    5&\cmark{}&\xmark{}&\cmark{}&13&0.01\%&12&0.02\%&11\\
+    6&\cmark{}&\cmark{}&\xmark{}&1213&0.62\%&813&1.57\%&199\\
+    7&\cmark{}&\cmark{}&\cmark{}&25&0.01\%&24&0.05\%&15\\
+    \bottomrule
+  \end{tabular}
+\end{table}
 
-There are XXXX $...$ parameters. We unconditionally treat them lazy.
+An important detail in this summary is that includes contribution of
+side-effects and reflective operations performed by R's \emph{base} package and
+other user packages not part of our corpus. This is because arguments are also
+transitively involved in side-effecting or reflective operations. The numbers
+provided in this table are upper-bounds, we over count the number of arguments
+transitively involved in effects and reflective operations because our inference
+algorithm is conservative.
+
+The argument evaluation orders observed for a function depend on its
+implementation and the control-flow paths exercised by its inputs. In this work
+we ignore this evaluation order. For evaluation robustness, we choose the
+definition order in the synthesized signatures. For assessing performance, the
+\Rsh just-in-time compiler uses the call order, i.e., the order in which
+arguments are passed to the function at the call site.
+
+Our notion of strictness departs from that of ~\citet{oopsla19b}. According to
+them, a function is strict if it evaluates all of its argument in a single
+pre-ordained order.
+
+\AG{add evaluation orders and contrast with side effects to assess impact.}
+%%the function and choose the definition order.
+%%Figure~\ref{fig:force_order} shows the number of evaluation orders of the
+%%functions in our corpus. XX(XX\%) functions have a single evaluation order. Out
+%%of those, XX functions evaluate all of their arguments. Evaluation orders
+%%greater than 5 are rare and are found only in XX functions.
+
+\subsection{Discussion}
+
+In this section, we present a quantitative and qualitative discussion of the
+different sources of laziness.
 
 \subsubsection{Metaprogramming}
-For tracking metaprogramming, we look at uses of \code{substitute} on arguments
-from R code and \code{PREXPR} macro on promise objects from C code. We observe
-substitute called on XXX arguments from XXXX parameters of XXXX functions.
-\code{PREXPR} was called on XXX arguments from XXXX parameters of XXXX
-functions.
+
+\begin{wraptable}{r}{4cm}
+  \vspace{-3mm}
+  \small
+  \caption{Metaprogramming} \label{table:meta}
+  \centering
+  \begin{tabular}{lll}
+    \toprule
+    &\textbf{C}&\textbf{R}\\
+    \midrule
+    Arguments&21.9M&1.3M\\
+    Parameters&9.1K&600\\
+    Functions&6.0K&370\\
+    Packages&374&89\\
+    \bottomrule
+  \end{tabular}
+\end{wraptable}
+
+For capturing uses of metaprogramming, we track calls to \code{substitute} on
+function arguments from R code and \code{PREXPR} macro on promise objects from C
+code. The results are summarized in Table~\ref{table:meta}. There are two
+interesting observations to make from this table. First, metaprogramming is not
+very common, only 23.2M out of 294.25 total arguments are metaprogrammed.
+Second, metaprogramming is dominated by the use of \code{PREXPR} macro on
+promise objects from C code.
 
 For an in-depth discussion on the patterns of use of \code{substitute}, we refer
 the reader to \citet{oopsla19b}. We continue with the exploration of the use of
 \code{PREXPR} for metaprogramming, since that is not addressed in
-\cite{oopsla19b}.
+\cite{oopsla19b}. The maximum uses of \code{PREXPR} come from the builtin
+functions.
+A canonical example is the \code{missing} function for checking if an
+argument is missing. Missingness check works transitively, since it is possible
+to pass missing arguments to callees. The \code{missing} function first checks
+if the argument is bound to a sentinel missing value. If not, it checks if the
+argument is bound to a promise containing a symbol. This symbol is then checked
+in the caller's environment for missingness.
 
-We observe that 
-
-
-
+Apart from this, many packages implement functionality in native code and use
+\code{PREXPR} to extract a promise's expression for ad-hoc evaluation
+strategies. We found uses of \code{PREXPR} in \code{igraph}, \code{lazyeval},
+\code{rlang} and \code{S4Vectors} packages of our corpus. \code{rlang}
+particularly stands out because it provides an API to work with core R objects,
+including a rich set of APIs for metaprogramming. It frequently calls into C
+code for heavy lifting.
 
 \subsubsection{Unevaluated Arguments}
 Of the 294.45M total arguments in our corpus, 30.4M argument promises were not
@@ -1280,7 +1447,10 @@ stack. This has the effect of making more arguments lazy than needed.
 spurious transitive laziness.
 
 \subsubsection{Side-Effects}
-\begin{table}
+
+Now, we take a detailed look at the source of side-effects.
+
+\begin{wraptable}{r}{5cm}
   \vspace{-3mm}
   \small
   \caption{Promise Expression} \label{table:promexpr}
@@ -1295,9 +1465,21 @@ spurious transitive laziness.
     Promise&4.18\%&0\%\\
     \bottomrule
   \end{tabular}
-\end{table}
+\end{wraptable}
 
-\begin{table}
+Arguments perform side effects when they contain a symbol, or a function call.
+Occasionally, the interpreter wraps arguments inside other arguments which could
+lead to transitive effects. Table ~\ref{table:promexpr} shows the distribution
+of expression type inside side-effecting argument promises and contrasts it
+against all argument promises. Only 0.5\% arguments perform any effect. Out of
+these, 0.39\% contain a function call expression and 0.11\% contain a symbol. As
+expected, arguments containing a value don't perform any effect. All promises
+containing a symbol will perform at least one lookup upon evaluation. Similarly,
+promises containing function calls will perform local side-effects in the
+function's scope. Our algorithm is able to discard most of these ``benign''
+events.
+
+\begin{table}[!h]
   \vspace{-3mm}
   \small
   \caption{Effects} \label{table:effects}
@@ -1310,19 +1492,32 @@ spurious transitive laziness.
     D&1.1M&159.0K&3.0K&2.6K&319\\
     A&235.8K&122.7K&511.0&487.0&109\\
     R&2.8K&718.0&27.0&24.0&10\\
-    E&6&6&6&6&3\\
     \bottomrule
   \end{tabular}
 \end{table}
 
-\begin{table}
+Table~\ref{table:effects} shows the number of effects, lookups (L), definitions
+(D), assignments (A), removals (R), and errors (E) and the number of arguments,
+parameters, functions and packages that are directly responsible for those
+effects. We observe that lookups are the most common cause for making arguments
+lazy. This is followed by definitions and assignments. Removing bindings from
+environments is not a common operation. Errors in argument positions were not
+observed. Functions performing lookups, definitions and assignments are spread
+across many packages.
+
+Comparing the number of events in this table against the total number of events
+from Table~\ref{table:events}, we find that our algorithm is able to filter
+89.4B variable lookups to 3.7M, 20.9B definitions to 1.1M, 7.6B assignments to
+235.8K, 360.7M removals to 2.8K, and 494 errors to 6.
+
+\begin{wraptable}{r}{4cm}
   \vspace{-3mm}
   \small
   \caption{Effect Sequence} \label{table:effectseq}
   \centering
   \begin{tabular}{lll}
     \toprule
-    \textbf{Effect Sequence}&\textbf{Argument \%}\\
+    \textbf{Sequence}&\textbf{Arguments}\\
     \midrule
     -&99.5\%\\
     L+&0.41\%\\
@@ -1331,10 +1526,44 @@ spurious transitive laziness.
     (L+D+)+&0.01\%\\
     \bottomrule
   \end{tabular}
+\end{wraptable}
+
+An argument can perform a combination of effects during
+evaluation.Table~\ref{table:effectseq} shows the sequence of operations
+performed by the arguments in our corpus. Majority of arguments, 99.5\% to be
+precise, do not perform any relevant effect. 0.41\% only perform a sequence of
+lookups, 0.04\% perform a sequence of definitions, 0.03\% perform assignments,
+and 0.01\% perform a sequence of lookups and definitions. From this, we conclude
+that majority of arguments have a simple pattern of events.
+
+
+When making side-effecting arguments lazy, we also take transitivity into
+account. Unevaluated side-effecting arguments can be forwarded to callees which
+will make the corresponding callee arguments lazy.
+\begin{table}[!h]
+  \vspace{-3mm}
+  \small
+  \caption{Transitive Effects} \label{table:transeffects}
+  \centering
+  \begin{tabular}{llll}
+    \toprule
+    \textbf{Effect}&\textbf{Parameters}&\textbf{Functions}&\textbf{Packages}\\
+    \midrule
+    L&1.4K&1.1K&230\\
+    D&978&934&202\\
+    A&303&298&79\\
+    R&34&33&15\\
+    E&6&6&3\\
+    \bottomrule
+  \end{tabular}
 \end{table}
+Table~\ref{table:transeffects} shows the number of parameters that are made
+transitively lazy. These numbers are an upper bound. Our algorithm trades off
+precision for scalability, so when a side-effect happens, it marks all the
+arguments being evaluated as lazy. However, as the numbers indicate, the impact
+of this imprecision is limited.
 
-
-\subsubsection{Qualitative Analysis}
+\paragraph{Qualitative Analysis}
 
 A common source of non-local writes is the \emph{shiny} package used for
 building interactive webapps in a reactive style. For example, consider the call
@@ -1355,14 +1584,14 @@ side-effecting expressions.
 Another important source of non-local writes is the use of functions from
 \code{withr} package. It provides a set of functions to evaluate code in
 temporarily modified global state. It is typical of these code blocks to compute
-a value and assign it to the variable in the current scope.
-We observe side-effecting expressions passed to \code{with\_dir} which
-temporarily changes the current working directory, \code{with\_envvar} which changes the
-environment variables, \code{with\_locale} which changes the current locale,
-\code{with\_options} which changes global program options, \code{with\_par}, which changes
-graphical parameters for plotting, and \code{with\_seed} which changes the random
-number generation seed. The listing below shows some side-effecting
-calls to these functions that we observed in our corpus.
+a value and assign it to the variable in the current scope. We observe
+side-effecting expressions passed to \code{with\_dir} which temporarily changes
+the current working directory, \code{with\_envvar} which changes the environment
+variables, \code{with\_locale} which changes the current locale,
+\code{with\_options} which changes global program options, \code{with\_par},
+which changes graphical parameters for plotting, and \code{with\_seed} which
+changes the random number generation seed. The listing below shows some
+side-effecting calls to these functions that we observed in our corpus.
 
 \begin{lstlisting}
 with_envvar(c(R_ENVIRON_USER = ".Renviron"), { res <- ... })
@@ -1455,82 +1684,24 @@ bindings.
 env_bind(current_env(), foo = zap())
 \end{lstlisting}
 
-Another function responsible for 
+We observe 0 cases where a function's argument produces an error on evaluation.
+However, we do observe 6 cases where an argument is transitively responsible for
+errors. Here is a call expression which accounts for 3 of those cases.
 
-\subsection{Summary}
+\begin{lstlisting}
+get_str_output(context_eval(join(src), private\$context, serialize))
+\end{lstlisting}
 
-Table~\ref{table:strictdist} presents a summary of the distribution of
-parameters, functions, and packages that correspond to unevaluated, effectful or
-reflective arguments. Row \#0 tells that there are 128.3K parameters from 44.4K
-functions whose arguments are evaluated across all calls and they don't perform
-any effect or reflective operation. Similarly, row \#7 tells us that 25
-parameters from 24 functions are not evaluated in at least one call, but whey
-they are evaluated, they perform a side-effect and a reflective operation.
-Similarly, row \#4 tells us that 27.1K parameters from 11.3K functions are never
-evaluated. A careful study of these rows yields the following insights. First,
-arguments passed to majority of parameters, 65.25\%, are always evaluated and
-don't perform any side-effects or reflective operations. So, they can be made
-unconditionally strict . Of the remaining parameters, only unevaluated arguments
-correspond to 13.76\% parameters, followed by only side-effecting arguments to
-4\% parameters, and only reflective promises to 0.07\% parameters. The remaining
-combinations amount to less than a percent each. It is important to note that a
-function can appear in multiple rows as different parameters can belong to
-different categories. Same reasoning applies to packages. Another interesting
-pattern in the data is that arguments performing reflective operations
-(alternate rows \#1, \#3, \#5, \#7) come from relatively few functions and
-packages.
+Here, \code{V8::get_str_output} is called whose first argument in turn calls
+\code{V8::context_eval} which in turn calls \code{V8::join}. The \code{src}
+argument passed to join is bound to a promise that reads the contents from a
+file. The file is missing and this raises an error. This example is interesting
+because it shows how the error originates in a file reading function from
+\code{base} package making three caller functions transitively responsible.
 
-\begin{table}
-  \vspace{-3mm}
-  \small
-  \caption{Strictness Distribution} \label{table:strictdist}
-  \centering
-  \begin{tabular}{lcccr|lr|lr}
-    \toprule
-    \#&\bf Unevaluted & \bf Side-Effecting & \bf Reflective & \multicolumn{2}{c}{\textbf{Parameters}} & \multicolumn{2}{c}{\textbf{Functions}}& \bf Packages\\
-    \midrule
-    0&\xmark{}&\xmark{}&\xmark{}&128305&65.25\%&44377&85.93\%&489\\
-    1&\xmark{}&\xmark{}&\cmark{}&134&0.07\%&124&0.24\%&47\\
-    2&\xmark{}&\cmark{}&\xmark{}&7871&4\%&5805&11.24\%&399\\
-    3&\xmark{}&\cmark{}&\cmark{}&408&0.21\%&385&0.75\%&93\\
-    4&\cmark{}&\xmark{}&\xmark{}&27050&13.76\%&11333&21.95\%&453\\
-    5&\cmark{}&\xmark{}&\cmark{}&13&0.01\%&12&0.02\%&11\\
-    6&\cmark{}&\cmark{}&\xmark{}&1213&0.62\%&813&1.57\%&199\\
-    7&\cmark{}&\cmark{}&\cmark{}&25&0.01\%&24&0.05\%&15\\
-    \bottomrule
-  \end{tabular}
-\end{table}
+\AG{TODO: appeal to intuition for lookups since the actual examples are hard to decipher.}
 
-An important detail in this summary is that includes contribution of
-side-effects and reflective operations performed by R's \emph{base} package and
-other user packages not part of our corpus. This is because arguments are also
-transitively involved in side-effecting or reflective operations. The numbers
-provided in this table are upper-bounds, we over count the number of arguments
-transitively involved in effects and reflective operations because our inference
-algorithm is conservative.
-
-\subsection{Orders of Evaluation}
-
-The argument evaluation orders observed for a function depend on its
-implementation and the control-flow paths exercised by its inputs. In this work
-we ignore this evaluation order. For evaluation robustness, we choose the
-definition order in the synthesized signatures. For assessing performance, the
-\Rsh just-in-time compiler uses the call order, i.e., the order in which
-arguments are passed to the function at the call site.
-
-Our notion of strictness departs from that of ~\citet{oopsla19b}. According to
-them, a function is strict if it evaluates all of its argument in a single
-pre-ordained order.
-
-\AG{add evaluation orders and contrast with side effects to assess impact.}
-%%the function and choose the definition order.
-%%Figure~\ref{fig:force_order} shows the number of evaluation orders of the
-%%functions in our corpus. XX(XX\%) functions have a single evaluation order. Out
-%%of those, XX functions evaluate all of their arguments. Evaluation orders
-%%greater than 5 are rare and are found only in XX functions.
-
-
-\section{Compile the Lazy Away}
+\section{Ř: Compiling the Lazy Away}
 
 In this section we report on our experiments to evaluate the implications of
 eagerness on an implementations of R. To that end we modified \Rsh, a just-in-time
@@ -1754,18 +1925,8 @@ functions with signatures.
   \end{tabular}
 \end{table}
 
-\section{Discussion}
 
-
-
-\section{Migration Strategy}
-- py2to3 does not do a good job
-- hack has a simple migration tool
-- scala 2 to 3 has migration tools
-
-- If we have signatures for every test on CRAN.
--
-\AG{rlang has defiintion of SEXP.}
+\AG{Threats to validity: rlang has defiintion of SEXP.}
 
 %%\section*{Acknowledgments}
 %% TODO: Thank Flip
