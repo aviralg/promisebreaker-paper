@@ -1271,52 +1271,53 @@ including a rich set of APIs for metaprogramming. For this, it frequently uses
 \subsubsection{Unevaluated Arguments}
 
 Of the 294.45M total arguments in our corpus, 30.4M argument promises were not
-evaluated. They correspond to 52,083 parameters of 26,398 functions from 473
-packages. These functions are non-strict in the corresponding parameters.
+evaluated. They correspond to 28.3K parameters of 12.1K functions.
 %
-Based on argument evaluation, we can classify parameter positions into three
-categories.\always parameters are those whose arguments are evaluated in all
-calls. \sometimes parameters are those whose arguments are evaluated at least
-once but not always. \never parameters are those whose arguments are never
-evaluated. Table~\ref{table:argeval} shows the number and proportion of
-parameters that belong to these categories.
+Based on argument evaluation, we can classify these parameter positions into two
+categories: \sometimes parameters whose arguments are evaluated at least once
+but not always, and \never parameters whose arguments are never evaluated. There
+are 16.4K \sometimes parameters and 11.9K \never parameters. Their presence
+indicates paths not exercised by inputs or that they are dummy parameters.
 
-\begin{table}[!h]
-  \vspace{-3mm}
-  \caption{Argument Evaluation}\label{table:argeval}
-  \vspace{-3mm}
-  \begin{tabular}{lr|lr|lr}
-    \toprule
-    \textbf{Type}&\multicolumn{2}{c}{\textbf{Parameters}}&\multicolumn{2}{c}{\textbf{Functions}}&\textbf{Packages}\\
-    \midrule
-    Always&144565&73.51\%&48456&96.08\%&490\\
-    Sometimes&16411&8.35\%&7070&14.02\%&410\\
-    Never&10637&5.41\%&5907&11.71\%&405\\
-    \midrule
-    Sometimes*&15130&7.69\%&6609&13.1\%&406\\
-    Never*&9251&4.7\%&5121&10.15\%&400\\
-    \bottomrule
-  \end{tabular}
-\end{table}
 
-Majority of parameters are \always parameters, suggesting that arguments passed
-to functions are evaluated in most of the cases. This is followed by 8.35\%
-\sometimes parameters. Their presence indicates use of metaprogramming or
-unexplored control flow paths in the function. Lastly, we have 5.41\% \never
-arguments whose presence indicates lack of coverage, metaprogramming, or dummy
-parameter. The \textbf{Functions} field gives the number of functions with
-\always, \sometimes, and \never arguments. The same function can appear in
-multiple columns since different parameters can have different evaluation
-classification. The \textbf{Packages} field of Table~\ref{table:areval} tells us
-that \never and \sometimes functions are spread across many packages.
+%Table~\ref{table:argeval} shows the number and proportion of
+%parameters that belong to these categories.
 %
-\sometimesStar and \neverStar in Table~\ref{table:argeval} are the number of
-\sometimes and \never cases without metaprogrammed. The different is small which
-suggests that metaprogramming is not the primary reason for arguments remaining
-unevaluated. Turning to the number of calls, we find that 78.33\% of functions
-with \never parameters are called more than once. This suggests that a lack of
-call diversity could be one of factors for \never arguments' existence. With
-better call diversity, the \never parameters will turn into \sometimes.
+%\begin{table}[!h]
+%  \vspace{-3mm}
+%  \caption{Argument Evaluation}\label{table:argeval}
+%  \vspace{-3mm}
+%  \begin{tabular}{lr|lr|lr}
+%    \toprule
+%    \textbf{Type}&\multicolumn{2}{c}{\textbf{Parameters}}&\multicolumn{2}{c}{\textbf{Functions}}&\textbf{Packages}\\
+%    \midrule
+%    Always&144565&73.51\%&48456&96.08\%&490\\
+%    Sometimes&16411&8.35\%&7070&14.02\%&410\\
+%    Never&10637&5.41\%&5907&11.71\%&405\\
+%    \midrule
+%    Sometimes*&15130&7.69\%&6609&13.1\%&406\\
+%    Never*&9251&4.7\%&5121&10.15\%&400\\
+%    \bottomrule
+%  \end{tabular}
+%\end{table}
+% Majority of parameters are \always parameters, suggesting that arguments passed
+% to functions are evaluated in most of the cases. This is followed by 8.35\%
+% \sometimes parameters. Their presence indicates use of metaprogramming or
+% unexplored control flow paths in the function. Lastly, we have 5.41\% \never
+% arguments whose presence indicates lack of coverage, metaprogramming, or dummy
+% parameter. The \textbf{Functions} field gives the number of functions with
+% \always, \sometimes, and \never arguments. The same function can appear in
+% multiple columns since different parameters can have different evaluation
+% classification. The \textbf{Packages} field of Table~\ref{table:areval} tells us
+% that \never and \sometimes functions are spread across many packages.
+% %
+% \sometimesStar and \neverStar in Table~\ref{table:argeval} are the number of
+% \sometimes and \never cases without metaprogrammed. The different is small which
+% suggests that metaprogramming is not the primary reason for arguments remaining
+% unevaluated. Turning to the number of calls, we find that 78.33\% of functions
+% with \never parameters are called more than once. This suggests that a lack of
+% call diversity could be one of factors for \never arguments' existence. With
+% better call diversity, the \never parameters will turn into \sometimes.
 
 We analyzed a sample of functions with \sometimes and \never parameters to
 identify usage patterns.
@@ -1506,31 +1507,26 @@ lookups, 0.04\% perform a sequence of definitions, 0.03\% perform assignments,
 and 0.01\% perform a sequence of lookups and definitions. From this, we conclude
 that majority of arguments have a simple pattern of events.
 %
-\begin{wraptable}{l}{3cm}
-  \small
-  \centering
-  \caption{Indirect Effects} \label{table:transeffects}
-  \begin{tabular}{llll}
-    \toprule
-    \textbf{Effect}&\textbf{Parameters}\\ %&\textbf{Functions}&\textbf{Packages}\\
-    \midrule
-    L&1.4K\\ %&1.1K&230\\
-    D&978\\ %&934&202\\
-    A&303\\ %&298&79\\
-    R&34\\ %&33&15\\
-    E&6\\ %&6&3\\
-    \bottomrule
-  \end{tabular}
-\end{wraptable}
-When making side-effecting arguments lazy, we also take transitivity into
-account. Unevaluated side-effecting arguments can be forwarded to callees which
-will make the corresponding callee arguments lazy. Table~\ref{table:transeffects}
-shows the number of parameters that are made transitively lazy. These numbers
-are an upper bound. Our algorithm trades off precision for scalability, so when
-a side-effect happens, it marks all the arguments being evaluated as lazy.
-However, as the numbers indicate, the impact of this imprecision is limited.
+%\begin{wraptable}{l}{3cm}
+%  \small
+%  \centering
+%  \caption{Indirect Effects} \label{table:transeffects}
+%  \begin{tabular}{llll}
+%    \toprule
+%    \textbf{Effect}&\textbf{Parameters}&\textbf{Functions}&\textbf{Packages}\\
+%    \midrule
+%    L&1.4K&1.1K&230\\
+%    D&978&934&202\\
+%    A&303&298&79\\
+%    R&34&33&15\\
+%    E&6&6&3\\
+%    \bottomrule
+%  \end{tabular}
+%\end{wraptable}
 
-Now turn our attention to a qualitative analysis of code samples.
+Our algorithm identifies 2.7K parameters as transitively lazy. As discussed
+before, \lazr traces off precision for scalability. However, impact of this
+imprecision is limited.
 
 A common source of non-local writes is the \emph{shiny} package used for
 building interactive webapps in a reactive style. For example, consider the call
