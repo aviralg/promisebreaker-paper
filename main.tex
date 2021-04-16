@@ -1120,26 +1120,6 @@ and lines of code exercised.
 %   \end{tabular}
 % \end{table}
 
-\begin{table}
-  \small
-  \caption{Strictness Failure} \label{table:strictfail}
-  \centering
-  \begin{tabular}{lc|rl|rl|rl|rl|rl}
-    \toprule
-    \#&\textbf{Configuration}&\multicolumn{2}{c}{\textbf{test}}&\multicolumn{2}{c}{\textbf{vignette}}&\multicolumn{2}{c}{\textbf{example}}&\multicolumn{2}{c}{\textbf{testthat}}&\multicolumn{2}{c}{\textbf{total}}\\
-    \midrule
-    0&$+U+S+R$&5&2.09\%&25&10.46\%&163&68.2\%&46&19.25\%&239&0.56\%\\
-    1&$+U+S-R$&4&1.71\%&24&10.26\%&162&69.23\%&44&18.8\%&234&0.55\%\\
-    2&$+U-S+R$&28&1.46\%&101&5.25\%&1594&82.93\%&199&10.35\%&1922&4.51\%\\
-    3&$+U-S-R$&41&0.62\%&99&1.49\%&1649&24.89\%&4836&73\%&6625&15.54\%\\
-    4&$-U+S+R$&21&3.44\%&87&14.26\%&409&67.05\%&93&15.25\%&610&1.43\%\\
-    5&$-U+S-R$&20&3.25\%&91&14.77\%&412&66.88\%&93&15.1\%&616&1.44\%\\
-    6&$-U-S+R$&46&1.98\%&156&6.73\%&1861&80.25\%&256&11.04\%&2319&5.44\%\\
-    7&$-U-S-R$&57&0.8\%&181&2.53\%&2084&29.11\%&4836&67.56\%&7158&16.79\%\\
-    \bottomrule
-  \end{tabular}
-\end{table}
-
 First, we run the client scripts twice without any signatures to filter programs
 which finish successfully with the same output in both runs. This provides us
 with baseline deterministic programs against which we can compare the
@@ -1159,6 +1139,46 @@ unique they can be used as a ``fingerprint'' for the programs and a change in
 the programs' result by applying strictness signatures will likely change the
 output. This will be then be counted as a failure for that signature
 configuration.
+
+%\begin{table}[!h]
+%  \small
+%  \caption{Strictness Failure} \label{table:strictfail}
+%  \centering
+%  \begin{tabular}{lc|rl|rl|rl|rl|rl}
+%    \toprule
+%    \#&\textbf{Configuration}&\multicolumn{2}{c}{\textbf{test}}&\multicolumn{2}{c}{\textbf{vignette}}&\multicolumn{2}{c}{\textbf{example}}&\multicolumn{2}{c}{\textbf{testthat}}&\multicolumn{2}{c}{\textbf{total}}\\
+%    \midrule
+%    0&$+U+S+R$&5&2.09\%&25&10.46\%&163&68.2\%&46&19.25\%&239&0.56\%\\
+%    1&$+U+S-R$&4&1.71\%&24&10.26\%&162&69.23\%&44&18.8\%&234&0.55\%\\
+%    2&$+U-S+R$&28&1.46\%&101&5.25\%&1594&82.93\%&199&10.35\%&1922&4.51\%\\
+%    3&$+U-S-R$&41&0.62\%&99&1.49\%&1649&24.89\%&4836&73\%&6625&15.54\%\\
+%    4&$-U+S+R$&21&3.44\%&87&14.26\%&409&67.05\%&93&15.25\%&610&1.43\%\\
+%    5&$-U+S-R$&20&3.25\%&91&14.77\%&412&66.88\%&93&15.1\%&616&1.44\%\\
+%    6&$-U-S+R$&46&1.98\%&156&6.73\%&1861&80.25\%&256&11.04\%&2319&5.44\%\\
+%    7&$-U-S-R$&57&0.8\%&181&2.53\%&2084&29.11\%&4836&67.56\%&7158&16.79\%\\
+%    \bottomrule
+%  \end{tabular}
+%\end{table}
+
+\begin{wraptable}{l}{6cm}
+  \small
+  \caption{Strictness Failure} \label{table:strictfail}
+  \centering
+  \begin{tabular}{lc|ll}
+    \toprule
+    \#&\textbf{Configuration}&\multicolumn{2}{c}{\textbf{Failures}}\\
+    \midrule
+    0&$+U+S+R$&239&0.56\%\\
+    1&$+U+S-R$&234&0.55\%\\
+    2&$+U-S+R$&1922&4.51\%\\
+    3&$+U-S-R$&6625&15.54\%\\
+    4&$-U+S+R$&610&1.43\%\\
+    5&$-U+S-R$&616&1.44\%\\
+    6&$-U-S+R$&2319&5.44\%\\
+    7&$-U-S-R$&7158&16.79\%\\
+    \bottomrule
+  \end{tabular}
+\end{wraptable}
 
 We extracted XXXX client programs of which XXXX programs were deterministic. Of
 these deterministic programs, only XXXX produced the same output. The results of
