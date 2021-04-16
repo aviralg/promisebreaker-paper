@@ -475,7 +475,7 @@ evaluate both \code a and \code b, assignment \code{x<-a} evaluates \code a, and
 \code{return} also triggers evaluation. In addition, many core functions are
 strict.
 
-\newpage %% Keeps this starting at the top if possible
+%\newpage %% Keeps this starting at the top if possible
 \section{StrictR: R with Strictness Signatures}\label{sec:strictr}
 
 We refer to the R language extended with strictness signatures as \strictr, to
@@ -616,8 +616,7 @@ can't know which function is being called.\footnote{Shortly before submission we
 realized that we could implement the same semantics as the compiler. GNU R keeps a
 \c{PROMARGS} list which stores promises in the same order as at the call site.}
 
-
-\newpage
+% \newpage
 \section{LazR: Inferring Strictness Signatures}\label{sec:lazr}
 
 \lazr is an analysis pipeline for inferring strictness annotations in legacy R
