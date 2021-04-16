@@ -1985,7 +1985,7 @@ call-site, instead the evaluation is suspended until the callee needs them. The
 definition of \emph{need} is quite liberal here, as for example local
 re-binding, returning, and many builtin functions are strict. As was reported in
 previous work, this leads to many programs being on the eager side of the
-spectrum for a lazy languages. Why is R strict at all? It turns out that
+spectrum for a lazy language. Why is R strict \{SK you mean lazy?} at all? It turns out that
 allowing users to reflectively alter argument expressions, before evaluating
 them, is a very expressive and powerful meta-programming technique, enjoyed by
 many package authors in the R ecosystem, to build embedded domain specific languages
@@ -1994,20 +1994,20 @@ if they do not realize that the language they use has a lazy core. However,
 the joy is limited when it comes to writing robust R code --- as both caller and
 callee co-determine what a function actually does --- and also when implementing
 the language itself. When we turned R into a mostly strict mode, the \Rsh just-in-time
-compiler ran \speedupRshStrict faster through our benchmarks, without any
+compiler ran \speedupRshStrict faster through our benchmarks without any
 further changes. Taken everything into account, we believe that R should be
 strict by default, giving package authors the option to opt-in to laziness. We
 provide a strategy for R as an ecosystem to get there, by automatically inferring
-robust strictnes signatures for package code. These signatures try to capture
+robust strictness signatures for package code. These signatures try to capture
 the desired and accidental laziness of arguments passed to R packages, thereby
 allowing most of the client code to run unchanged --- in our experiments only
 \robustnesResult of all depending packages tests failed. Such automatically
-generated strictnes signatures can then subsequently be refined by the package authors and
+generated strictness signatures can then subsequently be refined by the package authors and
 users. The change to the language would be beneficial in several ways.
 Implementations would become faster, compilers and program analysis easier to
 perform, users would be presented with a more commonly expected call semantic
-and it would open up the path for further evolution. Currently many standard
-techniques, such as gradually typed function signatures and efficient just-in-time
+and it would open up the path for further evolution. Currently, many standard
+techniques such as gradually typed function signatures and efficient just-in-time
 optimizations are difficult to apply to R because of laziness.
 
 
