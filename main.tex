@@ -314,7 +314,7 @@ Glasgow Haskell Compiler performs a strictness analysis pass to identify
 arguments that can be evaluated eagerly. While most programs benefit from such a
 transformation, due to its conservative nature, this pass misses some opportunities
 for optimizations. To recover performance programmers can manually insert
-strictness annotations to control evaluation, but identifying where to put them
+strictness annotations to control evaluation; identifying where to put them, however, 
 can be challenging. \citet{autobahn} proposed Autobahn, a tool that
 automatically infers strictness annotations using a genetic algorithm. The
 approach relies on a dynamic analysis, as it does not approximate and cannot
@@ -328,18 +328,18 @@ expression lazy. They use this as a guide to insert laziness annotations. They
 demonstrate benefits on Racket implementations of Okasaki's purely functional
 data structures, monadic parser combinators, and an AI game. The present paper
 is similar to Autobahn in that we infer annotations dynamically and we do not
-guarantee soundness. Where our work departs from Autobahn is that we use
-execution traces to determine strictness. Furthermore, we have to deal with
-side-effects and reflective operations, they introduce extra complexity for our
+guarantee soundness. Our work departs from Autobahn in that we use
+execution traces to determine strictness. Furthermore, we deal with
+side-effects and reflective operations, adding extra complexity for our
 synthesis algorithm.
 
 \paragraph{The R language} \citet{oopsla19b} investigated the design and use of
 laziness in R. They provide a detailed account of the language's evaluation
 strategy with a small-step operational semantics and an empirical evaluation of
-laziness in 16,707 packages. Their study shows that most R code is written
+laziness in 16,707 packages. Their study shows that most of R code is written
 without reliance on, or awareness of, laziness. Out of 388K functions, 83\%
 evaluate all of their arguments in a single order across all calls. The authors
-found that programmers sometime force evaluation of arguments at the beginning
+found that programmers sometimes force evaluation of arguments at the beginning
 of a function to protect their code from non-deterministic effects. Only a
 single instance of a lazy data structure could be found. The main \emph{raison
 d'\^etre} for delayed evaluation seems to be meta-programming. \citet{oopsla20b}
@@ -450,7 +450,7 @@ there are all sorts of external effects and no monads.
 
 The combination of side effects, frequent interaction with C, and absence of
 types has pushed R to be more eager than other lazy languages. Strictly
-speaking, R's not lazy as it evaluates arguments that it does not need to. Let
+speaking, R's not lazy as it evaluates arguments that it does not need to.\SK{I didn't understand previous sentence}  Let
 us review its design. Arguments to a function are bundled into a thunk called a
 \emph{promise}. Logically, a promise combines an expression's code, its
 environment, and its value. To access the value of a promise, one must
@@ -1541,13 +1541,13 @@ by an optimizing native compiler. The compiler employs, among many other
 optimizations, speculative inlining of R closures and promises \citep{dls19,
 oopsla20c}.
 The reason for choosing \Rsh as the target for our
-experiments is, that it allows us to better evaluate the impact of lazyness. In
+experiments is that it allows us to better evaluate the impact of lazyness. In
 \Rsh we can both measure the impact on an interpreter with few optimizations
-applied to the bytecode and an optimizing compiler, that already does its best
-eliding promises as long as the default semantics allow it.
+applied to the bytecode, and an optimizing compiler that already does its best
+to elide promises (as long as the default semantics allows it).
 To conduct our evaluation, we changed the first-tier
 compiler to eagerly evaluate all arguments at all call-sites, except for a
-manually curated list of exceptions. This eager code also serves as the source
+manually curated list of exceptions. This eager bytecode also serves as the source
 code for the optimizing tier. In the following we will refer
 to this modified implementation as \Rshstrict.
 
@@ -1558,14 +1558,13 @@ On the other hand, delaying computations is more complex to implement and we
 observed it to obstruct performance in two ways: First, it leads to more
 allocations of promises used to represent the delayed computation. Second, in
 combination with effects potentially originating from promises, it obstructs
-more advanced compiler analysis and optimizations. Especially the later point
-means that we expect the hypothesis to hold even for a just-in-time compiler,
-that uses advanced optimizations.
+more advanced compiler analysis and optimizations. Thus, we expect the hypothesis 
+to also hold for a just-in-time compiler that uses advanced optimizations.
 In particular, we pose the following predictions:
-(1) eager semantics should improve performance of most benchmarks for both tiers
+(1) eager semantics should improve performance of most benchmarks, for both tiers
 of \Rsh; (2) a significant portion of the speedup is due to reduced garbage
 collection pressure; (3) and there is an additional speedup due to improved compiler
-optimizations. In the following we will present our evidence in support of (1)
+optimizations. In the following, we will present our evidence in support of (1)
 and (3), and partial evidence for (2).
 
 \paragraph{Methodology}
@@ -1575,7 +1574,7 @@ To ease the discussion, the results are presented on a representative subset of
 the suite which includes one variant of
 each benchmark. As should be no surprise given the results presented so far,
 only a handful of functions, such as
-\lstinline{tryCatch} had to be kept lazy for all the benchmarks to compute
+\lstinline{tryCatch}, had to be kept lazy for all the benchmarks to compute
 the correct results.
 All of the following experiments are run on a dedicated benchmark machine, with
 all background tasks disabled. The system features an Intel i7-6700K CPU, stepping 3,
@@ -1583,19 +1582,19 @@ microcode 0xe2 with 4 cores and 8 threads. The system has 32 GB of RAM and is
 running Ubuntu 18.04 on a 4.15.0-136 Linux kernel. For ease of use, experiments
 are built as OCI compliant containers, based on Ubuntu 20.04, and executed on
 the Docker runtime 20.10.5, build 55c4c88. We verified the overhead introduced by
-the containerization to be uniform. All measurements are taken repeatedly and we
-keep a historical record to spot instable behavior. This lead us to exclude the
+the containerization to be uniform. All measurements are recorded repeatedly and we
+keep a historical record to spot unstable behavior. This lead us to exclude the
 \lstinline{convolution} benchmark from the suite, which appears to have a
 bi-modal performance profile, likely caused by the llvm backend of \Rsh.
 
 Performance measurements are gathered by running $t_e$ invocations of \Rsh on
 each benchmark. Within each invocation we measure the execution time of $t_i$
-in-process invocations. For each invocation the first 5 in-process iterations
-are discarded, to exclude warmup behavior. Agregate numbers are reported as the
+in-process invocations. For each invocation, the first 5 in-process iterations
+are discarded to exclude warmup behavior. Aggregate numbers are reported as the
 speedup over the arithmetic mean of the execution times. Multiple speedup
-numbers are averaged with a geometric mean. To establish a baseline we measured
-the speedup of \Rsh over GNU R, on our selection of the benchmark suite with
-$t_e = 1, t_i = 15$ and found a mean speedup of \speedupRsh, ranging between
+numbers are averaged using a geometric mean. To establish a baseline we measured
+the speedup of \Rsh over GNU R, on our subsetted benchmark suite with parameters
+$t_e = 1, t_i = 15$. We found a mean speedup of \speedupRsh, ranging between
 \speedupRshMin and \speedupRshMax.
 
 \paragraph{Speedup}
