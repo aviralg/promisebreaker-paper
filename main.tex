@@ -648,7 +648,7 @@ experimenting with the alternative in our \Rsh implementation. We do not have
 sufficient experience to determine if one is superior.
 
 
-\section{Inferring Strictness with LazR}
+\section{LazR: Inferring Strictness Signatures}
 
 This section describes how we infer strictness annotations at scale.
 
@@ -859,7 +859,6 @@ relying upon the function's implementation and the code path exercised by the
 input to evaluate arguments in a specific order. This may not be the same as the
 order in which the arguments are passed. If the arguments are ``pure'', then the
 evaluation order does not matter.
-
 
 \begin{wraptable}{r}{7cm}
   \vspace{-3mm}
@@ -1654,7 +1653,7 @@ because it shows how the error originates in a file reading function from
 
 
 
-\section{Compile the Lazy Away}
+\section{RiR: Compiling the Lazy Away}
 
 In this section we report on our experiments to evaluate the implications of
 eagerness on an implementations of R. To that end we modified \Rsh, a just-in-time
