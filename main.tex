@@ -1753,7 +1753,7 @@ because it shows how the error originates in a file reading function from
 
 \AG{TODO: appeal to intuition for lookups since the actual examples are hard to decipher.}
 
-\section{Ř: Compiling the Lazy Away}\label{sec:rsh}
+\section{\Rsh: Compiling the Lazy Away}\label{sec:rsh}
 
 In this section we report on our experiments to evaluate the implications of
 eagerness on an implementations of R. To that end we modified \Rsh, a just-in-time
@@ -1792,7 +1792,7 @@ and (3), and partial evidence for (2).
 
 \paragraph{Methodology}
 
-We evaluate the effects of our modifications on the Ř benchmark suite.
+We evaluate the effects of our modifications on the \Rsh benchmark suite.
 To ease the discussion, the results are presented on a representative subset of
 the suite which includes one variant of
 each benchmark. As should be no surprise given the results presented so far,
@@ -1809,6 +1809,34 @@ the containerization to be uniform. All measurements are recorded repeatedly and
 keep a historical record to spot unstable behavior. This lead us to exclude the
 \lstinline{convolution} benchmark from the suite, which appears to have a
 bi-modal performance profile, likely caused by the llvm backend of \Rsh.
+Table~\ref{table:bms} presents our benchmark selection.
+
+\begin{wraptable}{r}{7cm}
+  \vspace{-3mm}
+  \small
+  \caption{Benchmarks}\label{table:bms}
+  \vspace{-3mm}
+  \begin{tabular}{lll}
+    \toprule
+    \bf Id&\bf Benchmark&\bf Suite\\
+    \midrule
+    bnc&Bounce&Are we fast\\
+    mnd&Mandelbrot&Are we fast\\
+    sto&Storage&Are we fast\\
+    flx&Flexclust&Real thing\\
+    bin&Binarytrees&Shootout\\
+    fst&Fasta&Shootout\\
+    far&Fastaredux&Shootout\\
+    fnk&Fannkuchredux&Shootout\\
+    knu&Knucleotide&Shootout\\
+    nbo&Nbody&Shootout\\
+    pdg&Pidigits&Shootout\\
+    rgx&Regexdna&Shootout\\
+    rev&Reversecomplement&Shootout\\
+    spn&Spectralnorm&Shootout\\
+    \bottomrule
+  \end{tabular}
+\end{wraptable}%%
 
 Performance measurements are gathered by running $t_e$ invocations of \Rsh on
 each benchmark. Within each invocation we measure the execution time of $t_i$
@@ -1862,11 +1890,12 @@ this section.
 \begin{figure}[h]
   \centering
   \input{graphs/rshPromNorm.tex}
-  \caption{Promises allocated}
+  \caption{Promises allocated, normalized to GNU R. The right column shows GNU R's actual promises. If the bar is too small to display, we show the actual number of promises in the respective experiment.}
   \label{fig:gc-pressure}
 \end{figure}
+
 We measure the number of promises allocated in the
-benchmark suite per iteration for GNU R, Ř and Ř-strict. The results are shown in
+benchmark suite per iteration for GNU R, \Rsh and \Rsh-strict. The results are shown in
 \autoref{fig:gc-pressure}. The first jump from GNU R's bytecode interpreter to
 the optimizing just-in-time compiler \Rsh, leads to an \promiseAlocationReductionGnurRsh
 reduction in allocations. The second step
