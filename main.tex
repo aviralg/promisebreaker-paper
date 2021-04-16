@@ -389,10 +389,10 @@ callee's parameters and their default values.
 
 \paragraph{Attributes}
 Values can be tagged by user-defined attributes. For instance, one can attach
-the attribute \code{dim} to the value \code{x <- c(1,2,3,4)} by evaluating
-\code{attr(x,"dim") <- c(2,2)}. Once done, arithmetic functions will treat \code x
+the attribute \code{dim} to the value \code{x<-c(1,2,3,4)} by evaluating
+\code{attr(x,"dim")<-c(2,2)}. Once done, arithmetic functions will treat \code x
 as a \code{2x2} matrix. Another attribute is \code{class} which can be bound to
-a list of names. For instance, \code{class(x) <- "human"} sets the class of
+a list of names. For instance, \code{class(x)<-"human"} sets the class of
 \code{x} to \code{human}. Attributes are used for object-oriented dispatch. The
 ``S3 object system'' supports single dispatch on the class of the first argument
 of a function, whereas the ``S4 object system'' allows dispatch on all
@@ -469,7 +469,7 @@ only provides a small interface for operating on promises:
 \noindent
 While R does not provide built-in lazy data structures, they can be encoded. R
 evaluates promises aggressively. The sequencing operator \code{a:b} will
-evaluate both \code a and \code b, assignment \code{x <- a} evaluates \code a, and
+evaluate both \code a and \code b, assignment \code{x<-a} evaluates \code a, and
 \code{return} also triggers evaluation. In addition, many core functions are
 strict.
 
@@ -484,7 +484,7 @@ code.
 
 \paragraph{Signature files.}
 A signature file contains strictness signatures for functions of one or more
-packages. The format is straightforward, a sequence of signature \emph{sig} of
+packages. The format is straightforward, a sequence of signatures \emph{sig} of
 the form
 %
 \[
@@ -492,16 +492,16 @@ the form
 \]
 %
 Here {\sf pack} is the name of the package in which the function occurs and {\sf
-  fun} is its name. The sequence of integers specify which argument positions
+  fun} is its name. The sequence of integers specifies which argument positions
 are evaluated lazily.
 
 One drawback of external signatures has to do with inner functions. Functions do
 not intrinsically have names --- they are first-class objects, late-bound to any
 number of names within environments. Only functions exported to a package
 namespace have a canonical name, so to speak. We considered various heuristics,
-but some packages dynamically set up methods in package load hooks, the dynamism
+but some packages dynamically set up methods in package load hooks. This dynamism
 makes it hard to identify the correct name. Consider this snippet
-which conditionally defines  and then  re-defines \c f.
+which conditionally defines and then re-defines \c f.
 
 \begin{lstlisting}
  merge.zoo <- function(all) {
@@ -517,7 +517,7 @@ source-to-source rewriting of functions as they are loaded. The rewriting is
 simple, each function must \c{force} every argument that was not declared lazy.
 Before forcing arguments, they are checked for missingness, if they are either
 not missing or are missing but have a default value, then \c{force} is called.
-Signature files are usually in directory containing one file per package.
+Signature files are usually stored in a directory containing one file per package.
 Providing signatures in external files avoids the need to modify the source code
 of programs. This also enables easy experimentation with different signature
 configurations. The implementation uses a feature of R that allows to register
@@ -530,12 +530,12 @@ the same function object can occur with different names and different
 signatures. For instance, in the \code{rlang} package, \code{is_same_body <<-
   is_reference} aliases \code{is_reference}. Mutating \code{is_reference} to
 make arguments strict inadvertently also makes the function \code{is_same_body}
-strict. Further discussion will clarify why this is undesirable. It suffice to
+strict. Further discussion will clarify why this is undesirable. Suffice it to
 say that \strictr now copies functions as it rewrites them.
 
 \paragraph{Extended signature.}
 As an alternative to signature files, we implemented an R annotation package
-which allows to define the following annotations: \c{@lazy.file} to say that a
+which defines the following annotations: \c{@lazy.file} to say that a
 file defaults to lazy, \c{@strict.file} to denote all functions should be
 strict, \c{@lazy.param} to denote that an argument must be lazy,
 \c{@strict.param} for the converse, and \c{lazy(exp)} to request that an
@@ -547,10 +547,10 @@ paper we assume only external annotations.
 We have not found significant (barely any) use of functional programming idioms
 related to call-by-need, such as infinite data structures. In fact, most code
 seems to be written as if R was strict. There is one significant exception to
-this. That is when some form of meta-programming is applied to an argument.
+this: the application of some form of meta-programming to an argument.
 Consider the following definition for an example:
 \begin{lstlisting}
- f <- function(a,b) { print(unparse(substitute(a)));  x <- eval(substitute(b));  x+a }
+ f <- function(a,b) { print(deparse(substitute(a)));  x <- eval(substitute(b));  x+a }
 \end{lstlisting}
 
 \medskip
@@ -566,16 +566,16 @@ argument may not be evaluated in all calls to the function. This means the
 function is not strict in that argument. Unless the documentation dictates that
 this argument is evaluated in special cases where it is expected to perform a
 reflective or effectful operation, it may still be possible to make the argument
-strict at the developer discretion.
+strict at the developer's discretion.
 
-\paragraph{Accidental laziness.} In order to preserve behavior of legacy code
+\paragraph{Accidental laziness.} In order to preserve behavior of legacy code,
 some parameters will be labeled as lazy even if this is not required by the
 called function. An argument that performs a side-effect will be treated as lazy
-to retain semantics. For instance in the following call, \c{f(g(),x<-1)},
+to retain semantics. For instance in the call \c{f(g(),x<-1)},
 function \c f is free to evaluate is arguments in any other. Enforcing one
-particular order may lead to observable differences in behavior, \eg if the to
+particular order may lead to observable differences in behavior, \eg if the call to
 \c{g()} reads \c{x}. Writing such code is bad form, as small changes in the
-implementation of \c f may break it. R has a call-by-value semantic for vectors
+implementation of \c f may break it. R has a call-by-value semantics for vectors
 and lists. These are the most frequently used data types, so many updates will
 be locally contained. Errors and exception are another source of effects inside
 promises. Some reflective functions can make evaluation of a promise sensitive to
@@ -588,31 +588,31 @@ returned by the reflective calls.
 Vararg arguments currently remain lazy. Assigning a single strictness annotation
 to $\dots$ is tricky because a function can have different strictness behavior
 for the individual elements. This happens in object-oriented dispatch where the
-varag is forwarded from the dispatcher to the target method. One solution would
+vararg is forwarded from the dispatcher to the target method. One solution would
 be to make vararg strict if it is strict in all of its constituents. However,
 this may not occur frequently enough to justify the added complexity. The
-current choice is pragmatic but imprecise, we are considered options for more
+current choice is pragmatic but imprecise, we are considering options for more
 accurate treatment of varargs.
 
 
-\paragraph{Orders of evaluation} A design choice we faced in our
+\paragraph{Order of evaluation} A design choice we faced in our
 implementation was to select an evaluation order for strict arguments. One
 possibility would be to retain the evaluation order of the function, in case it
 is unique. But this has the disadvantage of being rather obscure to programmers.
 Another reasonable choice, which is implemented in our compiler extension, would
 be to evaluate strict arguments left-to-right at the call site and then evaluate
 strict default values left-to-right in the function prologue. This is likely to
-be natural to end-users who write the function call, thus have control over the
+be natural to end-users who write the function call, and thus have control over the
 order in which they pass arguments and can reason about their potential side
 effects. In the GNU R implementation of \strictr, we picked a third alternative.
 We evaluate all arguments left-to-right in the order of definition in the
 function signature. This means that end users need to know in what order
 arguments are defined, something that can be awkward as functions can have
 upward of 20 arguments. The reason for this choice is that \strictr rewrites
-functions and not call sites. This is because, at a call site, we
-don't know which function is called.\footnote{Shortly before submission we
-realized that we can implement the same semantics as the compiler, GNU R keeps a
-\c{PROMARGS} list which has promises in the same order as in the call site. }
+functions and not call sites, because at a call site we
+can't know which function is being called.\footnote{Shortly before submission we
+realized that we could implement the same semantics as the compiler. GNU R keeps a
+\c{PROMARGS} list which stores promises in the same order as at the call site.}
 
 
 \newpage
@@ -1785,7 +1785,7 @@ by an optimizing native compiler. The compiler employs, among many other
 optimizations, speculative inlining of R closures and promises \citep{dls19,
 oopsla20c}.
 The reason for choosing \Rsh as the target for our
-experiments is that it allows us to better evaluate the impact of lazyness. In
+experiments is that it allows us to better evaluate the impact of laziness. In
 \Rsh we can both measure the impact on an interpreter with few optimizations
 applied to the bytecode, and an optimizing compiler that already does its best
 to elide promises (as long as the default semantics allows it).
