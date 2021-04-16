@@ -1506,19 +1506,19 @@ lookups, 0.04\% perform a sequence of definitions, 0.03\% perform assignments,
 and 0.01\% perform a sequence of lookups and definitions. From this, we conclude
 that majority of arguments have a simple pattern of events.
 %
-\begin{wraptable}{l}{7cm}
+\begin{wraptable}{l}{3cm}
   \small
   \centering
-  \caption{Transitive Effects} \label{table:transeffects}
+  \caption{Indirect Effects} \label{table:transeffects}
   \begin{tabular}{llll}
     \toprule
-    \textbf{Effect}&\textbf{Parameters}&\textbf{Functions}&\textbf{Packages}\\
+    \textbf{Effect}&\textbf{Parameters}\\ %&\textbf{Functions}&\textbf{Packages}\\
     \midrule
-    L&1.4K&1.1K&230\\
-    D&978&934&202\\
-    A&303&298&79\\
-    R&34&33&15\\
-    E&6&6&3\\
+    L&1.4K\\ %&1.1K&230\\
+    D&978\\ %&934&202\\
+    A&303\\ %&298&79\\
+    R&34\\ %&33&15\\
+    E&6\\ %&6&3\\
     \bottomrule
   \end{tabular}
 \end{wraptable}
@@ -1628,7 +1628,6 @@ Eventually, it removes the variable using \code{rm}.
 [.data.table <- function (x, i, j, ...) {
     ...
     assign(".N", nrow(x), envir=parent.frame(), inherits=FALSE)
-    remove.N = TRUE
     ...
     if (remove.N) rm(list=".N", envir=parent.frame())
     ...
