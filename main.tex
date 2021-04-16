@@ -1146,7 +1146,7 @@ and lines of code exercised.
 First, we run the client scripts twice without any signatures to filter programs
 which finish successfully with the same output in both runs. This provides us
 with a baseline for deterministic programs against which we can compare the
-effectiveness of our signatures. Then, we run these programs eight times, once
+effectiveness of our signatures.Then, we run these programs eight times, once
 for each signature configuration, and count the number of programs that fail or
 produce a different output compared to the baseline output.
 
@@ -1154,13 +1154,14 @@ We rely on the output of programs for measuring correctness, \emph{i.e.}, we
 believe that programs that produce the same output with and without signatures
 produce the same result. Our rationale is that the top-level expressions in R
 scripts print their result on the console unless it is stored in a variable or
-explicitly disabled by surrounding the expressions in a call to the
+explicitly silenced by surrounding the expressions in a call to the
 \code{invisible} function. R also prints messages on library loading, function
 shadowing, warnings, and errors. A simple heuristic to test our belief is to
 check for the degree of duplication in programs' output. If the outputs are
-unique they can be used as a ``fingerprint'' for the program and a change in its
-result by applying strictness signatures will likely change the output. This
-will be then be counted as a failure against that signature configuration.
+unique they can be used as a ``fingerprint'' for the programs and a change in
+the programs' result by applying strictness signatures will likely change the
+output. This will be then be counted as a failure for that signature
+configuration.
 
 We extracted XXXX client programs of which XXXX programs were deterministic. Of
 these deterministic programs, only XXXX produced the same output. The results of
