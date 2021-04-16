@@ -1153,18 +1153,15 @@ and lines of code exercised.
   \end{tabular}
 \end{table}
 
-For validation, we selected 2000 dependent packages of the synthesis corpus.
-They have 4.5M lines of R code and 4.7M lines of native (C, C++, and Fortran)
-code. We run their examples, tests, and vignettes twice without any signatures
-to filter programs which finish successfully with the same output in both runs.
-This provides us with a baseline set of deterministic programs.
-
-
-to exercise the
-functions with signatures. This allows us to asses the amount of breakage
-introduced by \lazr strictness signatures in client code. The results are
-summarized in Table~\ref{table:strictfail}. For each configuration we report the
-percentage of failing tests, vignettes, examples, and tests.
+First, we run the client scripts twice without any signatures to filter programs
+which finish successfully with the same output in both runs. This provides us
+with a baseline for deterministic programs against which we can compare the
+effectiveness of our signatures. Then, we run these programs eight time, once
+for each signature configuration, and count the number of programs that fair or
+produce a different output compared to the baseline output. The results are
+summarized in Table~\ref{table:strictfail}. The rows represent signature
+configurations. For each configuration we report the number and percentage of
+failing programs, further broken down into failures per script type.
 
 
 
