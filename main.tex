@@ -1503,8 +1503,6 @@ spurious transitive laziness.
 
 \subsubsection{Side-Effects}
 
-Now, we take a detailed look at the source of side-effects.
-%
 \begin{wraptable}{r}{5cm}
   \vspace{-3mm}
   \small
@@ -1521,7 +1519,7 @@ Now, we take a detailed look at the source of side-effects.
     \bottomrule
   \end{tabular}
 \end{wraptable}
-%
+
 Arguments perform side effects when they contain a symbol, or a function call.
 Occasionally, the interpreter wraps arguments inside other arguments which could
 lead to transitive effects. Table ~\ref{table:promexpr} shows the distribution
@@ -1534,7 +1532,7 @@ promises containing function calls will perform local side-effects in the
 function's scope. Our algorithm is able to discard most of these ``benign''
 events.
 
-\begin{table}[!h]
+\begin{table}
   \vspace{-3mm}
   \small
   \caption{Effects} \label{table:effects}
