@@ -1020,13 +1020,14 @@ parameters.
 %\c{ComplexHeatmap::Heatmap} (83), \c{ggplot2::theme} (95),
 %\c{ergm::control.ergm} (117), \c{rpart.plot::prp} (119), and
 
-Table~\ref{table:strictdist} presents a summary of the distribution of
-parameters, functions, and packages that correspond to unevaluated, effectful or
-reflective arguments. Row \#0 tells that there are 128.3K parameters from 44.4K
-functions whose arguments are evaluated across all calls and they don't perform
-any effect or reflective operation. Similarly, row \#7 tells us that 25
-parameters from 24 functions are not evaluated in at least one call, but whey
-they are evaluated, they perform a side-effect and a reflective operation.
+Table~\ref{table:strictdist} presents a summary of the lazy arguments of the
+signatures in terms of a distribution of parameters, functions, and packages
+that correspond to unevaluated, effectful or reflective arguments. Row \#0 (with
+tick-mark against \emph{Unevaluated}) tells that there are 128.3K parameters
+from 44.4K functions whose arguments are evaluated across all calls and they
+don't perform any effect or reflective operation. Similarly, row \#7 tells us
+that 25 parameters from 24 functions are not evaluated in at least one call, but
+whey they are evaluated, they perform a side-effect and a reflective operation.
 Similarly, row \#4 tells us that 27.1K parameters from 11.3K functions are never
 evaluated. A careful study of these rows yields the following insights. First,
 arguments passed to majority of parameters, 65.25\%, are always evaluated and
@@ -1044,7 +1045,7 @@ packages.
 \begin{table}
   \vspace{-3mm}
   \small
-  \caption{Strictness Distribution} \label{table:strictdist}
+  \caption{Signature Summary} \label{table:strictdist}
   \centering
   \begin{tabular}{lcccr|lr|lr}
     \toprule
@@ -1146,7 +1147,7 @@ and lines of code exercised.
 First, we run the client scripts twice without any signatures to filter programs
 which finish successfully with the same output in both runs. This provides us
 with a baseline for deterministic programs against which we can compare the
-effectiveness of our signatures. Then, we run these programs eight times, once
+effectiveness of our signatures.Then, we run these programs eight times, once
 for each signature configuration, and count the number of programs that fail or
 produce a different output compared to the baseline output.
 
@@ -1154,13 +1155,14 @@ We rely on the output of programs for measuring correctness, \emph{i.e.}, we
 believe that programs that produce the same output with and without signatures
 produce the same result. Our rationale is that the top-level expressions in R
 scripts print their result on the console unless it is stored in a variable or
-explicitly disabled by surrounding the expressions in a call to the
+explicitly silenced by surrounding the expressions in a call to the
 \code{invisible} function. R also prints messages on library loading, function
 shadowing, warnings, and errors. A simple heuristic to test our belief is to
 check for the degree of duplication in programs' output. If the outputs are
-unique they can be used as a ``fingerprint'' for the program and a change in its
-result by applying strictness signatures will likely change the output. This
-will be then be counted as a failure against that signature configuration.
+unique they can be used as a ``fingerprint'' for the programs and a change in
+the programs' result by applying strictness signatures will likely change the
+output. This will be then be counted as a failure for that signature
+configuration.
 
 We extracted XXXX client programs of which XXXX programs were deterministic. Of
 these deterministic programs, only XXXX produced the same output. The results of
@@ -1173,11 +1175,8 @@ arguments. The \emph{+} sign signifies that the corresponding arguments are
 treated lazy in the signature configuration and \emph{-} sign means they are
 evaluated eagerly. For example, $+U+E+R$ means that arguments that are
 unevaluated, side-effecting, and reflective are treated lazy whereas $-U-E-R$
-means that these arguments are evaluated strictly.
-
-
-
-
+means that these arguments are evaluated strictly. From the table we can make
+some interesting observations. 
 
 
 TODO discuss the results
@@ -1930,9 +1929,7 @@ The lowest reduction observed is
 \promiseAlocationReductionGnurRshStrictMin.
 Surprisingly the number of remaining promises is
 still relatively high in some cases. As far as we were able to observe, they
-originate largely from two sources. One are default argument expressions, which
-are still bundled in promises. \OF{which bms and how much?} The other are special forms,
-\ie R builtins with a custom evaluation
+originate largely from special forms, \ie R builtins with a custom evaluation
 strategy, that are not yet natively supported in the \Rsh bytecode.
 
 It turns out that even an optimizing compiler has to allocate many promises for R
