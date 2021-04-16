@@ -619,64 +619,59 @@ realized that we can implement the same semantics as the compiler, GNU R keeps a
 \section{LazR: Inferring Strictness Signatures}\label{sec:lazr}
 
 \lazr is an analysis pipeline for inferring strictness annotations in legacy R
-libraries at scale. The dynamic analysis in \lazr traces
-the evaluation of promises, of effects happening during promise evaluation, and
-reflective access to promises. In these traces we look for signals, that a
-certain function parameter must be lazily evaluated. For example, if a
-callee reflectively accesses an argument expression, then the parameters
-must be lazy. This is the main approach for meta-programming in R, \eg
-allowing custom evaluation strategies to build domain specific languages, and it
-relies on lazy evaluation. From the signals we generate strictness signatures,
-with the goal of breaking as few clients as possible.
-%% comment (o): here I don't mention ... on purpose, because I think it is just
-%% a limitation of the approach and not a laziness signal...
-Some signals are weaker
-and it is not a priori clear how to treat them, therefore we explore all
-possible combinations and evaluate their robustness. These weaker signals fall
-into three categories: \emph{conditional evaluation}, \emph{effect ordering},
-and \emph{reflective arguments}. Conditional evaluation means, that an argument is
-sometimes not evaluated at all. This could mean that the
-callee is purposely deciding which arguments to evaluate --- for instance
-something akin to a maybe monad. Secondly, most argument promises do not have
-observable effects. Thus, if arguments are effectful, it can be
-an indication, that the caller has some expectation for the callee to decide on
-their order. Finally, as a third signal, arguments reflecting on the call-stack
-often rely on the order of evaluation. For all of theses cases the laziness
-could be on purpose, or accidental. However, we cannot assess intent on scale, and we don't have to. The
-goal is to not break client code, \ie identify laziness required to preserve
-the result, regardless whether it is accidental or not.
+libraries at scale.
+
+
+The dynamic analysis in \lazr traces the evaluation of promises, of effects
+happening during promise evaluation, and reflective access to promises. In these
+traces we look for signals, that a certain function parameter must be lazily
+evaluated. For example, if a callee reflectively accesses an argument
+expression, then the parameters must be lazy. This is the main approach for
+meta-programming in R, \eg allowing custom evaluation strategies to build domain
+specific languages, and it relies on lazy evaluation. From the signals we
+generate strictness signatures, with the goal of breaking as few clients as
+possible. Some signals are weaker and it is not a priori clear how to treat
+them, therefore we explore all possible combinations and evaluate their
+robustness. These weaker signals fall into three categories: \emph{conditional
+evaluation}, \emph{effect ordering}, and \emph{reflective arguments}.
+Conditional evaluation means, that an argument is sometimes not evaluated at
+all. This could mean that the callee is purposely deciding which arguments to
+evaluate --- for instance something akin to a maybe monad. Secondly, most
+argument promises do not have observable effects. Thus, if arguments are
+effectful, it can be an indication, that the caller has some expectation for the
+callee to decide on their order. Finally, as a third signal, arguments
+reflecting on the call-stack often rely on the order of evaluation. For all of
+theses cases the laziness could be on purpose, or accidental. However, we cannot
+assess intent on scale, and we don't have to. The goal is to not break client
+code, \ie identify laziness required to preserve the result, regardless whether
+it is accidental or not.
 
 \subsection{Approach}
 
-\lazr builds on the \rdyn package which extends the GNU R
-virtual machine version 4.0.2 with hooks for registering
-callbacks~\cite{oopsla19b}.
-The low-level \rdyn allows registering callbacks with raw R objects at various
-points inside the R interpreter.
-\lazr provides a layer of abstraction on top of the event framework. It allows
-creating tracers to which callbacks can be attached, and intercepts low-level
-events to invoke the corresponding tracer's callbacks. Rather than exposing raw
-R object, it exposes \emph{model} objects. These model objects abstract the raw
-R objects and provide a consistent introspection interface. Model objects also
-provide unique identities to anonymous objects. This uniqueness guarantee
-enables downstream clients to not worry about to memory manager recycling
-addresses. The model objects are reference counted so they can still be
-reclaimed. Cycles are dealt with the notion of a primary owner; an object's
-primary can release that object. This design eases expressing complex object
-dependencies without memory leaks. This greatly simplifies the handling of
-promises, first class environments and function calls.
-During analysis, \lazr keeps track of logical time, from program entry to exit,
-time is incremented on every event. Every model object records the birth and
-death of the raw R object being modeled. For environments, the model object also
-keeps track of last read and write times. For promises, start and end of forcing
-are recorded. This information is used to classify side-effects.
+\lazr builds on the \rdyn package which extends the GNU R virtual machine
+version 4.0.2 with hooks for registering callbacks~\cite{oopsla19b}. The
+low-level \rdyn allows registering callbacks with raw R objects at various
+points inside the R interpreter. \lazr provides a layer of abstraction on top of
+the event framework. It allows creating tracers to which callbacks can be
+attached, and intercepts low-level events to invoke the corresponding tracer's
+callbacks. Rather than exposing raw R object, it exposes \emph{model} objects.
+These model objects abstract the raw R objects and provide a consistent
+introspection interface. Model objects also provide unique identities to
+anonymous objects. This uniqueness guarantee enables downstream clients to not
+worry about to memory manager recycling addresses. The model objects are
+reference counted so they can still be reclaimed. Cycles are dealt with the
+notion of a primary owner; an object's primary can release that object. This
+design eases expressing complex object dependencies without memory leaks. This
+greatly simplifies the handling of promises, first class environments and
+function calls. During analysis, \lazr keeps track of logical time, from program
+entry to exit, time is incremented on every event. Every model object records
+the birth and death of the raw R object being modeled. For environments, the
+model object also keeps track of last read and write times. For promises, start
+and end of forcing are recorded. This information is used to classify
+side-effects.
 %
 For performance, model objects are cached in a table keyed by the R object's
-address.
-%% Cache are updated on allocation and deallocation events. This prevents
-%% duplication of model objects when the same R object is encountered multiple
-%% times.
-The call stack is modeled together with the promises that are under
+address. The call stack is modeled together with the promises that are under
 evaluation. This helps identify if an event, say a side-effect, occurs inside a
 promise. Furthermore, as R uses \emph{longjmp} to do non-local returns, \lazr
 deals with such events by calling the exit callbacks of interrupted calls and
