@@ -117,11 +117,11 @@
   user code without introducing errors. This paper reports on a dynamic analysis
   that infers strictness signatures for functions to capture both intentional
   and accidental laziness. To assess the robustness of the inferred signatures
-  we tested them on 2,000 R packages and found that inference was wrong in
-  \robustnesResult of the arguments that had been labeled strict. Finally, we
-  report on the potential for performance improvements due to strictness. By
-  modifying a just-in-time compiler to remove promises, we achieved an average
-  speedup of \speedupRshStrict.
+  we tested them on 2,000 R packages and found that inference was wrong in only
+  0.56\% of the client programs . Finally, we report on the potential for
+  performance improvements due to strictness. By modifying a just-in-time
+  compiler to remove promises, we achieved an average speedup of
+  \speedupRshStrict.
 \end{abstract}
 
 \begin{CCSXML}
