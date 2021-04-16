@@ -821,22 +821,19 @@ incorrectly made lazy.
 
 \subsection{Corpus}\label{sec:corpus}
 
-\begin{wraptable}{r}{8cm}
+\begin{wraptable}{r}{6cm}
   \vspace{-3mm}
   \small
   \centering
   \caption{Corpus}\label{table:corpus}
   \vspace{-3mm}
-  \begin{tabular}{lrrrl}
+  \begin{tabular}{lrrr}
     \toprule
-    &\bf Tests&\bf Examples&\bf Vignettes&\\
+    &\bf Tests&\bf Examples&\bf Vignettes\\
     \midrule
-    \multirow{2}{*}
-    {Scripts}&5.8K&20.2K&631&\it Corpus\\
-    &9.8K&41.1K&1.7K&\it Client\\\hline
-    \multirow{2}{*}
-    {LOC}&406.4K&207.0K&48.7K&\it Corpus \\
-    &751.2K&348.8K&112.3K&\it Client \\
+    {Scripts}&5.8K&20.2K&631\\
+    \midrule
+    {LOC}&406.4K&207.0K&48.7K\\
     \bottomrule
   \end{tabular}
 \end{wraptable}%%
@@ -859,13 +856,9 @@ dependent client packages, ranging from maximum 2,669 dependents for
 \emph{ggplot2} to minimum 5 for \emph{spatstat.linnet} with an average 125.4
 dependents. The selected 500 packages have 2.2M lines of R code and 2.7M lines
 of native code. For synthesizing signatures for their functions, we analyzed the
-execution traces obtained from their examples, tests, and vignettes. For
-validation, we selected 2000 dependent packages of the synthesis corpus. They
-have 4.5M lines of R code and 4.7M lines of native (C, C++, and Fortran) code.
-We run their examples, tests, and vignettes to exercise the functions with
-signatures. This allows us to asses the amount of breakage introduced by \lazr
-strictness signatures in client code. Table ~\ref{table:corpus} gives the number
-of scripts of each kind that were run and lines of code exercised.
+execution traces obtained from their examples, tests, and vignettes. Table
+~\ref{table:corpus} presents the number of scripts of each kind that were run
+and lines of code exercised.
 
 \begin{table}
   \vspace{-3mm}
@@ -965,17 +958,16 @@ arguments.
 
 \subsection{Experimental Setup}\label{sec:lazr-experiment}
 
-Our analysis pipeline starts with setting up a
-container image that includes all the dependencies for installing analysis code and
-R packages. This
-provides a reliable reproducible setup across the two machines. Next, we mirror
-CRAN and Bioconductor repositories and install their R packages. This is
-followed by generation of execution traces. These traces are analyzed to generate
-tabular data files and strictness signatures. Our analysis pipeline is managed
-by a Makefile which has rules for every step. This makes it easy to administer
-the experiments on multiple machines. Whenever possible, we parallelize the
-steps using GNU parallel~\cite{tange2011a}. Experiments were performed on two
-Intel Xeon 6140, 2.30GHz machines with 72 cores and 256GB of RAM each.
+Our analysis pipeline starts with setting up a container image that includes all
+the dependencies for installing analysis code and R packages. This provides a
+reliable reproducible setup across the two machines. Next, we mirror CRAN and
+Bioconductor repositories and install their R packages. This is followed by
+generation of execution traces. These traces are analyzed to generate tabular
+data files and strictness signatures. Our analysis pipeline is managed by a
+Makefile which has rules for every step. This makes it easy to administer the
+experiments on multiple machines. Whenever possible, we parallelize the steps
+using GNU parallel~\cite{tange2011a}. Experiments were performed on two Intel
+Xeon 6140, 2.30GHz machines with 72 cores and 256GB of RAM each.
 
 \section{Results}\label{sec:results}
 
@@ -1110,6 +1102,35 @@ provided in this table are upper-bounds, we over count the number of arguments
 transitively involved in effects and reflective operations.
 
 \subsection{Robustness} \label{Evaluation:Robustness}
+
+\begin{wraptable}{r}{6cm}
+  \vspace{-3mm}
+  \small
+  \centering
+  \caption{Corpus}\label{table:clientcorpus}
+  \vspace{-3mm}
+  \begin{tabular}{lrrr}
+    \toprule
+    &\bf Tests&\bf Examples&\bf Vignettes\\
+    \midrule
+    {Scripts} &9.8K&41.1K&1.7K\\
+    \midrule
+    {LOC} &751.2K&348.8K&112.3K\\
+    \bottomrule
+  \end{tabular}
+\end{wraptable}%%
+
+
+For assessing the robustness of the strictness signatures, we run client
+programs to exercise the functions with signatures. For client programs, we have
+selected 2000 dependent packages of the 500 packages from the synthesis corpus.
+They have 4.5M lines of R code and 4.7M lines of native (C, C++, and Fortran)
+code. We run their examples, tests, and vignettes and measure the number of
+programs that break due to the strictness signatures. Table
+~\ref{table:clientcorpus} gives the number of scripts of each kind that were run
+and lines of code exercised.
+
+
 
 \AG{add evaluation orders and contrast with side effects to assess impact.}
 %%the function and choose the definition order.
