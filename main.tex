@@ -78,6 +78,8 @@
 
 \newcommand{\eg}{\emph{e.g.},\xspace}
 \newcommand{\ie}{\emph{i.e.},\xspace}
+\newcommand{\config}[1]{configuration \#{#1}}
+\newcommand{\cconfig}[1]{Configuration \#{#1}}
 
 \include{results}
 
@@ -1044,7 +1046,7 @@ packages.
   \centering
   \begin{tabular}{lcccr|lr|lr}
     \toprule
-    \#&\bf Unevaluted & \bf Side-Effecting & \bf Reflective & \multicolumn{2}{c}{\textbf{Parameters}} & \multicolumn{2}{c}{\textbf{Functions}}& \bf Packages\\
+    \#&\bf Unevaluted (U) & \bf Side-Effecting (S) & \bf Reflective (R) & \multicolumn{2}{c}{\textbf{Parameters}} & \multicolumn{2}{c}{\textbf{Functions}}& \bf Packages\\
     \midrule
     0&\xmark{}&\xmark{}&\xmark{}&128305&65.25\%&44377&85.93\%&489\\
     1&\xmark{}&\xmark{}&\cmark{}&134&0.07\%&124&0.24\%&47\\
@@ -1170,36 +1172,42 @@ arguments. The \emph{+} sign signifies that the corresponding arguments are
 treated lazy in the signature configuration and \emph{-} sign means they are
 evaluated eagerly. For example, $+U+E+R$ means that arguments that are
 unevaluated, side-effecting, and reflective are treated lazy whereas $-U-E-R$
-means that these arguments are evaluated strictly.
+means that these arguments are evaluated strictly. Each row of this table
+directly corresponds to a row of Table~\ref{table:strictdist}. For example,
+from row \#1 of both tables, we can say the \config{1} will evaluate 134
+arguments strictly.
 
-Now, we take a deeper look at Table~\ref{table:strictfail} for insights.. Row
-\#0 corresponds to the configuration with maximum laziness and it failure rate
+Now, we take a deeper look at Table~\ref{table:strictfail} for insights.
+\cconfig{0} corresponds to the configuration with maximum laziness and it failure rate
 is only 0.56\%. We can use this as a baseline to study the impact of making
 various arguments categories strict.
 
-First, we look at the impact of making a single argument category strict. In row
-\#1 only reflective arguments are made strict and surprisingly, it leads to a
-slightly better result of 0.55\% failures compared to row \#0. This difference
-is however marginal. Row \#2 shows that evaluating only side-effecting arguments
-leads to a failure rate of 4.51\%. From row \#4, we see that evaluating
-unevaluated arguments leads to 1.43\% failures. Comparing these results with the
-number of lazy parameters from Table~\ref{table:strictdist}, we find that
-unevaluated arguments, which are the biggest source of laziness, do not cause a
-significant increase in failures when evaluated.
+First, we look at the impact of making a single argument category strict. In
+\config{1} only reflective arguments are made strict and surprisingly, it leads
+to a slightly better result of 0.55\% failures compared to \config{0}. This
+difference is however marginal. \cconfig{2} shows that evaluating only
+side-effecting arguments leads to a failure rate of 4.51\%. From \config{4},
+we see that evaluating unevaluated arguments leads to 1.43\% failures. Comparing
+these results with the number of lazy parameters from
+Table~\ref{table:strictdist}, we find that unevaluated arguments, which are the
+biggest source of laziness, do not cause a significant increase in failures when
+evaluated.
 
-Next, we look at the impact of making two argument categories strict. Row \#3
-stands out with a very high failure rate of 15.54\%. This is followed by row \#6
-with a failure rate of 5.44\% and finally row \#5 with a failure rate of 1.44\%.
-The failure rate is lowest when side-effecting arguments are made lazy. This is
-validated by the low failure rate observed when only unevaluated or reflective
-arguments are evaluated eagerly in rows \#1 and \#4.
+Next, we look at the impact of making two argument categories strict.
+\cconfig{3} stands out with a very high failure rate of 15.54\%. This is
+followed by \config{6} with a failure rate of 5.44\% and finally \config{5} with
+a failure rate of 1.44\%. The failure rate is lowest when side-effecting
+arguments are made lazy. This is validated by the low failure rate observed when
+only unevaluated or reflective arguments are evaluated eagerly in \config{1} and
+\config{4}.
 
 Finally, we look at the impact of making everything strict. This corresponds to
-row \#7. As expected, this leads to maximum failure, 16.79\%. It is interesting
-to compare this against row \# 3. The difference in failures for these two
-configurations is marginal, suggesting that treating unevaluated arguments
-strictly is not the major cause of failures. This is also validated by row \#4
-in which only unevaluted arguments are forced and failure rate is 1.43\%.
+\config{7}. As expected, this leads to maximum failure, 16.79\%. It is
+interesting to compare this against \config{3}. The difference in failures for
+these two configurations is marginal, suggesting that treating unevaluated
+arguments strictly is not the major cause of failures. This is also validated by
+\config{4} in which only unevaluted arguments are forced and failure rate is
+1.43\%.
 
 
 The argument evaluation orders observed for a function depend on its
