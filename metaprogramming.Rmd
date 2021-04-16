@@ -1,0 +1,74 @@
+---
+title: "Metaprogramming"
+output:
+    html_document:
+        toc: true
+        toc_depth: 3
+        toc_float: true
+        number_sections: true
+        theme: cerulean
+        highlight: pygments
+        code_folding: hide
+        fig_width: 9
+        fig_height: 3
+        css: style.css
+params:
+    datadir: "./data"
+    graphdir: "./graphs"
+    macrodir: "./macros"
+---
+
+```{r echo = FALSE, warning=FALSE, message=FALSE}
+## https://bookdown.org/yihui/rmarkdown-cookbook/source-script.html
+source("analysis.R", local = knitr::knit_global())
+```
+
+# Overview
+
+```{r echo = FALSE, warning=FALSE, message=FALSE}
+str(metaprogramming)
+
+metaprogramming %>%
+filter(meta_type == "substitute") %>%
+datatable()
+```
+
+# Type
+
+```{r echo = FALSE, warning=FALSE, message=FALSE}
+meta_summary <-
+    metaprogramming %>%
+    group_by(meta_type) %>%
+    summarize(arguments = sum(argument_count),
+              parameters = length(unique(paste0(source_pack_name, source_fun_name, source_formal_pos))),
+              functions = length(unique(paste0(source_pack_name, source_fun_name))),
+              packages = length(unique(source_pack_name))) %>%
+    ungroup() %>%
+    pivot_longer(!meta_type, names_to = "thing", values_to = "count") %>%
+    mutate(count = label_number_si(accuracy=0.1)(count),
+           thing = str_to_title(thing)) %>%
+    pivot_wider(names_from = "meta_type", values_from = "count")
+    
+
+meta_summary %>% datatable()
+    
+meta_summary %>%
+pmap_chr(function(...) {
+    paste(..., sep = "&")
+}) %>%
+paste(collapse = "\\\\\n") %>%
+cat()
+
+
+```
+
+# Depth
+
+```{r echo = FALSE, warning=FALSE, message=FALSE}
+meta_depth_summary <-
+    metaprogramming %>%
+    filter(meta_type == "substitute") %>%
+    count(depth, wt = argument_count, name = "argument_count")
+    
+meta_depth_summary %>% datatable()
+```

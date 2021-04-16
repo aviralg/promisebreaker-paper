@@ -72,6 +72,7 @@ read_lazy(effects_direct, "effects_direct.fst")
 read_lazy(direct_effects, "direct_effects.fst")
 read_lazy(indirect_effects, "indirect_effects.fst")
 read_lazy(argument_type, "argument_type.fst")
+read_lazy(metaprogramming, "metaprogramming.fst")
 read_lazy(arg_ref, "arg_ref.fst")
 read_lazy(exitval_raw, "exitval_raw.csv")
 read_lazy(stdout_raw, "stdout_raw.csv")
@@ -86,6 +87,11 @@ arg_ref <-
 
 parameters <-
     parameters %>%
+    filter(pack_name %in% corpus)
+
+metaprogramming <-
+    metaprogramming %>%
+    filter(source_pack_name %in% corpus) %>%
     filter(pack_name %in% corpus)
 
 functions <-

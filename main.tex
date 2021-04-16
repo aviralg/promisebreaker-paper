@@ -1048,18 +1048,50 @@ Now, we take a detailed look at the different sources of laziness.
 There are XXXX $...$ parameters. We unconditionally treat them lazy.
 
 \subsubsection{Metaprogramming}
-For tracking metaprogramming, we look at uses of \code{substitute} on arguments
-from R code and \code{PREXPR} macro on promise objects from C code. We observe
-substitute called on XXX arguments from XXXX parameters of XXXX functions.
-\code{PREXPR} was called on XXX arguments from XXXX parameters of XXXX
-functions.
+
+\begin{wraptable}{r}{4cm}
+  \vspace{-3mm}
+  \small
+  \caption{Metaprogramming} \label{table:meta}
+  \centering
+  \begin{tabular}{lll}
+    \toprule
+    &\textbf{C}&\textbf{R}\\
+    \midrule
+    Arguments&21.9M&1.3M\\
+    Parameters&9.1K&600\\
+    Functions&6.0K&370\\
+    Packages&374&89\\
+    \bottomrule
+  \end{tabular}
+\end{wraptable}
+
+For metaprogramming, we track calls to \code{substitute} on function arguments
+from R code and \code{PREXPR} macro on promise objects from C code. The results
+are summarized in Table~\ref{table:meta}. There are two interesting observations
+to make from this table. First, metaprogramming is not very common, only 23.2M
+out of 294.25 total arguments are metaprogrammed. Second, metaprogramming is
+dominated by the use of \code{PREXPR} macro on promise objects from C code.
 
 For an in-depth discussion on the patterns of use of \code{substitute}, we refer
 the reader to \citet{oopsla19b}. We continue with the exploration of the use of
 \code{PREXPR} for metaprogramming, since that is not addressed in
-\cite{oopsla19b}.
+\cite{oopsla19b}. The maximum uses of \code{PREXPR} come from the builtin
+functions.
+A canonical example is the \code{missing} function for checking if an
+argument is missing. Missingness check works transitively, since it is possible
+to pass missing arguments to callees. The \code{missing} function first checks
+if the argument is bound to a sentinel missing value. If not, it checks if the
+argument is bound to a promise containing a symbol. This symbol is then checked
+in the caller's environment for missingness.
 
-We observe that 
+Apart from this, many packages implement functionality in native code and use
+\code{PREXPR} to extract a promise's expression for ad-hoc evaluation
+strategies. We found uses of \code{PREXPR} in \code{igraph}, \code{lazyeval},
+\code{rlang} and \code{S4Vectors} packages of our corpus. \code{rlang}
+particularly stands out because it provides an API to work with core R objects,
+including a rich set of APIs for metaprogramming. It frequently calls into C
+code for heavy lifting.
 
 \subsubsection{Unevaluated Arguments}
 Of the 294.45M total arguments in our corpus, 30.4M argument promises were not
