@@ -1563,7 +1563,7 @@ precision for scalability, so when a side-effect happens, it marks all the
 arguments being evaluated as lazy. However, as the numbers indicate, the impact
 of this imprecision is limited.
 
-\subsubsection{Qualitative Analysis}
+\paragraph{Qualitative Analysis}
 
 A common source of non-local writes is the \emph{shiny} package used for
 building interactive webapps in a reactive style. For example, consider the call
@@ -1698,6 +1698,8 @@ argument passed to join is bound to a promise that reads the contents from a
 file. The file is missing and this raises an error. This example is interesting
 because it shows how the error originates in a file reading function from
 \code{base} package making three caller functions transitively responsible.
+
+\AG{TODO: appeal to intuition for lookups since the actual examples are hard to decipher.}
 
 \section{Ř: Compiling the Lazy Away}
 
@@ -1924,18 +1926,8 @@ functions with signatures.
   \end{tabular}
 \end{table}
 
-\section{Discussion}
 
-
-
-\section{Migration Strategy}
-- py2to3 does not do a good job
-- hack has a simple migration tool
-- scala 2 to 3 has migration tools
-
-- If we have signatures for every test on CRAN.
--
-\AG{rlang has defiintion of SEXP.}
+\AG{Threats to validity: rlang has defiintion of SEXP.}
 
 %%\section*{Acknowledgments}
 %% TODO: Thank Flip
