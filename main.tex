@@ -1086,18 +1086,16 @@ transitively involved in effects and reflective operations.
 \end{wraptable}%%
 
 
-For assessing the robustness of the strictness signatures, we run client
-programs to exercise the functions with signatures. For client programs, we have
-selected 2000 dependent packages of the 500 packages from the synthesis corpus.
-They have 4.5M lines of R code and 4.7M lines of native (C, C++, and Fortran)
-code. We run their examples, tests, and vignettes and measure the number of
-programs that break due to the strictness signatures. Table
+In this section, we evaluate the robustness of strictness signatures generated
+by \lazr. We run client programs to exercise the functions with signatures. The
+client programs are the tests, examples, and vignettes from 2000 dependent
+packages of the 500 packages from the synthesis corpus. These 2000 packages have
+4.5M lines of R code and 4.7M lines of native (C, C++, and Fortran) code. Table
 ~\ref{table:clientcorpus} gives the number of scripts of each kind that were run
 and lines of code exercised.
 
 
-
-\AG{add evaluation orders and contrast with side effects to assess impact.}
+%%\AG{add evaluation orders and contrast with side effects to assess impact.}
 %%the function and choose the definition order.
 %%Figure~\ref{fig:force_order} shows the number of evaluation orders of the
 %%functions in our corpus. XX(XX\%) functions have a single evaluation order. Out
@@ -1123,21 +1121,24 @@ and lines of code exercised.
 First, we run the client scripts twice without any signatures to filter programs
 which finish successfully with the same output in both runs. This provides us
 with baseline deterministic programs against which we can compare the
-effectiveness of our signatures.Then, we run these programs eight times, once
-for each signature configuration, and count the number of programs that fail or
-produce a different output compared to the baseline output.
+effectiveness of our signatures. We extracted XXXX runnable programs from the
+2000 client packages from which XXXX programs yielded the same result on both
+runs. These are the programs against which we present the outcome of applying
+our signatures.
 
-We rely on the output of programs for measuring correctness, \emph{i.e.}, we
-believe that programs that produce the same output with and without signatures
-produce the same result. Our rationale is that the top-level expressions in R
-scripts print their result on the console unless it is stored in a variable or
+We consider an application of signature successful if it produces the same
+output as it produced without applying any signature. We believe that programs
+that produce the same output with and without signatures compute the same
+result. The rationale or this is that the top-level expressions in R scripts
+print their result on the console unless it is stored in a variable or
 explicitly silenced by surrounding the expressions in a call to the
 \code{invisible} function. R also prints messages on library loading, function
-shadowing, warnings, and errors. A simple heuristic to test our belief is to
+shadowing, warnings, and errors. A simple heuristic to test this claim is to
 check for the degree of duplication in programs' output. If the outputs are
 unique they can be used as a ``fingerprint'' for the programs and a change in
 the programs' result by applying strictness signatures will likely change the
-output. This will be then be counted as a failure for that signature
+output. In our baseline deterministic programs, XXXX\% had unique outputs.
+This will be then be counted as a failure for that signature
 configuration.
 
 %\begin{table}[!h]
@@ -1180,26 +1181,28 @@ configuration.
   \end{tabular}
 \end{wraptable}
 
-We extracted XXXX client programs of which XXXX programs were deterministic. Of
-these deterministic programs, only XXXX produced the same output. The results of
-applying signatures to the deterministic programs are summarized in
-Table~\ref{table:strictfail}. Each row represents a signature configuration. For
-each configuration we report the number and percentage of failing programs,
-further broken down into failures per script type. The letters \emph{U},
-\emph{S}, and \emph{R} represent unevaluated, side-effecting and reflective
-arguments. The \emph{+} sign signifies that the corresponding arguments are
-treated lazy in the signature configuration and \emph{-} sign means they are
-evaluated eagerly. For example, $+U+E+R$ means that arguments that are
-unevaluated, side-effecting, and reflective are treated lazy whereas $-U-E-R$
-means that these arguments are evaluated strictly. Each row of this table
-directly corresponds to a row of Table~\ref{table:strictdist}. For example,
-from row \#1 of both tables, we can say the \config{1} will evaluate 134
-arguments strictly.
+
+After identifying the baseline programs, we run them eight times, once for each
+signature configuration, and count programs that fail or produce a different
+output. The result of applying signatures to the deterministic programs are
+summarized in Table~\ref{table:strictfail}. Each row represents a signature
+configuration. For each configuration we report the number and percentage of
+failing programs, further broken down into failures per script type. The letters
+\emph{U}, \emph{S}, and \emph{R} represent unevaluated, side-effecting and
+reflective arguments. The \emph{+} sign signifies that the corresponding
+arguments are treated lazy in the signature configuration and \emph{-} sign
+means they are evaluated eagerly. For example, $+U+E+R$ means that arguments
+that are unevaluated, side-effecting, and reflective are treated lazy whereas
+$-U-E-R$ means that these arguments are evaluated strictly. Each row of this
+table directly corresponds to a row of Table~\ref{table:strictdist}. For
+example, from row \#1 of both tables, we can say the \config{1} will evaluate
+134 arguments strictly over and above the arguments which were already strict in
+the minimally lazy configuration.
 
 Now, we take a deeper look at Table~\ref{table:strictfail} for insights.
-\cconfig{0} corresponds to the configuration with maximum laziness and it failure rate
-is only 0.56\%. We can use this as a baseline to study the impact of making
-various arguments categories strict.
+\cconfig{0} corresponds to the configuration with maximum laziness and it
+failure rate is only 0.56\%. We can use this as a baseline to study the impact
+of making various arguments categories strict.
 
 First, we look at the impact of making a single argument category strict. In
 \config{1} only reflective arguments are made strict and surprisingly, it leads
@@ -1228,17 +1231,14 @@ arguments strictly is not the major cause of failures. This is also validated by
 \config{4} in which only unevaluted arguments are forced and failure rate is
 1.43\%.
 
-
-The argument evaluation orders observed for a function depend on its
-implementation and the control-flow paths exercised by its inputs. In this work
-we ignore this evaluation order. For evaluation robustness, we choose the
-definition order in the synthesized signatures. For assessing performance, the
-\Rsh just-in-time compiler uses the call order, i.e., the order in which
-arguments are passed to the function at the call site.
-
-
-\AG{Threats to validity: rlang has defiintion of SEXP.}
-
+From the results, we conclude that in the minimally strict configuration, we
+have least number of failures. A first attempt at removing laziness at scale can
+rely on this signature configuration. Next, reflective and unevaluated arguments
+can be made strict without a significant increase in failure rate.
+Side-effecting arguments result in many failures. Evaluating arguments which are
+both side-effecting and reflective results in maximum failures . However,
+Table~\ref{strictdist} tells that these arguments are very few in number. These
+arguments can perhaps be left lazy.
 
 \subsection{In-Depth Exploration}\label{sec:lazr-discussion}
 
