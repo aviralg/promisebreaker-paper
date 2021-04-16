@@ -1127,14 +1127,14 @@ and lines of code exercised.
     \toprule
     \#&\textbf{Configuration}&\multicolumn{2}{c}{\textbf{test}}&\multicolumn{2}{c}{\textbf{vignette}}&\multicolumn{2}{c}{\textbf{example}}&\multicolumn{2}{c}{\textbf{testthat}}&\multicolumn{2}{c}{\textbf{total}}\\
     \midrule
-    0&$+U+E+R$&5&2.09\%&25&10.46\%&163&68.2\%&46&19.25\%&239&0.56\%\\
-    1&$+U+E-R$&4&1.71\%&24&10.26\%&162&69.23\%&44&18.8\%&234&0.55\%\\
-    2&$+U-E+R$&28&1.46\%&101&5.25\%&1594&82.93\%&199&10.35\%&1922&4.51\%\\
-    3&$+U-E-R$&41&0.62\%&99&1.49\%&1649&24.89\%&4836&73\%&6625&15.54\%\\
-    4&$-U+E+R$&21&3.44\%&87&14.26\%&409&67.05\%&93&15.25\%&610&1.43\%\\
-    5&$-U+E-R$&20&3.25\%&91&14.77\%&412&66.88\%&93&15.1\%&616&1.44\%\\
-    6&$-U-E+R$&46&1.98\%&156&6.73\%&1861&80.25\%&256&11.04\%&2319&5.44\%\\
-    7&$-U-E-R$&57&0.8\%&181&2.53\%&2084&29.11\%&4836&67.56\%&7158&16.79\%\\
+    0&$+U+S+R$&5&2.09\%&25&10.46\%&163&68.2\%&46&19.25\%&239&0.56\%\\
+    1&$+U+S-R$&4&1.71\%&24&10.26\%&162&69.23\%&44&18.8\%&234&0.55\%\\
+    2&$+U-S+R$&28&1.46\%&101&5.25\%&1594&82.93\%&199&10.35\%&1922&4.51\%\\
+    3&$+U-S-R$&41&0.62\%&99&1.49\%&1649&24.89\%&4836&73\%&6625&15.54\%\\
+    4&$-U+S+R$&21&3.44\%&87&14.26\%&409&67.05\%&93&15.25\%&610&1.43\%\\
+    5&$-U+S-R$&20&3.25\%&91&14.77\%&412&66.88\%&93&15.1\%&616&1.44\%\\
+    6&$-U-S+R$&46&1.98\%&156&6.73\%&1861&80.25\%&256&11.04\%&2319&5.44\%\\
+    7&$-U-S-R$&57&0.8\%&181&2.53\%&2084&29.11\%&4836&67.56\%&7158&16.79\%\\
     \bottomrule
   \end{tabular}
 \end{table}
@@ -1170,11 +1170,37 @@ arguments. The \emph{+} sign signifies that the corresponding arguments are
 treated lazy in the signature configuration and \emph{-} sign means they are
 evaluated eagerly. For example, $+U+E+R$ means that arguments that are
 unevaluated, side-effecting, and reflective are treated lazy whereas $-U-E-R$
-means that these arguments are evaluated strictly. From the table we can make
-some interesting observations. 
+means that these arguments are evaluated strictly.
 
+Now, we take a deeper look at Table~\ref{table:strictfail} for insights.. Row
+\#0 corresponds to the configuration with maximum laziness and it failure rate
+is only 0.56\%. We can use this as a baseline to study the impact of making
+various arguments categories strict.
 
-TODO discuss the results
+First, we look at the impact of making a single argument category strict. In row
+\#1 only reflective arguments are made strict and surprisingly, it leads to a
+slightly better result of 0.55\% failures compared to row \#0. This difference
+is however marginal. Row \#2 shows that evaluating only side-effecting arguments
+leads to a failure rate of 4.51\%. From row \#4, we see that evaluating
+unevaluated arguments leads to 1.43\% failures. Comparing these results with the
+number of lazy parameters from Table~\ref{table:strictdist}, we find that
+unevaluated arguments, which are the biggest source of laziness, do not cause a
+significant increase in failures when evaluated.
+
+Next, we look at the impact of making two argument categories strict. Row \#3
+stands out with a very high failure rate of 15.54\%. This is followed by row \#6
+with a failure rate of 5.44\% and finally row \#5 with a failure rate of 1.44\%.
+The failure rate is lowest when side-effecting arguments are made lazy. This is
+validated by the low failure rate observed when only unevaluated or reflective
+arguments are evaluated eagerly in rows \#1 and \#4.
+
+Finally, we look at the impact of making everything strict. This corresponds to
+row \#7. As expected, this leads to maximum failure, 16.79\%. It is interesting
+to compare this against row \# 3. The difference in failures for these two
+configurations is marginal, suggesting that treating unevaluated arguments
+strictly is not the major cause of failures. This is also validated by row \#4
+in which only unevaluted arguments are forced and failure rate is 1.43\%.
+
 
 The argument evaluation orders observed for a function depend on its
 implementation and the control-flow paths exercised by its inputs. In this work
