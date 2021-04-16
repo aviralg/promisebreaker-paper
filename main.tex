@@ -650,7 +650,7 @@ sufficient experience to determine if one is superior.
 
 \section{Inferring Strictness with LazR}
 
-This section describes how to infer strictness annotations at scale.
+This section describes how we infer strictness annotations at scale.
 
 \subsection{Infrastructure}
 
@@ -670,7 +670,7 @@ the experiments on multiple machines. Whenever possible, we parallelize the
 steps using GNU parallel~\cite{tange2011a}. Experiments were performed on two
 Intel Xeon 6140, 2.30GHz machines with 72 cores and 256GB of RAM each.
 
-\subsection{LazR} \label{subsection:lazr}
+\subsubsection{LazR}
 
 The low-level \rdyn allows registering callbacks with raw R objects at various
 points inside the R interpreter. Extracting meaningful information from these
@@ -824,6 +824,88 @@ gives the number of scripts of each kind that were run and lines of code
 exercised.
 
 \subsection{Inference}
+
+Now, we turn our attention to the algorithm used by \lazr to infer strictness
+from the aforementioned corpus. \lazr uses execution traces to synthesize
+strictness signatures. Execution traces tell us if an argument \emph{(a)} is
+evaluated, \emph{(b)} is passed to a $...$ parameter, \emph{(c)} is
+metaprogrammed, \emph{(d)} performs a non-local effect, and \emph{(e)} accesses
+parent environment reflectively. \lazr merges this information from all
+execution traces to get a summary of operations for a function parameter
+position. Using this summary, \lazr has to make two decisions: \emph{(1)} which
+arguments to evaluate strictly, and \emph{(2)} in which order to evaluate the arguments.
+
+The first decision to make an argument strict is not always a straightforward
+one. $...$ arguments are always lazy because of the difficulty in assigning a
+unique strictness signature. Meta-programmed arguments are also lazy as
+meta-programming relies on unevaluated argument text provided by a promise. The
+remaining operations are sources of \emph{accidental laziness}. We could decide
+to make unevaluated, effectful, and reflective arguments lazy to preserve the
+semantics of legacy code. Deciding strictness of an argument based on how the
+client invokes the API has the potential to make more arguments lazy as more
+programs are included. We could also choose to ignore these sources of laziness
+and make the corresponding arguments strict to get rid of more promises at the
+risk of breaking code. The impact of this choice is not clear upfront. To
+facilitate this assessment \lazr synthesizes eight strictness signature
+``configurations``. These configurations represent the combinations obtained
+from flipping the strictness of arguments based on the three operation types.
+
+The next step is to identify the order of evaluation of strict arguments. \lazr
+chooses to evaluate arguments in the definition order. This provides a
+consistent order for all calls to the function. However, it is likely that
+callers expect the arguments to be evaluated in the order in which they are
+passed at the callsite. If the arguments are not side-effecting or reflective,
+order of evaluation does not matter. If not, then the callers are relying upon
+how the function is implemented and which path is taken during the course of a
+function's evaluation.
+
+
+\begin{wraptable}{r}{7cm}
+  \vspace{-3mm}
+  \small
+  \caption{Allocations} \label{table:allocations}
+  \centering
+  \begin{tabular}{lr}
+    \toprule
+    \bf Object&\bf Count\\
+    \midrule
+    Promise&16.0B\\
+    Environment&6.8B\\
+    Logical&6.1B\\
+    Character&5.5B\\
+    Language&2.9B\\
+    Integer&2.5B\\
+    List&849.7M\\
+    Real&639.0M\\
+    Closure&585.6M\\
+    \bottomrule
+  \end{tabular}
+  \begin{tabular}{lr}
+    \toprule
+    \bf Object&\bf Count\\
+    \midrule
+    Char&326.4M\\
+    Raw&288.7M\\
+    Symbol&204.7M\\
+    Dot&157.9M\\
+    Externalptr&66.6M\\
+    S4&30.3M\\
+    Complex&2.2M\\
+    Expression&1.6M\\
+    Weakref&25.2K\\
+    \bottomrule
+  \end{tabular}
+\end{wraptable}
+Scalability is a key goal behind the design of \lazr. We want to migrate R code
+at scale. This is a challenging problem because R creates a lot of objects,
+especially promises. Table~\ref{table:allocations} presents the number of R
+objects encountered during the synthesis phase for 500 packages. The achieve
+scalability, \lazr relies on  identify side-effecting
+and reflective arguments. \AG{Describe the algorithm to track side effects and
+  tradeoffs for scalability}
+
+\subsection{Results}
+
 \begin{wraptable}{r}{8cm}
   \vspace{-3mm}
   \small
@@ -904,76 +986,6 @@ parameters.
 %\c{gplots::heatmap.2} (63), \c{Hmisc::event.chart} (66),
 %\c{ComplexHeatmap::Heatmap} (83), \c{ggplot2::theme} (95),
 %\c{ergm::control.ergm} (117), \c{rpart.plot::prp} (119), and
-
-\subsection{Algorithm}
-
-Now, we turn our attention to the algorithm used by \lazr to infer strictness.
-As discussed in section \ref{subsection:lazr}, \lazr uses execution traces to
-synthesize strictness signatures. Execution traces tell us if an argument
-\emph{(a)} is evaluated, \emph{(b)} is passed to a $...$ parameter, \emph{(c)}
-is metaprogrammed, \emph{(d)} performs a non-local effect, and \emph{(e)}
-accesses parent environment reflectively. \lazr merges this information from all
-execution traces to get a summary of operations for a function parameter
-position. It uses this summary decide if an argument can be evaluated eagerly
-and generates strictness signatures. The signatures also dictate the order of
-evaluation of arguments.
-
-Because of the difficulty in assigning a unique strictness signature, $...$
-arguments are always lazy. Meta-programmed arguments are also lazy as
-meta-programming relies on unevaluated argument text provided by a promise. The
-remaining operations are sources of \emph{accidental laziness}. We could decide
-to unevaluated, effectful, and reflective arguments lazy to preserve the
-semantics of legacy code. Or, we could make them strict to get rid of more
-promises at the risk of breaking code. The impact of this choice is not clear
-upfront. Hence, \lazr synthesizes multiple strictness signature
-``configurations`` to facilitate this assessment. It is worth noting that making
-arguments lazy if they are side-effecting has the potential to make everything
-lazy because it is dependent on how a client invokes the API. \lazr only makes
-the parameter lazy if an argument has performed a side-effect or reflective
-operation in the programs it has run. Including more programs will make more
-arguments lazy.
-
-\begin{wraptable}{r}{8cm}
-  \vspace{-3mm}
-  \small
-  \caption{Allocations} \label{table:allocations}
-  \centering
-  \begin{tabular}{lr}
-    \toprule
-    \bf Object&\bf Count\\
-    \midrule
-    Promise&16.0B\\
-    Environment&6.8B\\
-    Logical&6.1B\\
-    Character&5.5B\\
-    Language&2.9B\\
-    Integer&2.5B\\
-    List&849.7M\\
-    Real&639.0M\\
-    Closure&585.6M\\
-    \bottomrule
-  \end{tabular}
-  \begin{tabular}{lr}
-    \toprule
-    \bf Object&\bf Count\\
-    \midrule
-    Char&326.4M\\
-    Raw&288.7M\\
-    Symbol&204.7M\\
-    Dot&157.9M\\
-    Externalptr&66.6M\\
-    S4&30.3M\\
-    Complex&2.2M\\
-    Expression&1.6M\\
-    Weakref&25.2K\\
-    \bottomrule
-  \end{tabular}
-\end{wraptable}
-
-\AG{Describe the algorithm to track side effects and tradeoffs for scalability}
-
-
-\subsection{Results}
 
 Table~\ref{table:strictdist} presents a summary of the distribution of
 parameters, functions, and packages that correspond to unevaluated, effectful or
