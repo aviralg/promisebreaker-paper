@@ -1419,108 +1419,6 @@ codetools::checkSymOrString <- function(e, signal = stop) {
 }
 \end{lstlisting}
 
-\subsubsection{Reflection}
-
-R allows reflective access to parent scope through \code{as.environment} and
-\code{pos.to.env} functions when called with argument \code{-1}. They return the
-environment of the caller with respect to call in which they are evaluated.
-Consider the following example in which function \code{f} is passed the same
-arguments. Argument \code{x} is evaluated immediately inside \code{f} and
-argument \code{y} is evaluated inside \code{id}. \code{x} evaluates to the
-environment of the parent of \code{f} which is the \code{global} environment,
-whereas \code{y} evaluates to the environment of \code{f} which is the parent
-caller of \code{id}.
-%
-\begin{lstlisting}
-id <- function(a) a
-f <- function(x, y) { x; id(y); }
-f(x = as.environment(-1), y = as.environment(-1))
-\end{lstlisting}
-%
-This implies that strictness of \code{f} with respect to \code{x} and \code{y}
-depends on how \code{f} is called. \code{f} will now be lazy in argument
-\code{y}, otherwise we will end up evaluating inside \code{f}. Erroneously
-evaluating \code{y} strictly would result in an incorrect environment, but not
-an error, which could turn into a debugging nightmare. \code{as.environment} is
-internally implemented using \code{pos.to.env} so the two functions have same
-semantics when called with \code{-1} as the argument.
-
-This can transitively affect the strictness of other function arguments. If
-\code{f} is called from \code{g} as shown below, we will have to make \code{g}
-non-strict in \code{u} and \code{v}. Their results depend upon how they are
-evaluated inside \code{f}.
-
-\begin{lstlisting}
-g <- function(u, v) {
-    f(u, v)
-}
-g(as.environment(-1), as.environment(-1))
-\end{lstlisting}
-% 
-
-R provides other functions for reflective access to call stack frames such as
-\code{parent.frame}, \code{sys.frame}, etc. These functions take into account
-the current evaluation environment to identify the parent caller. A promise
-evaluates the argument expression inside the caller's environment. So, a call to
-\code{parent.frame()} directly inside the argument will use the caller's
-environment to identify the dynamic parent scope. This makes its result
-independent of the point at which the promise is evaluated.
-
-%
-We identified 2710 arguments which directly call \code{as.environment(-1)} and
-\code{pos.to.env(-1)} in our corpus. They correspond to 2 parameters from 2
-functions, \code{R.oo::.getFunctionByName}, and \code{backports:::get0}.
-%
-\code{R.oo:::.getFunctionByName}, searches for a function by
-name in different scopes. Its argument \code{callEnvir}, has a default value of
-\code{as.environment(-1)} which is evaluated by assigning it to \code{envirT}
-before it is passed down to the \code{exists} function.
-%
-\begin{lstlisting}
-function(name, where = c("ns", "search", "ns*"),
-         envir = NULL, callEnvir = as.environment(-1L),
-         class = "function", mustExist = TRUE, ...) {
-    ...
-    envirT <- callEnvir
-    if (exists(name, mode = "function", envir = envirT, inherits = TRUE))
-    ...
-}
-\end{lstlisting}
-%
-\code{backports::get0} looks up a variable in a scope, similar in spirit to
-\code{R.oo:::.getFunctionByName}. This function is always called with the
-default value \code{pos.to.env(-1)} for its \code{envir} argument. Unlike
-\code{R.oo:::.getFunctionByName}, \code{backports:::get0} passes \code{envir}
-unevaluated to \code{mget}. \code{mget} in turn evaluates \code{envir} and looks
-up variable referred to by \code{x} in \code{envir}. Clearly, with the default
-value of \code{envir}, lookup will happen in the environment of
-\code{backports::get0} which only has bindings for its parameters. What makes
-this work is that it is only called from the top-level, with the argument
-\code{inherits} set to \code{TRUE}. This causes \code{mget} to search
-recursively in enclosing scopes beginning from \code{envir} until lookup
-succeeds in the \code{global} environment used for top-level bindings.
-%
-\begin{lstlisting}
-function (x, envir = pos.to.env(-1L), mode = "any",
-          inherits = TRUE, ifnotfound = NULL)  {
-    ....
-    mget(x[1L], envir = envir, mode = mode,
-         inherits = inherits, ifnotfound = list(ifnotfound))[[1L]]
-}
-\end{lstlisting}
-%
-Calls to \code{R.oo:::.getFunctionByName} result in transitively making 1821
-argument lazy. They correspond to 18 parameters from 15 functions of 3 packages.
-We manually analyzed these cases but found that none of these functions pass
-their arguments containing calls to \code{as.environment(-1)} or
-\code{pos.to.env(-1)} to \code{R.oo:::.getFunctionByName}. They are identified
-as lazy because our dynamic analyzer is conservative. When a reflective call
-happens from an argument promise, it taints all the function arguments on the
-stack. This has the effect of making more arguments lazy than needed.
-%
-\code{backports::get0} is invoked from the top-level so it does not result in
-spurious transitive laziness.
-
 \subsubsection{Side-Effects}
 
 \begin{wraptable}{r}{5cm}
@@ -1764,6 +1662,108 @@ because it shows how the error originates in a file reading function from
 \code{base} package making three caller functions transitively responsible.
 
 \AG{TODO: appeal to intuition for lookups since the actual examples are hard to decipher.}
+
+\subsubsection{Reflection}
+
+R allows reflective access to parent scope through \code{as.environment} and
+\code{pos.to.env} functions when called with argument \code{-1}. They return the
+environment of the caller with respect to call in which they are evaluated.
+Consider the following example in which function \code{f} is passed the same
+arguments. Argument \code{x} is evaluated immediately inside \code{f} and
+argument \code{y} is evaluated inside \code{id}. \code{x} evaluates to the
+environment of the parent of \code{f} which is the \code{global} environment,
+whereas \code{y} evaluates to the environment of \code{f} which is the parent
+caller of \code{id}.
+%
+\begin{lstlisting}
+id <- function(a) a
+f <- function(x, y) { x; id(y); }
+f(x = as.environment(-1), y = as.environment(-1))
+\end{lstlisting}
+%
+This implies that strictness of \code{f} with respect to \code{x} and \code{y}
+depends on how \code{f} is called. \code{f} will now be lazy in argument
+\code{y}, otherwise we will end up evaluating inside \code{f}. Erroneously
+evaluating \code{y} strictly would result in an incorrect environment, but not
+an error, which could turn into a debugging nightmare. \code{as.environment} is
+internally implemented using \code{pos.to.env} so the two functions have same
+semantics when called with \code{-1} as the argument.
+
+This can transitively affect the strictness of other function arguments. If
+\code{f} is called from \code{g} as shown below, we will have to make \code{g}
+non-strict in \code{u} and \code{v}. Their results depend upon how they are
+evaluated inside \code{f}.
+
+\begin{lstlisting}
+g <- function(u, v) {
+    f(u, v)
+}
+g(as.environment(-1), as.environment(-1))
+\end{lstlisting}
+% 
+
+R provides other functions for reflective access to call stack frames such as
+\code{parent.frame}, \code{sys.frame}, etc. These functions take into account
+the current evaluation environment to identify the parent caller. A promise
+evaluates the argument expression inside the caller's environment. So, a call to
+\code{parent.frame()} directly inside the argument will use the caller's
+environment to identify the dynamic parent scope. This makes its result
+independent of the point at which the promise is evaluated.
+
+%
+We identified 2710 arguments which directly call \code{as.environment(-1)} and
+\code{pos.to.env(-1)} in our corpus. They correspond to 2 parameters from 2
+functions, \code{R.oo::.getFunctionByName}, and \code{backports:::get0}.
+%
+\code{R.oo:::.getFunctionByName}, searches for a function by
+name in different scopes. Its argument \code{callEnvir}, has a default value of
+\code{as.environment(-1)} which is evaluated by assigning it to \code{envirT}
+before it is passed down to the \code{exists} function.
+%
+\begin{lstlisting}
+function(name, where = c("ns", "search", "ns*"),
+         envir = NULL, callEnvir = as.environment(-1L),
+         class = "function", mustExist = TRUE, ...) {
+    ...
+    envirT <- callEnvir
+    if (exists(name, mode = "function", envir = envirT, inherits = TRUE))
+    ...
+}
+\end{lstlisting}
+%
+\code{backports::get0} looks up a variable in a scope, similar in spirit to
+\code{R.oo:::.getFunctionByName}. This function is always called with the
+default value \code{pos.to.env(-1)} for its \code{envir} argument. Unlike
+\code{R.oo:::.getFunctionByName}, \code{backports:::get0} passes \code{envir}
+unevaluated to \code{mget}. \code{mget} in turn evaluates \code{envir} and looks
+up variable referred to by \code{x} in \code{envir}. Clearly, with the default
+value of \code{envir}, lookup will happen in the environment of
+\code{backports::get0} which only has bindings for its parameters. What makes
+this work is that it is only called from the top-level, with the argument
+\code{inherits} set to \code{TRUE}. This causes \code{mget} to search
+recursively in enclosing scopes beginning from \code{envir} until lookup
+succeeds in the \code{global} environment used for top-level bindings.
+%
+\begin{lstlisting}
+function (x, envir = pos.to.env(-1L), mode = "any",
+          inherits = TRUE, ifnotfound = NULL)  {
+    ....
+    mget(x[1L], envir = envir, mode = mode,
+         inherits = inherits, ifnotfound = list(ifnotfound))[[1L]]
+}
+\end{lstlisting}
+%
+Calls to \code{R.oo:::.getFunctionByName} result in transitively making 1821
+argument lazy. They correspond to 18 parameters from 15 functions of 3 packages.
+We manually analyzed these cases but found that none of these functions pass
+their arguments containing calls to \code{as.environment(-1)} or
+\code{pos.to.env(-1)} to \code{R.oo:::.getFunctionByName}. They are identified
+as lazy because our dynamic analyzer is conservative. When a reflective call
+happens from an argument promise, it taints all the function arguments on the
+stack. This has the effect of making more arguments lazy than needed.
+%
+\code{backports::get0} is invoked from the top-level so it does not result in
+spurious transitive laziness.
 
 \section{\Rsh: Compiling the Lazy Away}\label{sec:rsh}
 
