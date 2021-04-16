@@ -854,10 +854,11 @@ The next step is to identify the order of evaluation of strict arguments. \lazr
 chooses to evaluate arguments in the definition order. This provides a
 consistent order for all calls to the function. However, it is likely that
 callers expect the arguments to be evaluated in the order in which they are
-passed at the callsite. If the arguments are not side-effecting or reflective,
-order of evaluation does not matter. If not, then the callers are relying upon
-how the function is implemented and which path is taken during the course of a
-function's evaluation.
+passed at the call-site. If the argument is side-effecting, then the callers are
+relying upon the function's implementation and the code path exercised by the
+input to evaluate arguments in a specific order. This may not be the same as the
+order in which the arguments are passed. If the arguments are ``pure'', then the
+evaluation order does not matter.
 
 
 \begin{wraptable}{r}{7cm}
@@ -1055,7 +1056,10 @@ pre-ordained order.
 %%of those, XX functions evaluate all of their arguments. Evaluation orders
 %%greater than 5 are rare and are found only in XX functions.
 
-Now, we take a detailed look at the different sources of laziness.
+\subsection{Discussion}
+
+In this section, we present a quantitative and qualitative discussion of the
+different sources of laziness.
 
 There are XXXX $...$ parameters. We unconditionally treat them lazy.
 
@@ -1078,12 +1082,13 @@ There are XXXX $...$ parameters. We unconditionally treat them lazy.
   \end{tabular}
 \end{wraptable}
 
-For metaprogramming, we track calls to \code{substitute} on function arguments
-from R code and \code{PREXPR} macro on promise objects from C code. The results
-are summarized in Table~\ref{table:meta}. There are two interesting observations
-to make from this table. First, metaprogramming is not very common, only 23.2M
-out of 294.25 total arguments are metaprogrammed. Second, metaprogramming is
-dominated by the use of \code{PREXPR} macro on promise objects from C code.
+For capturing uses of metaprogramming, we track calls to \code{substitute} on
+function arguments from R code and \code{PREXPR} macro on promise objects from C
+code. The results are summarized in Table~\ref{table:meta}. There are two
+interesting observations to make from this table. First, metaprogramming is not
+very common, only 23.2M out of 294.25 total arguments are metaprogrammed.
+Second, metaprogramming is dominated by the use of \code{PREXPR} macro on
+promise objects from C code.
 
 For an in-depth discussion on the patterns of use of \code{substitute}, we refer
 the reader to \citet{oopsla19b}. We continue with the exploration of the use of
