@@ -1543,16 +1543,15 @@ spurious transitive laziness.
 Arguments perform side effects when they contain a symbol, or a function call.
 Occasionally, the interpreter wraps arguments inside other arguments which could
 lead to transitive effects. Table ~\ref{table:promexpr} shows the distribution
-of expression type inside side-effecting argument promises and contrasts it
-against all argument promises. Only 0.5\% arguments perform any effect. Out of
-these, 0.39\% contain a function call expression and 0.11\% contain a symbol. As
-expected, arguments containing a value don't perform any effect. All promises
-containing a symbol will perform at least one lookup upon evaluation. Similarly,
-promises containing function calls will perform local side-effects in the
-function's scope. Our algorithm is able to discard most of these ``benign''
-events.
+of expression type inside all and side-effecting arguments. Only 0.5\% arguments
+perform any effect. Out of these, 0.39\% contain a function call expression and
+0.11\% contain a symbol. As expected, arguments containing a value don't perform
+any effect. All promises containing a symbol will perform at least one lookup
+upon evaluation. Similarly, promises containing function calls will perform
+local side-effects in the function's scope. Our algorithm is able to discard
+most of these ``benign'' events.
 
-\begin{table}
+\begin{table}[!h]
   \vspace{-3mm}
   \small
   \caption{Effects} \label{table:effects}
@@ -1571,7 +1570,7 @@ events.
 
 Table~\ref{table:effects} shows the number of effects, lookups (L), definitions
 (D), assignments (A), removals (R), and errors (E) and the number of arguments,
-parameters, functions and packages that are directly responsible for those
+parameters, functions and packages that are ``directly'' responsible for those
 effects. We observe that lookups are the most common cause for making arguments
 lazy. This is followed by definitions and assignments. Removing bindings from
 environments is not a common operation. Errors in argument positions were not
@@ -1581,13 +1580,13 @@ across many packages.
 Comparing the number of events in this table against the total number of events
 from Table~\ref{table:events}, we find that our algorithm is able to filter
 89.4B variable lookups to 3.7M, 20.9B definitions to 1.1M, 7.6B assignments to
-235.8K, 360.7M removals to 2.8K, and 494 errors to 6.
+235.8K, 360.7M removals to 2.8K, and 494 errors to 0.
 
-\begin{table}
+\begin{wraptable}{r}{5cm}
+  \vspace{-3mm}
   \small
-  \begin{minipage}{.3\linewidth}
-  \centering
   \caption{Effect Sequence} \label{table:effectseq}
+  \centering
   \begin{tabular}{lll}
     \toprule
     \textbf{Sequence}&\textbf{Arguments}\\
@@ -1599,8 +1598,18 @@ from Table~\ref{table:events}, we find that our algorithm is able to filter
     (L+D+)+&0.01\%\\
     \bottomrule
   \end{tabular}
-  \end{minipage}%
-  \begin{minipage}{.6\linewidth}
+\end{wraptable}
+
+An argument can perform a combination of effects during
+evaluation.Table~\ref{table:effectseq} shows the sequence of operations
+performed by the arguments in our corpus. Majority of arguments, 99.5\% to be
+precise, do not perform any relevant effect. 0.41\% only perform a sequence of
+lookups, 0.04\% perform a sequence of definitions, 0.03\% perform assignments,
+and 0.01\% perform a sequence of lookups and definitions. From this, we conclude
+that majority of arguments have a simple pattern of events.
+%
+\begin{wraptable}{l}{7cm}
+  \small
   \centering
   \caption{Transitive Effects} \label{table:transeffects}
   \begin{tabular}{llll}
@@ -1614,34 +1623,22 @@ from Table~\ref{table:events}, we find that our algorithm is able to filter
     E&6&6&3\\
     \bottomrule
   \end{tabular}
-  \end{minipage}
-\end{table}
-
-An argument can perform a combination of effects during
-evaluation.Table~\ref{table:effectseq} shows the sequence of operations
-performed by the arguments in our corpus. Majority of arguments, 99.5\% to be
-precise, do not perform any relevant effect. 0.41\% only perform a sequence of
-lookups, 0.04\% perform a sequence of definitions, 0.03\% perform assignments,
-and 0.01\% perform a sequence of lookups and definitions. From this, we conclude
-that majority of arguments have a simple pattern of events.
-%
+\end{wraptable}
 When making side-effecting arguments lazy, we also take transitivity into
 account. Unevaluated side-effecting arguments can be forwarded to callees which
-will make the corresponding callee arguments lazy.
-Table~\ref{table:transeffects} shows the number of parameters that are made
-transitively lazy. These numbers are an upper bound. Our algorithm trades off
-precision for scalability, so when a side-effect happens, it marks all the
-arguments being evaluated as lazy. However, as the numbers indicate, the impact
-of this imprecision is limited.
+will make the corresponding callee arguments lazy. Table~\ref{table:transeffects}
+shows the number of parameters that are made transitively lazy. These numbers
+are an upper bound. Our algorithm trades off precision for scalability, so when
+a side-effect happens, it marks all the arguments being evaluated as lazy.
+However, as the numbers indicate, the impact of this imprecision is limited.
 
-\paragraph{Qualitative Analysis}
+Now turn our attention to a qualitative analysis of code samples.
 
 A common source of non-local writes is the \emph{shiny} package used for
 building interactive webapps in a reactive style. For example, consider the call
 to \code{bindEvent} below which attaches an observer expression \code{x} to an
 event \code{trigger()}. The observer expression performs a non-local side-effect
-using the \code{<<-} super-assignment operator. This operator mutates in the
-parent scope.
+using the \code{<<-} super-assignment operator.
 %
 \begin{lstlisting}
 bindEvent(trigger(), x = observe({\n    vals <<- c(vals, val())\n}))
@@ -1654,8 +1651,8 @@ side-effecting expressions.
 
 Another important source of non-local writes is the use of functions from
 \code{withr} package. It provides a set of functions to evaluate code in
-temporarily modified global state. It is typical of these code blocks to compute
-a value and assign it to the variable in the current scope. We observe
+temporarily modified global state. These code blocks typically compute
+assign their result in the current scope. We observe
 side-effecting expressions passed to \code{with\_dir} which temporarily changes
 the current working directory, \code{with\_envvar} which changes the environment
 variables, \code{with\_locale} which changes the current locale,
@@ -1695,16 +1692,14 @@ expect_that(fe1 <- fixef(fm1), is_equivalent_to(1527.5))
 Since our analysis is conservative, at times we mis-classify arguments when they
 are not performing any visible side-effects.
 
-Now, we discuss some examples where arguments remove a variable from a scope.
-This usually happens when a function calls the \code{base} package's
+Arguments remove a variable from a scope using the \code{base} package's
 \code{remove} or \code{rm} function.
 %
-A frequent pattern that shows up is from the \code{knitr} package. The function
-\code{in_dir} evaluates a code block from an RMarkdown notebook in a specific
-directory. The code block is wrapped in \code{evaluate::evaluate} function which
-sets and removes handlers for intercepting abnormal conditions when evaluating
-the block. The removal of a handler results in a call to the \code{remove}
-function from the \code{base} package of R for removal.
+The function \code{knitr::in_dir} evaluates a code block from an RMarkdown
+notebook in a specific directory. The code block is wrapped in
+\code{evaluate::evaluate} function which sets and removes handlers for
+intercepting abnormal conditions when evaluating the block. The removal of a
+handler results in a call to the \code{remove} function.
 %
 \begin{lstlisting}
 in_dir(input_dir(), evaluate(code, envir = env, ...))
