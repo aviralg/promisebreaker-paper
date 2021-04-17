@@ -29,6 +29,7 @@ all_programs <-
               distinct(stdout_raw, type, package, filename)) %>%
     distinct()
 
+
 exitval_raw <-
     exitval_raw %>%
     pivot_longer(cols = c(`lazy-1`,
@@ -165,6 +166,7 @@ validation_summary <-
 
 validation_summary %>% datatable()
 
+cat(nrow(all_programs))
 cat(baseline_programs)
 
 header <- colnames(validation_summary)
