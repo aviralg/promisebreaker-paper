@@ -300,15 +300,15 @@ guarantee termination on all inputs. As the annotations are based on a
 heuristic, developers must manually validate their soundness. The authors report
 an average 8.5\% speedup (with a maximum speedup of 89\%). \citet{lazyprof}
 solve the complementary problem of suggesting laziness annotations for
-call-by-value $\lambda$ calculus using dynamic analysis. They introduce the
+call-by-value $\lambda$~calculus using dynamic analysis. They introduce the
 notion of laziness potential, a predictor of the benefit obtained by making an
 expression lazy. They use this as a guide to insert laziness annotations. They
 demonstrate benefits on Racket implementations of Okasaki's purely functional
 data structures, monadic parser combinators, and an AI game. Our work is similar
 to Autobahn in that we infer annotations dynamically and we do not guarantee
-soundness. Our work departs from Autobahn in that we use dynamic analysis of
+soundness. We depart from Autobahn in that we use dynamic analysis of
 execution traces to determine strictness. Furthermore, we must deal with
-side-effects and reflective operations, adding extra complexity to our
+side-effects and reflective operations which adds extra complexity to our
 inference algorithm.
 
 \paragraph{The R language} \citet{oopsla19b} investigated the design and use of
@@ -329,8 +329,8 @@ arguments. \citet{oopsla20b} empirically inferred \emph{type} signatures for
 functions by observing the type of arguments and return values. The authors
 validated these signatures by inserting type checking code inside functions and
 monitoring type failures on client programs. This approach inspired our strictness
-inference, but types are easier to check for soundness than strictness. For
-types, one simply inserts code that checks that, if an argument is eventually
+inference, however, types are easier to check for soundness than strictness. For
+types, one simply inserts code that checks that if an argument is eventually
 evaluated, it evaluates to the expected type. For strictness, we have to worry
 about the interplay of side-effects and changes to the order of evaluation of
 arguments. This makes validation of strictness signatures hard.
@@ -370,7 +370,7 @@ definition can include default expressions for parameters, these can refer to
 other parameters. R functions are higher-order. The following snippet declares a
 function \code f which takes a variable number of arguments, whose parameters
 \code x and \code y, if missing, have default expressions \code y and
-\code{3*x}, which are only evaluated when needed. The function returns a closure.
+\code{3*x}, and which are only evaluated when needed. The function returns a closure.
 \begin{lstlisting}
  > f <- function(x=y, ..., y=3*x) { function(z) x+y+z }
 \end{lstlisting}\vspace{1mm}
@@ -385,7 +385,7 @@ used to check if parameter \code{x} was provided at the call site or not, even
 if it was later substituted by a default value. A vararg parameter, written
 \code{...}, accepts an arbitrary number of arguments, including missing
 arguments. A vararg can be materialized into a list with \code{list(...)}. Most
-frequently varargs are passed forward to a called function. This enables the
+frequently varargs are forwarded to a called function. This enables the
 function to expose its callee's interface to the callers without listing the
 callee's parameters and their default values.
 
@@ -400,7 +400,7 @@ a list of names. For instance, \code{class(x)<-"human"} sets the class of
 of a function, whereas the ``S4 object system'' allows dispatch on all
 arguments. These names refer to the version of the S language which introduced
 them. Popular data types, such as data frames, also leverage attributes. A data
-frame is a list of vectors with \code{class} and \code{colname} attributes.
+frame is a list of vectors with the \code{class} and \code{colname} attributes.
 
 \paragraph{Reflection}
 R supports meta-programming. The \code{substitute(e,envir)}
@@ -1043,9 +1043,9 @@ Meta-programming tracks calls to \code{substitute} (from R) and \code{PREXPR}
 (from C code). Out of 294M model arguments, 23M were meta-programmed, the
 majority of those from C code. We refer the reader to \cite{oopsla19b} for a
 discussion of the use of \code{substitute}. We elaborate on \code{PREXPR} since
-it was not addressed there. The macro is used by the bultin functions of the GNU
-R interpreter, a canonical example is the \code{missing} function to check if an
-argument was provided. Many packages also use \code{PREXPR} to extract a
+it was not addressed there. This macro is used by the builtin functions of the
+GNU R interpreter, a canonical example is the \code{missing} function to check
+if an argument was provided. Many packages also use \code{PREXPR} to extract a
 promise's expression for ad-hoc evaluation strategies. We found uses
 \code{igraph}, \code{lazyeval}, \code{rlang} and \code{S4Vectors}. \code{rlang}
 particularly stands out because it provides its own API for meta-programming.
@@ -1067,7 +1067,7 @@ A common pattern is the following:
 This function evaluates \code{y} only if \code{x} is \code{NULL}, making
 \code{y} a \sometimes parameter.
 \noindent
-Another pattern is to delay evaluation of a parameter.
+Another pattern is to delay the evaluation of a parameter.
 
 \begin{lstlisting}
  glue::on_package_load <- function(pkg, expr) {
@@ -1079,12 +1079,12 @@ Another pattern is to delay evaluation of a parameter.
  }
 \end{lstlisting}
 %
-Here, \code{expr} may be delayed until \code{pkg} is loaded. Thus \code{expr}
+Here, \code{expr} may be delayed until \code{pkg} is loaded. Thus, \code{expr}
 should not be evaluated strictly.
 %
 S3 generics result in many \sometimes and \never parameters. These functions
 dynamically dispatch to a specific implementation based on the argument's class.
-In the following example, the first argument is always evaluated but \code{n}
+In the following example, the first argument is always evaluated, but \code{n}
 and \code{m} are only evaluated sometimes and \code{r} never.
 %
 \begin{lstlisting}
@@ -1092,7 +1092,7 @@ and \code{m} are only evaluated sometimes and \code{r} never.
 \end{lstlisting}
 \noindent
 A cause of \never parameters is when a set of functions implements a common
-interface but not all functions need all parameters. The \code{proxy} package
+interface, but not all functions need all parameters. The \code{proxy} package
 defines over a dozen methods with the interface \code{function(a,b,c,d,n)} that
 compute different proximity metrics using a subset of the arguments.
 
@@ -1117,7 +1117,7 @@ went  unused because \code{e} had the right type.
 
 \subsubsection{Side-Effects}
 
-Of all the promised observed by \lazr, only 0.5\% perform side-effects. Many
+Of all the promises observed by \lazr, only 0.5\% perform side-effects. Many
 side-effects are benign for our purposes because they happen in environments
 that are scoped by the evaluation of the promise, the side-effects are ignored.
 
@@ -1134,7 +1134,7 @@ that are scoped by the evaluation of the promise, the side-effects are ignored.
 
 \noindent
 Table~\ref{table:effects} counts lookups (L), definitions (D), assignments (A),
-and removals (R) and the arguments, parameters, functions and packages directly
+and removals (R) and the arguments, parameters, functions, and packages directly
 responsible for those effects. Lookups are the most common cause for making
 arguments lazy. This is followed by definitions and assignments. Removing
 bindings from environments is not a common operation.
@@ -1163,7 +1163,7 @@ assignments to 235K.
 
 An argument can perform a combination of effects during evaluation.
 Table~\ref{table:effectseq} shows the sequence of operations performed by the
-arguments in our corpus. Majority of arguments, 99.5\% to be precise, do not
+arguments in our corpus. The majority of arguments, 99.5\% to be precise, do not
 perform any relevant effect. 0.41\% only perform a sequence of lookups, 0.04\%
 perform a sequence of definitions, 0.03\% perform assignments, and 0.01\%
 perform a sequence of lookups and definitions. From this, we conclude that
@@ -1172,7 +1172,7 @@ majority of arguments have a simple pattern of events.
 A common source of non-local writes is the \c{shiny} package used for building
 interactive web applications. Consider the call to \code{bindEvent} which
 attaches an observer expression to an event. The observer performs a non-local
-side-effect using \code{<<-}, this is a common way to update global state.
+side-effect using \code{<<-}, this is a common way to update the global state.
 %
 \begin{lstlisting}
  bindEvent(trigger(), x=observe({vals <<- c(vals, val())}))
@@ -1206,7 +1206,7 @@ result is assigned to \code{x} before being passed on to the
 \noindent
 Deleting a variable from an environment is done with the \code{rm} function.
 The following function computes the number of rows of a data frame and assigns
-to a variable \code{.N} in the caller's environment. Eventually, it removes the
+it to a variable \code{.N} in the caller's environment. Eventually, it removes the
 variable.
 %
 \begin{lstlisting}
@@ -1441,9 +1441,9 @@ elide it.
 \section{Robustness of inferred signatures} \label{Evaluation:Robustness}
 
 In this section, we evaluate the robustness of strictness signatures generated
-by \lazr. This done by running scripts extracted from 2000 client packages of
+by \lazr. This is done by running scripts extracted from 2000 client packages of
 our corpus. These packages have 4.5M lines of R code and 4.7M lines of native
-code. Table ~\ref{table:clientcorpus} gives numbers scripts and lines of code
+code. Table ~\ref{table:clientcorpus} gives number of scripts and lines of code
 exercised.
 
 \begin{wraptable}{r}{6cm}  \vspace{-3mm}  \small  \centering
@@ -1462,13 +1462,12 @@ scripts whose output was non-deterministic, leaving us with 42K scripts. The
 goal of the next step is to validate if, after applying strictness signatures,
 produce identical outputs.
 
-Comparing output of scripts is standard practice in the R community for
-detecting regressions. There may be difference in execution that are not
-manifest in the output, this may hide some errors, so the results reported here
+Comparing the output of scripts is standard practice in the R community for
+detecting regressions. There may be a difference in execution that is not
+manifest in the output; this may hide some errors, so the results reported here
 should be considered a lower bound.
 
-
-\begin{wraptable}{r}{6cm}
+\begin{wraptable}{r}{5cm}
   \small
   \caption{Strictness Failure} \label{table:strictfail}
   \centering
@@ -1494,31 +1493,31 @@ differences from expected outputs. Each row corresponds to a different set of
 strictness signatures for the corpus. The 9K parameters that were inferred to be
 meta-programmed (M) are always lazy. The 128K parameters that were not marked
 were always strict. For the 36K remaining parameters (those with a combination
-of U, S, R) each row represents a different strictness setting.
+of U, S, R), each row represents a different strictness setting.
 
-For each configuration we report the number and percentage of failing programs.
+For each configuration, we report the number and percentage of failing programs.
 The \emph{+} sign indicates the corresponding parameters is lazy in and \emph{-}
 means strict. For example, in the $+U+S+R$ configuration, any parameter marked
 as either U, S or R, is lazy. Whereas configuration $+U+S-R$, means that any
 parameter marked U or S must be lazy, and configure $-U+S+R$ means that
 parameters marked S and R must be lazy.
 
-\cconfig 0 is the most lazy of the configurations and only 239 scripts out of
-42K have erroneous outputs. The reason for these errors comes from some of the
-unmarked parameters. Consider for instance a library function \c f, that was
+\cconfig 0 is the laziest of the configurations; only 239 scripts out of 42K
+have erroneous outputs. The reason for these errors comes from some of the
+unmarked parameters. Consider, for instance, a library function \c f, that was
 always called without side-effects during inference, and for which there is a
 side-effecting client. \lazr would mark that function as strict, but the client
 may be able to observe the semantic difference. Luckily this is quite rare.
 
 All other configuration are strictly stricter, and thus are likely to experience
 more errors. The case of \config 1 is surprising, as making reflective arguments
-hides 5 errors. This is an outlier that should be elucidated.
+hides 5 errors. This is an outlier that should be elided.
 
 At the extremum, \config 7 makes all parameters marked either U, S or R, strict.
 This leads to 16\% of failures which is rather high. This suggests a substantial
 amount of accidental laziness which can be observed.
 
-One takeway from this evaluation is that unevaluated parameters (U) have only a
+One takeaway from this evaluation is that unevaluated parameters (U) have only a
 small impact on correctness, while S and R are the sources of most errors.
 
 From the results, we conclude that it safest to use \config 0 as a starting
@@ -1529,9 +1528,9 @@ arguments result in many failures.
 
 \section{Conclusion}\label{sec:conclusion}
 
-In R, function arguments are not evaluated at the call-site, instead the
+In R, function arguments are not evaluated at the call-site, instead, the
 evaluation is suspended until the callee needs them. The definition of
-\emph{need} is quite liberal here, as for example local re-binding, returning,
+\emph{need} is quite liberal here, as for example, local re-binding, returning,
 and many builtin functions are strict. As was reported in previous work, this
 leads to many programs being on the eager side of the spectrum for a lazy
 language. Why is R lazy at all? It turns out that allowing users to reflectively
@@ -1546,10 +1545,10 @@ R into a mostly strict mode, the \Rsh just-in-time compiler ran
 \speedupRshStrict faster through our benchmarks without any further changes.
 Taken everything into account, we believe that R should be strict by default,
 giving package authors the option to opt-in to laziness. We provide a strategy
-for R as an ecosystem to get there, by automatically inferring robust strictness
+for R as an ecosystem to get there by automatically inferring robust strictness
 signatures for package code. These signatures try to capture the desired and
 accidental laziness of arguments passed to R packages, thereby allowing most of
-the client code to run unchanged --- in our experiments only \robustnesResult of
+the client code to run unchanged --- in our experiments, only \robustnesResult of
 all depending packages tests failed. Such automatically generated strictness
 signatures can then subsequently be refined by the package authors and users.
 The change to the language would be beneficial in several ways. Implementations
