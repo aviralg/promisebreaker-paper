@@ -463,8 +463,8 @@ only provides a small interface for operating on promises:
 \item[] {\hskip -1em \bf\small\code{force(x)}}: forces the promise \code x. This
   replaces a common programming idiom, \code{x<-x}, which forces \code x by
   assigning it to itself.
-\item[] {\hskip -1em \bf\small\code{forceAndCall(n,f,...)}}: call \code{f} with
-  the arguments specified in the varargs of which the first \code{n} are forced
+\item[] {\hskip -1em \bf\small\code{forceAndCall(n,f,...)}}: calls \code{f} with
+  the arguments specified in the varargs, of which the first \code{n} are forced
   before the call.
 \end{itemize}
 
