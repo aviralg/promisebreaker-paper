@@ -710,12 +710,12 @@ parameter must be evaluated lazily. These are the signals that we use:
   of intrinsic laziness. It is weaker than M as we do not know if the contract
   of the function is to be lazy in that parameter.
 \item [{\bf S}:] Some arguments may have observable \emph{side-effects}. This is
-  a weak signal of accidental strictness as some effects may be benign.
+  a weak signal of accidental laziness as some effects may be benign.
 \item[{\bf R}:] Some arguments may use \emph{reflection} to observe the state of
-  the call stack. This is also a signal of accidental strictness.
+  the call stack. This is also a signal of accidental laziness.
 \end{itemize}
 \noindent
-While we cannot assess intent, our goal is not to break client code, \ie
+While we cannot assess intent, our goal is to not break client code, \ie
 identify laziness required to preserve the result, regardless of whether it is
 accidental or not.
 
@@ -733,7 +733,7 @@ are marked as M.
 
 \paragraph{Side-Effects (S)}
 There are three categories of effects we are interested in: reads of variables
-in environments, writes (definitions, update, and removal) of variables, and
+in environments, writes (definitions, updates, and removals) of variables, and
 errors.
 
 For any write, \lazr checks if there is an active promise on the call stack; if
@@ -776,27 +776,27 @@ slightly imprecise.
 \newpage
 \subsection{Scaling to collections of scripts}
 
-The final result of analyzing a single R script is a table summarizing for each
+The final result of analyzing a single R script is a table summarizing, for each
 function and each argument, which signals were observed. Multiple scripts can be
 straightforwardly merged as the union of signals for each parameter.
 
-The data that has to be analyzed can reach the multi-terabyte size. \lazr adopts
+The amount of data that has to be analyzed can reach multi-terabyte sizes. \lazr adopts
 a simple map-reduce style. Each analysis is split in 4 phases. The reduce maps
 a function on the output of one trace to get a partial summary. The combine
 phase concatenates partial summaries. Then, the summarize phase aggregates
 summaries into a result table. At this point, the file is less than 100MB in
-size. Finally, the report phase creates graphs, and tables for inclusion in
+size. Finally, the report phase creates graphs and tables for inclusion in
 the paper.
 
 The \lazr pipeline is set up with a container image that includes all the
 dependencies for installing analysis code and R packages. This provides a
-reliable reproducible setup across machines. To run it, we mirror CRAN and
+reliable reproducible setup across machines. To run it, we mirror the CRAN and
 Bioconductor repositories and install their R packages. This is followed by the
 generation of execution traces. These traces are analyzed to generate tabular
 data files and strictness signatures. Our analysis pipeline is managed by a
 Makefile that has rules for every step. This makes it easy to administer the
 experiments on multiple machines. Whenever possible, we parallelize the steps
-using GNU parallel~\cite{gnuparallel}. Experiments were performed on two Intel
+using GNU parallel~\cite{gnuparallel}. Our experiments were performed on two Intel
 Xeon 6140, 2.30GHz machines with 72 cores and 256GB of RAM each.
 
 \subsection{Selecting a corpus}\label{sec:corpus}
@@ -805,7 +805,7 @@ For this paper, a corpus of 500 packages from CRAN~\cite{ligges2017} and
 Bioconductor~\cite{bioc} was selected based on their number of clients,
 \emph{i.e.}, the packages which are the most widely used in the ecosystem. The
 chosen packages have a total of 15,362 clients. The most widely used package,
-\c{ggplot2}, has 2,669 clients and, the package with the fewest clients in our
+\c{ggplot2}, has 2,669 clients, and the package with the fewest clients in our
 corpus, \c{spatstat.linnet}, has 5. The selected 500 packages have 2.2M lines of
 R code and 2.7M lines of native code. For synthesizing signatures for their
 functions, \lazr extracts all executable artifacts from each package.
@@ -917,17 +917,17 @@ functions.
 %% \end{table}
 
 During execution, \lazr collects information about function calls, arguments,
-side-effects, and reflective environment access from the model objects provided.
+side-effects, and reflective environment accesses from the model objects provided.
 This information is stored in compressed tabular format using R's \c{fst}
-library. To give an idea of the scale of the analysis
+library. To give an idea of the scale of the analysis,
 Table~\ref{table:allocations} presents the number of model objects for which
 \lazr recorded information.
 
-The packages in the corpus have 50,435 top-level functions We ignore anonymous
+The packages in the corpus have 50,435 top-level functions. We ignore anonymous
 and inner functions. Table~\ref{table:packsize} shows the distribution of these
 functions across packages. We observe that 148 packages have 25 functions or
 less. As expected, there is a steady decrease in packages with more functions.
-There are 12 packages with more than 500 functions. Package \emph{spatstat.geom}
+There are 12 packages with more than 500 functions. The \c{spatstat.geom} package
 has the maximum number of functions, 886.
 
 \begin{wraptable}{r}{8cm}
@@ -966,18 +966,18 @@ has the maximum number of functions, 886.
 
 
 We observe 137.2M calls to these functions. Figure ~\ref{fig:callDist} shows the
-number of distribution of calls across functions called in the synthesis
-phase. 49.5\% functions are called more than ten times. 16.4\% functions are
+distribution of calls across functions called in the synthesis
+phase. 49.5\% of functions are called more than ten times. 16.4\% of functions are
 called only once, leading to low coverage. These functions are spread across 414
 packages.
-We observe 294.45M arguments created in our execution traces. Of those 3.9M are
+We observe 294.45M arguments created in our execution traces. Of those, 3.9M are
 missing, 18.9M are $...$ arguments, and 271.6M are promises. These arguments
 correspond to 185.9K parameter positions of the 50,435 functions for which we
 generate signatures.
-7.3\% functions have 0 parameters, 19.6\% have 1, and 5.0\% have over 10. There
+7.3\% of functions have 0 parameters, 19.6\% have 1, and 5.0\% have over 10. There
 are 15 functions with over 50 parameters that come from 10 packages. Of those,
-\c{rpart.plot::check.if.dot.arg.supported.by.rpart.rules} has the highest, 122
-parameters.
+\c{rpart.plot::check.if.dot.arg.supported.by.rpart.rules} has the highest number,
+122 parameters.
 %
 \begin{figure}[!h]
   \centering
