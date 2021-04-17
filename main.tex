@@ -994,7 +994,7 @@ signals (M, U, S, R) for individual parameters. There were 9,100 parameters that
 were marked M for meta-programmed. Table~\ref{table:strictdist} summarizes the
 distribution of the combination of the other signals; note that functions and
 packages can be counted in multiple rows as different parameters fall in
-multiple categories. Rows can be interpreted as follows, the first row, for
+multiple categories. Rows can be interpreted as follows: the first row, for
 instance, shows that 128K parameters coming from 44K functions and 489 packages
 were not marked in any way. The second row shows that only 134 parameters
 were marked R only for their use of reflective operations.
@@ -1002,10 +1002,10 @@ were marked R only for their use of reflective operations.
 The data yields the following insights. First, the majority of parameters, 65\%,
 are always evaluated, and the corresponding arguments do not perform
 side-effects or reflective operations. They can become strict. Of the remaining,
-there are 13\% unevaluated parameters, the most significant potential source of
+there are 13\% of unevaluated parameters, the most significant potential source of
 laziness. This is followed by 4\% of parameters whose arguments are marked S
-only. Everything else is quite small. Another observation is that rows marked R
-come from very few functions and packages.
+only. The rest of the configurations are quite low. Another observation is that
+rows marked R come from very few functions and packages.
 
 \begin{table}
   \vspace{-3mm}
@@ -1029,7 +1029,7 @@ come from very few functions and packages.
 \end{table}
 
 The inferred strictness signatures for library functions use these marks to
-decide which arguments should be lazy and which ones should be strict. While any
+decide which arguments should be lazy and which should be strict. While any
 parameter marked M \emph{must} be lazy, there is some freedom to decide for the
 other combinations. Our evaluation will probe the different configurations and
 show the error rates they may have.
@@ -1042,18 +1042,18 @@ We now discuss the different sources of laziness in more detail.
 
 Meta-programming tracks calls to \code{substitute} (from R) and \code{PREXPR}
 (from C code). Out of 294M model arguments, 23M were meta-programmed, the
-majority of those from C code. We refer the reader to \cite{oopsla19b} for a
+majority of those from C code. We refer the reader to \citet{oopsla19b} for a
 discussion of the use of \code{substitute}. We elaborate on \code{PREXPR} since
 it was not addressed there. This macro is used by the builtin functions of the
 GNU R interpreter, a canonical example is the \code{missing} function to check
 if an argument was provided. Many packages also use \code{PREXPR} to extract a
-promise's expression for ad-hoc evaluation strategies. We found uses
+promise's expression for ad-hoc evaluation strategies. We found uses in
 \code{igraph}, \code{lazyeval}, \code{rlang} and \code{S4Vectors}. \code{rlang}
 particularly stands out because it provides its own API for meta-programming.
 
 \subsubsection{Unevaluated Arguments}
 
-Of the 294M total arguments in our corpus, 30M promises were not evaluated. They
+Of the 294M total arguments in our corpus, 30M of promises were not evaluated. They
 correspond to 28K parameters. We can classify these parameters into two
 categories: parameters that are \sometimes evaluated and parameters that are
 \never evaluated. There are 16K \sometimes parameters and 12K \never parameters.
@@ -1092,7 +1092,7 @@ and \code{m} are only evaluated sometimes and \code{r} never.
  abind::acorn <- function(x, n=6, m=5, r=1, ...) UseMethod('acorn')
 \end{lstlisting}
 \noindent
-A cause of \never parameters is when a set of functions implements a common
+One source of \never parameters is when a set of functions implements a common
 interface, but not all functions need all parameters. The \code{proxy} package
 defines over a dozen methods with the interface \code{function(a,b,c,d,n)} that
 compute different proximity metrics using a subset of the arguments.
@@ -1120,7 +1120,7 @@ went  unused because \code{e} had the right type.
 
 Of all the promises observed by \lazr, only 0.5\% perform side-effects. Many
 side-effects are benign for our purposes because they happen in environments
-that are scoped by the evaluation of the promise, the side-effects are ignored.
+that are scoped by the evaluation of the promise, and the side-effects are ignored.
 
 \begin{table}[!h]  \vspace{-3mm}  \small
   \caption{Effects} \label{table:effects} \centering
@@ -1135,13 +1135,13 @@ that are scoped by the evaluation of the promise, the side-effects are ignored.
 
 \noindent
 Table~\ref{table:effects} counts lookups (L), definitions (D), assignments (A),
-and removals (R) and the arguments, parameters, functions, and packages directly
+and removals (R), and the arguments, parameters, functions, and packages directly
 responsible for those effects. Lookups are the most common cause for making
 arguments lazy. This is followed by definitions and assignments. Removing
 bindings from environments is not a common operation.
 %
 Comparing the number of events in this table against the total number of events,
-we narrow 89B variable lookups down to 3.7M, and 20B definitions to 1.1M and 7B
+we narrow 89B variable lookups down to 3.7M, 20B definitions to 1.1M, and 7B
 assignments to 235K.
 
 \begin{wraptable}{r}{5cm}
@@ -1168,7 +1168,7 @@ arguments in our corpus. The majority of arguments, 99.5\% to be precise, do not
 perform any relevant effect. 0.41\% only perform a sequence of lookups, 0.04\%
 perform a sequence of definitions, 0.03\% perform assignments, and 0.01\%
 perform a sequence of lookups and definitions. From this, we conclude that
-majority of arguments have a simple pattern of events.
+the majority of arguments have a simple pattern of events.
 
 A common source of non-local writes is the \c{shiny} package used for building
 interactive web applications. Consider the call to \code{bindEvent} which
@@ -1246,8 +1246,8 @@ called from \code{g} as shown below, we will have to make \code{g} non-strict in
 \end{lstlisting}
 %
 \noindent
-R provides other functions for reflective stack access, \code{parent.frame},
-\code{sys.frame}, but they are less brittle they access frames relative to the
+R provides other functions for reflective stack access, \code{parent.frame} and
+\code{sys.frame}; these are less brittle as they access frames relative to the
 promise's creation environment.
 
 We identified 2710 arguments which call \code{as.environment(-1)} and
@@ -1267,7 +1267,7 @@ a default value of \code{as.environment(-1)}.
 \section{\Rsh: Compiling the Lazy Away}\label{sec:rsh}
 
 In this section we report on our experiments to evaluate the implications of
-eagerness on an implementations of R. To that end we modified \Rsh, a just-in-time
+eagerness on an implementation of R. To that end we modified \Rsh, a just-in-time
 compiler for the language. \Rsh is based on the GNU R reference implementation
 and introduces an additional two-tiered compilation strategy. The
 first tier is realized by a naive bytecode interpreter, the second tier
@@ -1282,17 +1282,17 @@ to elide promises (as long as the default semantics allows it).
 To conduct our evaluation, we changed the first-tier
 compiler to eagerly evaluate all arguments at all call-sites, except for a
 manually curated list of exceptions. This eager bytecode also serves as the source
-code for the optimizing tier. In the following we will refer
+code for the optimizing tier. In the following text we refer
 to our implementation as \Rshstrict.
 
 Our main hypothesis regarding performance is that eager semantics lead to faster
 execution of R programs. This hypothesis might seem unexpected to some readers,
 as call-by-need is sometimes used to avoid unnecessary computation in a program.
 On the other hand, delaying computations is more complex to implement and we
-observed it to obstruct performance in two ways: First, it leads to more
+observed it to obstruct performance in two ways. First, it leads to more
 allocations of promises used to represent the delayed computation. Second, in
 combination with effects potentially originating from promises, it obstructs
-more advanced compiler analysis and optimizations. Thus, we expect the hypothesis
+more advanced compiler analyses and optimizations. Thus, we expect the hypothesis
 to also hold for a just-in-time compiler that uses advanced optimizations.
 In particular, we pose the following predictions:
 (1) eager semantics should improve performance of most benchmarks, for both tiers
@@ -1310,16 +1310,16 @@ each benchmark. As should be no surprise given the results presented so far,
 only a handful of functions, such as
 \lstinline{tryCatch}, had to be kept lazy for all the benchmarks to compute
 the correct results.
-All of the following experiments are run on a dedicated benchmark machine, with
+All of the following experiments are run on a dedicated benchmarking machine, with
 all background tasks disabled. The system features an Intel i7-6700K CPU, stepping 3,
 microcode 0xe2 with 4 cores and 8 threads. The system has 32 GB of RAM and is
 running Ubuntu 18.04 on a 4.15.0-136 Linux kernel. For ease of use, experiments
 are built as containers, based on Ubuntu 20.04, and executed on
 the Docker runtime 20.10.5, build 55c4c88. We verified the overhead introduced by
 the containerization to be uniform. All measurements are recorded repeatedly and we
-keep a historical record to spot unstable behavior. This lead us to exclude the
+keep a historical record to spot unstable behavior. This led us to exclude the
 \lstinline{convolution} benchmark from the suite, which appears to have a
-bi-modal performance profile, likely caused by the llvm backend of \Rsh.
+bi-modal performance profile, likely caused by the LLVM backend of \Rsh.
 
 Performance measurements are gathered by running $t_e$ invocations of \Rsh on
 each benchmark. Within each invocation we measure the execution time of $t_i$
@@ -1355,6 +1355,7 @@ For \speedupRshStrictSignificant out of \benchmarkSuiteSize benchmarks we measur
   \label{fig:speedup-bc}
 \end{figure}
 %
+
 Then, we repeated the performance experiment, but with the second tier
 optimizer completely disabled. Since this variant executes overall \rshBCSlowdown
 slower, we chose to only run with $t_e = 1, t_i = 15$.
@@ -1363,7 +1364,7 @@ interpreter also gains a speedup of \speedupBCRshStrict, ranging from
 \speedupBCRshStrictMin to \speedupBCRshStrictMax.
 %
 Thus, we conclude that in our benchmark suite both a naive interpreter and a speculatively
-optimizing native compiler, achieve better performance on a strict dialect of R.
+optimizing native compiler achieve better performance on a strict dialect of R.
 Even though the speedup is very similar in numbers, the reasons seem to be
 different at times. We will get back to that point in the discussion at the end of
 this section.
@@ -1380,7 +1381,7 @@ this section.
 We measure the number of promises allocated in the
 benchmark suite per iteration for GNU R, \Rsh and \Rsh-strict. The results are shown in
 \autoref{fig:gc-pressure}. The first jump from GNU R's bytecode interpreter to
-the optimizing just-in-time compiler \Rsh, leads to an \promiseAlocationReductionGnurRsh
+the optimizing just-in-time compiler \Rsh, leads to a \promiseAlocationReductionGnurRsh
 reduction in allocations. The second step
 from lazy to eager semantics leads to \promiseAlocationReductionRshStrictToZero
 benchmarks not allocating any promises at all. On the remainder we see an additional
@@ -1432,7 +1433,7 @@ which showed in both interpreter and compiler a speedup of about $1.5\times$ in
 the strict mode. In native, the execution time decreased from 79ms to 53ms. In
 the interpreter, time went from 143ms to 97ms per iteration. In the former case,
 the speedup comes from the effects described above; for the latter, part of the
-speedup is due to a better optimizations. Previously the local environment of
+speedup is due to better optimizations. Previously the local environment of
 the innermost function was live. Thanks to eager evaluation of the arguments,
 the argument promises do not leak the environment and therefore \Rsh is able to
 elide it.
