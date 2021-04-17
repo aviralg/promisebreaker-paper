@@ -414,11 +414,11 @@ substitutions defined by the bindings in \code{envir}.
 \noindent
 Extensions written in C are able to freely access and mutate the expression, as
 well as the memoized result of promises. R allows programmatic manipulation of
-parse trees, which are themselves first class objects. They are evaluated using
+parse trees, which are themselves first-class objects. They are evaluated using
 the \code{eval(e,envir)} function. In R the local scope of a closure is a
 first-class, mutable map. It is possible to access the local environment, but
 also to reflectively extract the environments of all functions currently being
-present on the call-stack.
+present on the call stack.
 
 \paragraph{Effects} While R strives to be functional, it has many imperative
 features such as assignment to local variables \code{<-}, assignment to
@@ -482,8 +482,7 @@ strict.
 We refer to the R language extended with strictness signatures as \strictr, to
 differentiate it from the GNU R reference implementation. To achieve the
 expected semantics, we have implemented an R package, also named \strictr,
-which, when loaded, causes strictness signatures to be applied to all loaded
-code.
+which, when loaded, applies strictness signatures to all loaded code.
 
 \paragraph{Signature files.}
 A signature file contains strictness signatures for functions of one or more
@@ -494,7 +493,7 @@ the form
 \mathit{sig}~~::=~~\mathsf{strict}~\mathsf{`pack}::\mathsf{fun`}~~\langle i, j, k, \dots\rangle
 \]
 %
-Here {\sf pack} is the name of the package in which the function occurs and {\sf
+Here {\sf pack} is the name of the package in which the function occurs and, {\sf
   fun} is its name. The sequence of integers specifies which argument positions
 are evaluated lazily.
 
@@ -517,24 +516,24 @@ which conditionally defines and then re-defines \c f.
 \paragraph{Applying signatures.}
 To apply signatures in the GNU R reference implemetation, \strictr performs
 source-to-source rewriting of functions as they are loaded. The rewriting is
-simple, each function must \c{force} every argument that was not declared lazy.
-Before forcing arguments, they are checked for missingness, if they are either
-not missing or are missing but have a default value, then \c{force} is called.
-Signature files are usually stored in a directory containing one file per package.
-Providing signatures in external files avoids the need to modify the source code
-of programs. This also enables easy experimentation with different signature
-configurations. The implementation uses a feature of R that allows to register
-callbacks when packages are loaded. \strictr registers a callback which reads
-the signature file in the current directory or on the load path. Then, as
-functions are defined, \strictr injects code in the function in accordance with
-the signature.
-Our first implementation mutated function bodies. This resulted in failures as
-the same function object can occur with different names and different
-signatures. For instance, in the \code{rlang} package, \code{is_same_body <<-
-  is_reference} aliases \code{is_reference}. Mutating \code{is_reference} to
-make arguments strict inadvertently also makes the function \code{is_same_body}
-strict. Further discussion will clarify why this is undesirable. Suffice it to
-say that \strictr now copies functions as it rewrites them.
+simple; each function must \c{force} every argument that was not declared lazy.
+Arguments are checked for missingness before forcing; if they are either not
+missing or are missing but have a default value, then \c{force} is called.
+Signature files are usually stored in a directory containing one file per
+package. Providing signatures in external files avoids the need to modify the
+source code of programs and also enables easy experimentation with different
+signature configurations. The implementation uses a feature of R that allows
+registering callbacks when packages are loaded. \strictr registers a callback
+that reads the signature file in the current directory or on the load path.
+Then, as functions are defined, \strictr injects code in the function in
+accordance with the signature. Our first implementation mutated function bodies.
+This resulted in failures as the same function object can occur with different
+names and different signatures. For instance, in the \code{rlang} package,
+\code{is_same_body <<- is_reference} aliases \code{is_reference}. Mutating
+\code{is_reference} to make arguments strict inadvertently also makes the
+function \code{is_same_body} strict. Further discussion will clarify why this is
+undesirable. Suffice it to say that \strictr now copies functions as it rewrites
+them.
 
 \paragraph{Extended signature.}
 As an alternative to signature files, we implemented an R annotation package
@@ -571,18 +570,18 @@ this argument is evaluated in special cases where it is expected to perform a
 reflective or effectful operation, it may still be possible to make the argument
 strict at the developer's discretion.
 
-\paragraph{Accidental laziness.} In order to preserve behavior of legacy code,
-some parameters will be labeled as lazy even if this is not required by the
-called function. An argument that performs a side-effect will be treated as lazy
-to retain semantics. For instance in the call \c{f(g(),x<-1)},
-function \c f is free to evaluate is arguments in any other. Enforcing one
-particular order may lead to observable differences in behavior, \eg if the call to
-\c{g()} reads \c{x}. Writing such code is bad form, as small changes in the
-implementation of \c f may break it. R has a call-by-value semantics for vectors
-and lists. These are the most frequently used data types, so many updates will
-be locally contained. Errors and exception are another source of effects inside
-promises. Some reflective functions can make evaluation of a promise sensitive to
-its position on the call stack, and strict evaluation would be observable:
+\paragraph{Accidental laziness.} In order to preserve the behavior of legacy
+code, some parameters will be labeled as lazy even if the called function does
+not require this. An argument that performs a side-effect will be treated as
+lazy to retain semantics. For instance in the call \c{f(g(),x<-1)}, function \c
+f is free to evaluate is arguments in any other. Enforcing one particular order
+may lead to observable differences in behavior, \eg if the call to \c{g()} reads
+\c{x}. Writing such code is bad form, as small changes in the implementation of
+\c f may break it. R has a call-by-value semantics for vectors and lists. These
+are the most frequently used data types, so many updates will be locally
+contained. Errors and exception are another source of effects inside promises.
+Some reflective functions can make evaluation of a promise sensitive to its
+position on the call stack, and strict evaluation would be observable:
 \code{as.environment} and \code{pos.to.env} use integers to access specific
 frames on the stack. It is worth noting, again, that such code is brittle as any
 changes in the implementation of the target function can change the frame
@@ -594,28 +593,28 @@ for the individual elements. This happens in object-oriented dispatch where the
 vararg is forwarded from the dispatcher to the target method. One solution would
 be to make vararg strict if it is strict in all of its constituents. However,
 this may not occur frequently enough to justify the added complexity. The
-current choice is pragmatic but imprecise, we are considering options for more
+current choice is pragmatic but imprecise; we are considering options for more
 accurate treatment of varargs.
 
 
-\paragraph{Order of evaluation} A design choice we faced in our
-implementation was to select an evaluation order for strict arguments. One
-possibility would be to retain the evaluation order of the function, in case it
-is unique. But this has the disadvantage of being rather obscure to programmers.
-Another reasonable choice, which is implemented in our compiler extension, would
-be to evaluate strict arguments left-to-right at the call site and then evaluate
-strict default values left-to-right in the function prologue. This is likely to
-be natural to end-users who write the function call, and thus have control over the
-order in which they pass arguments and can reason about their potential side
-effects. In the GNU R implementation of \strictr, we picked a third alternative.
-We evaluate all arguments left-to-right in the order of definition in the
-function signature. This means that end users need to know in what order
-arguments are defined, something that can be awkward as functions can have
-upward of 20 arguments. The reason for this choice is that \strictr rewrites
-functions and not call sites, because at a call site we
-can't know which function is being called.\footnote{Shortly before submission we
-realized that we could implement the same semantics as the compiler. GNU R keeps a
-\c{PROMARGS} list which stores promises in the same order as at the call site.}
+\paragraph{Order of evaluation} A design choice we faced in our implementation
+was to select an evaluation order for strict arguments. One possibility would be
+to retain the evaluation order of the function, in case it is unique. But this
+has the disadvantage of being rather obscure to programmers. Another reasonable
+choice, which is implemented in our compiler extension, would be to evaluate
+strict arguments left-to-right at the call site and then evaluate strict default
+values left-to-right in the function prologue. This is likely to be natural to
+end-users who write the function call, and thus have control over the order in
+which they pass arguments and can reason about their potential side effects. In
+the GNU R implementation of \strictr, we picked a third alternative. We evaluate
+all arguments left-to-right in the order of definition in the function
+signature. This means that end-users need to know in what order arguments are
+defined, something that can be awkward as functions can have upward of 20
+arguments. The reason for this choice is that \strictr rewrites functions and
+not call sites, because at a call site we can't know which function is being
+called.\footnote{Shortly before submission, we realized that we could implement
+  the same semantics as the compiler. GNU R keeps a \c{PROMARGS} list which
+  stores promises in the same order as at the call site.}
 
 \newpage%% Don't mess with me.
 \section{LazR: Inferring Strictness Signatures}\label{sec:lazr}
@@ -713,7 +712,7 @@ parameter must be lazily evaluated. These are the signals that we use:
 \item [{\bf S}:] Some arguments may have observable \emph{side-effects}. This is
   a weak signal of accidental strictness as some effects may be benign.
 \item[{\bf R}:] Some arguments may use \emph{reflection} to observe the state of
-  the call-stack. This is also a signal of accidental strictness.
+  the call stack. This is also a signal of accidental strictness.
 \end{itemize}
 \noindent
 While we cannot assess intent, our goal is to not break client code, \ie
@@ -737,7 +736,7 @@ There are three categories of effects we are interested in: reads of variables
 in environments, writes (definitions, update, and removal) of variables, and
 errors.
 
-For any write, \lazr check if their is an active promise on the call-stack, if
+For any write, \lazr check if their is an active promise on the call stack, if
 not the write is ignored. Then it checks if the write is \emph{visible}, a write
 is only visible if the environment being updated pre-dates the promise being
 evaluated. Writes that are not visible, are ephemeral and cannot be observed. If
