@@ -118,7 +118,7 @@
   that infers strictness signatures for functions to capture both intentional
   and accidental laziness. To assess the robustness of the inferred signatures
   we tested them on 2,000 R packages and found that inference was wrong in only
-  0.56\% of the client programs . Finally, we report on the potential for
+  \robustnesResult of the client programs. Finally, we report on the potential for
   performance improvements due to strictness. By modifying a just-in-time
   compiler to remove promises, we achieved an average speedup of
   \speedupRshStrict.
@@ -159,7 +159,7 @@
 \maketitle
 \section{Introduction}
 
-The R programming language is widely used in data science. Apparently,
+The R programming language is widely used in data science. Apparently
 unbeknownst to many of its end-users, function calls have lazy semantics:
 arguments are suspended computations that are evaluated if and when they are
 needed. \citet{oopsla19b} provided a thorough observational study of a corpus of
@@ -180,13 +180,13 @@ and costly! The combination of delayed evaluation and side-effects in a language
 without type annotations is an invitation to subtle errors. If a function that
 has multiple evaluation orders is called with effectful arguments, their effects
 will be observed to happen randomly. Functional languages prevent this by reflecting
-effects in their type system. R developers cannot do this, instead, they
-routinely add code to force evaluation at the boundaries of libraries. The design
-of laziness is inconsistent because there are multiple points where evaluation
-is arbitrarily forced, \emph{e.g}, right-hand side of assignments and function
+effects in their type system. R developers cannot do this. Instead, they
+routinely add code to force evaluation at library boundaries. The design
+of laziness is inconsistent as there are multiple points where evaluation
+is arbitrarily forced, \emph{e.g}, the right-hand side of assignments and function
 returns. To support object-oriented multiple dispatch, all dispatched arguments
-are evaluated eagerly. Last, there are costs to laziness. Each argument must be
-boxed in a data structure with the expression to evaluate, its environment and
+are evaluated eagerly. Lastly, there are costs to laziness. Each argument must be
+boxed in a data structure containing the expression to evaluate, its environment and
 space for the result. Allocating and deallocating these data structures puts
 pressure on the memory manager. Delayed evaluation also hinders compiler
 optimizations and increases indirections.
@@ -212,7 +212,7 @@ with the following characteristics.
 \vspace{1mm}
 \begin{compactitem}[---]
 \item {\bf T1:} Our extensions to the R syntax and semantics are non-invasive.
-  The behavior expected by most users closely aligns to strict semantics. Our
+  The behavior expected by most users closely aligns with strict semantics. Our
   extension does not require changes in end-user code. For libraries, strictness
   signatures come as external files.
 \item {\bf T2:} We propose to infer annotations for legacy library code. R
