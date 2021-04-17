@@ -493,7 +493,7 @@ the form
 \mathit{sig}~~::=~~\mathsf{strict}~\mathsf{`pack}::\mathsf{fun`}~~\langle i, j, k, \dots\rangle
 \]
 %
-Here {\sf pack} is the name of the package in which the function occurs and, {\sf
+Here, {\sf pack} is the name of the package in which the function occurs, and {\sf
   fun} is its name. The sequence of integers specifies which argument positions
 are evaluated lazily.
 
@@ -509,6 +509,7 @@ which conditionally defines and then re-defines \c f.
  merge.zoo <- function(all) {
    f <- if (any(all)) function(a, ret.zoo) # { ... }
         else            function(a, ret.zoo) # { ... }
+   # ...
    f <- function(i) # { ... }
  }
 \end{lstlisting}
@@ -574,17 +575,17 @@ strict at the developer's discretion.
 code, some parameters will be labeled as lazy even if the called function does
 not require this. An argument that performs a side-effect will be treated as
 lazy to retain semantics. For instance in the call \c{f(g(),x<-1)}, function \c
-f is free to evaluate is arguments in any other. Enforcing one particular order
+f is free to evaluate is arguments in any order. Enforcing one particular order
 may lead to observable differences in behavior, \eg if the call to \c{g()} reads
 \c{x}. Writing such code is bad form, as small changes in the implementation of
 \c f may break it. R has a call-by-value semantics for vectors and lists. These
 are the most frequently used data types, so many updates will be locally
-contained. Errors and exception are another source of effects inside promises.
+contained. Errors and exceptions are another source of effects inside promises.
 Some reflective functions can make evaluation of a promise sensitive to its
 position on the call stack, and strict evaluation would be observable:
 \code{as.environment} and \code{pos.to.env} use integers to access specific
 frames on the stack. It is worth noting, again, that such code is brittle as any
-changes in the implementation of the target function can change the frame
+change in the implementation of the target function can change the frame
 returned by the reflective calls.
 
 Vararg arguments currently remain lazy. Assigning a single strictness annotation
@@ -599,7 +600,7 @@ accurate treatment of varargs.
 
 \paragraph{Order of evaluation} A design choice we faced in our implementation
 was to select an evaluation order for strict arguments. One possibility would be
-to retain the evaluation order of the function, in case it is unique. But this
+to retain the evaluation order of the function if it is unique, but this
 has the disadvantage of being rather obscure to programmers. Another reasonable
 choice, which is implemented in our compiler extension, would be to evaluate
 strict arguments left-to-right at the call site and then evaluate strict default
@@ -613,7 +614,7 @@ defined, something that can be awkward as functions can have upward of 20
 arguments. The reason for this choice is that \strictr rewrites functions and
 not call sites, because at a call site we can't know which function is being
 called.\footnote{Shortly before submission, we realized that we could implement
-  the same semantics as the compiler. GNU R keeps a \c{PROMARGS} list which
+  the same semantics as the compiler since GNU R keeps a \c{PROMARGS} list which
   stores promises in the same order as at the call site.}
 
 \newpage%% Don't mess with me.
