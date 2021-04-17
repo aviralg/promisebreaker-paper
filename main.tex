@@ -431,7 +431,7 @@ there are all sorts of external effects and no monads.
 
 The combination of side effects, frequent interaction with C, and absence of
 types has pushed R to be more eager than other lazy languages. Strictly
-speaking, R is not lazy as it evaluates arguments that it does not need to.\SK{I didn't understand previous sentence}  Let
+speaking, R is not lazy as it evaluates arguments that it does not need to. Let
 us review its design. Arguments to a function are bundled into a thunk called a
 \emph{promise}. Logically, a promise combines an expression's code, its
 environment, and its value. To access the value of a promise, one must
