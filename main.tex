@@ -623,12 +623,12 @@ called.\footnote{Shortly before submission, we realized that we could implement
 \lazr is an analysis pipeline for inferring strictness annotations in legacy R
 libraries at scale. \lazr has two important components; there is a system for
 tracing the execution of R scripts, and infrastructure for extracting
-executables and running analyses that scales to thousands of packages.
+executables and running analyses that scale to thousands of packages.
 
 The goal of the analysis performed by \lazr is not to infer maximally strict
 signatures for all library functions, but rather to infer signatures that will
 minimize the impact of the change on their clients. Thus, we must consider both
-intrinsic and accidental laziness. Let's start with Fig.~\ref{iss}, its
+intrinsic and accidental laziness. Let us start with Fig.~\ref{iss}. Its
 \c{popular} function takes five arguments, one is conditionally evaluated, the
 next is forwarded to \c{substitute} for meta-programming, the third is never
 used, and the last two are forwarded to a strict function. The client code panel
@@ -636,7 +636,7 @@ shows four possible invocations. For \c{r1}, any signature that has at least
 variable \c b lazy will return the same result. For \c{r2}, if \c a and \c c are
 strict it is possible to observe their evaluation order, as \c{stop()}
 terminates execution. For \c{r3}, if \c{d} is strict a different result can be
-observed. And finally, for \c{r4} both \c d and \c{e} must be lazy.
+observed. And finally, for \c{r4}, both \c d and \c{e} must be lazy.
 
 \begin{figure}[!h]
 \begin{tabular}{lll}
@@ -677,18 +677,18 @@ When \lazr executes an R script, it generates an \emph{execution trace} which is
 a sequence of low-level events that closely follow the operations performed by
 the GNU R interpreter. As traces can get extremely large, rather than recording
 them, the infrastructure exposes callbacks that are used to hook
-analysis-specific functionality to low-level happenings in the interpreter. The
+analysis-specific functionality to low-level events in the interpreter. The
 trace exposes raw R objects being operated on as
 well as control flow through the code.
 
-To provide a layer of abstraction \lazr, maintains \emph{model objects} to
-abstract from the concrete R data structures. The model objects represent
-function instances, the hierarchy of environments, frames on the call stack,
-amongst others. Model objects are particularly helpful to handle some of the
+To provide a layer of abstraction, \lazr maintains \emph{model objects} to
+abstract from the concrete R data structures. The model objects represent,
+among others, function instances, the hierarchy of environments, and frames 
+on the call stack. Model objects are particularly helpful for handling some of the
 complexities of R. For instance, model objects have unique identities, whereas R
 objects are identified by their memory address, and the garbage collector can
 reuse these. \lazr takes care of memory management for model objects and
-provides efficient indexing. Model functions have names that heuristically
+provides efficient indexing. Model functions have names that are heuristically
 reconstructed and keep track of their lexical scoping structure. The model stack
 can deal with R's pervasive use of \c{longjump} for non-local returns. Lastly,
 \lazr maintains a notion of logical time, used to record when some
