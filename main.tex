@@ -633,10 +633,10 @@ intrinsic and accidental laziness. Let's start with Fig.~\ref{iss}, its
 next is forwarded to \c{substitute} for meta-programming, the third is never
 used, and the last two are forwarded to a strict function. The client code panel
 shows four possible invocations. For \c{r1}, any signature that has at least
-variable \c c lazy will return the same result. For \c{r2}, if \c a and \c b are
+variable \c b lazy will return the same result. For \c{r2}, if \c a and \c c are
 strict it is possible to observe their evaluation order, as \c{stop()}
 terminates execution. For \c{r3}, if \c{d} is strict a different result can be
-observed. And finally, for \c{r4} it is \c{e} that must be lazy.
+observed. And finally, for \c{r4} both \c d and \c{e} must be lazy.
 
 \begin{figure}[!h]
 \begin{tabular}{lll}
@@ -755,12 +755,12 @@ value.
 For efficiency reasons, \lazr does not record which variables are written
 to in an environment. Thus the read effects may have some false positives.
 
-When an error or exception is encountered, \lazr marks all active promises as
-causes.
+When an error is encountered during execution, either due to an explicit call to
+\c{stop} or an error such as accessing an undefined variable, \lazr marks all
+active promises as causes.
 
 Once a promise has exhibited an effect in any invocation of a function, the
 model parameter corresponding to that promise is marked with an S.
-
 
 \paragraph{Reflective arguments (R)}
 When a promise calls \code{as.environment(v)} or and \code{pos.to.end(v)}, and
@@ -777,10 +777,9 @@ slightly imprecise.
 \newpage
 \subsection{Scaling to collections of scripts}
 
-The result of analyzing a single R script is a table summarizing, for each
-function and each argument which signals were observed. The result of analysis
-of multiple scripts can be straightforwardly merged as the union of signals for
-each parameter.
+The final result of analyzing a single R script is a table summarizing, for each
+function and each argument, which signals were observed. Multiple scripts can be
+straightforwardly merged as the union of signals for each parameter.
 
 The data that has to be analyzed can reach the multi-terabyte size. \lazr adopts
 a simple map-reduce style. Each analysis is split in 4 phases. The reduce maps
@@ -803,11 +802,20 @@ Xeon 6140, 2.30GHz machines with 72 cores and 256GB of RAM each.
 
 \subsection{Selecting a corpus}\label{sec:corpus}
 
-\begin{wraptable}{r}{6cm}
+For this paper, a corpus of 500 packages from CRAN~\cite{ligges2017} and
+Bioconductor~\cite{bioc} was selected based on their number of clients,
+\emph{i.e.}, the packages which are the most widely used in the ecosystem. The
+chosen packages have a total of 15,362 clients. The most widely used package,
+\c{ggplot2} has 2,669 clients and the package with the fewest clients in our
+corpus, \c{spatstat.linnet}, has 5. The selected 500 packages have 2.2M lines of
+R code and 2.7M lines of native code. For synthesizing signatures for their
+functions, \lazr extracts all executable artifacts from each package.
+
+\begin{wraptable}{r}{7cm}
   \vspace{-3mm}
   \small
   \centering
-  \caption{Synthesis Corpus}\label{table:corpus}
+  \caption{Corpus}\label{table:corpus}
   \vspace{-3mm}
   \begin{tabular}{lrrr}
     \toprule
@@ -818,81 +826,12 @@ Xeon 6140, 2.30GHz machines with 72 cores and 256GB of RAM each.
     {LOC}&406.4K&207.0K&48.7K\\
     \bottomrule
   \end{tabular}
-\end{wraptable}%%
 
-We selected a corpus packages and client programs
-from CRAN~\cite{ligges2017} and Bioconductor~\cite{bioc}, two
-official package repositories for R. CRAN and Bioconductor have 17,388 and 3,344
-packages each, of which, we were able to install 17,142 CRAN and 2,733
-Bioconductor packages. Some packages could not be installed because of missing
-native dependencies and compilation errors. We discard those packages. Code in
-those repositories is curated by subjecting it to a battery of quality checks.
-Packages have runnable code in the form of tests, examples, and vignettes.
-Vignettes are typically long examples which demonstrate a packages
-functionality.
-
-We synthesized signatures for functions from 500 packages. The criterion was to
-select packages which had the most clients, \emph{i.e.}, packages which are the
-most widely used in the ecosystem. The chosen packages have a total of 15,362
-dependent client packages, ranging from maximum 2,669 dependents for
-\emph{ggplot2} to minimum 5 for \emph{spatstat.linnet} with an average 125.4
-dependents. The selected 500 packages have 2.2M lines of R code and 2.7M lines
-of native code. For synthesizing signatures for their functions, we analyzed the
-execution traces obtained from their examples, tests, and vignettes. Table
-~\ref{table:corpus} presents the number of scripts of each kind that were run
-and lines of code exercised.
-
-\begin{table}
-  \vspace{-3mm}
-  \small
-  \caption{Events} \label{table:events}
-  \centering
-  \begin{tabular}{lrr}
-    \toprule
-    \bf Event&\bf Count& \bf Time\\
-    \midrule
-    Alloc&125.3B&104.9h\\
-    Dealloc&101.6B&37.5h\\
-    EvalEntry&91.5B&9.9h\\
-    EvalExit&90.5B&9.7h\\
-    VarLkp&89.4B&101h\\
-    FunLkp&47.0B&13.7h\\
-    SplEntry&29.1B&23.2h\\
-    \bottomrule
-  \end{tabular}
-  \begin{tabular}{lrr}
-    \toprule
-    \bf Event&\bf Count& \bf Time\\
-    \midrule
-    SplExit&28.1B&8h\\
-    VarDef&20.9B&33.4h\\
-    BtnEntry&14.5B&9.5h\\
-    BtnExit&14.5B&5.6h\\
-    PromEntry&13.2B&12.1h\\
-    PromExit&13.2B&5.8h\\
-    VarAsn&7.6B&5.6h\\
-    \bottomrule
-  \end{tabular}
-  \begin{tabular}{lrr}
-    \toprule
-    \bf Event&\bf Count& \bf Time\\
-    \midrule
-    ClosureEntry&6.6B&234.5h\\
-    ClosureExit&6.3B&3.1h\\
-    PromLkp&5.8B&1.8h\\
-    PromExpr&2.8B&1.8h\\
-    VarRemoval&360.7M&10.4m\\
-    PromSubst&101.0M&4.7m\\
-    Error&494.0&0.1s\\
-    \bottomrule
-  \end{tabular}
-\end{table}
-
-\begin{wraptable}{r}{5.5cm}
-  \vspace{-3mm}
-  \small
+  \medskip\medskip
+  \medskip
   \caption{Allocations} \label{table:allocations}
   \centering
+\begin{tabular}{ll}
   \begin{tabular}{lr}
     \toprule
     \bf Object&\bf Count\\
@@ -907,7 +846,7 @@ and lines of code exercised.
     Real&639.0M\\
     Closure&585.6M\\
     \bottomrule
-  \end{tabular}
+  \end{tabular}&
   \begin{tabular}{lr}
     \toprule
     \bf Object&\bf Count\\
@@ -922,24 +861,75 @@ and lines of code exercised.
     Expression&1.6M\\
     Weakref&25.2K\\
     \bottomrule
-  \end{tabular}
-\end{wraptable}
+  \end{tabular}\end{tabular}
+\end{wraptable}%%
+
+Table~\ref{table:corpus} summarizes the runnable code in the corpus. Each test
+file is run a separate script. Examples and vignettes are snippets of code
+embedded in the documentation. \lazr extracts them into self-standing scripts.
+Typically, vignettes are longer examples that come with input data, while
+examples are smaller code fragments meant to illustrate the use of the package's
+functions.
+
+%% \begin{table}
+%%   \vspace{-3mm}
+%%   \small
+%%   \caption{Events} \label{table:events}
+%%   \centering
+%%   \begin{tabular}{lrr}
+%%     \toprule
+%%     \bf Event&\bf Count& \bf Time\\
+%%     \midrule
+%%     Alloc&125.3B&104.9h\\
+%%     Dealloc&101.6B&37.5h\\
+%%     EvalEntry&91.5B&9.9h\\
+%%     EvalExit&90.5B&9.7h\\
+%%     VarLkp&89.4B&101h\\
+%%     FunLkp&47.0B&13.7h\\
+%%     SplEntry&29.1B&23.2h\\
+%%     \bottomrule
+%%   \end{tabular}
+%%   \begin{tabular}{lrr}
+%%     \toprule
+%%     \bf Event&\bf Count& \bf Time\\
+%%     \midrule
+%%     SplExit&28.1B&8h\\
+%%     VarDef&20.9B&33.4h\\
+%%     BtnEntry&14.5B&9.5h\\
+%%     BtnExit&14.5B&5.6h\\
+%%     PromEntry&13.2B&12.1h\\
+%%     PromExit&13.2B&5.8h\\
+%%     VarAsn&7.6B&5.6h\\
+%%     \bottomrule
+%%   \end{tabular}
+%%   \begin{tabular}{lrr}
+%%     \toprule
+%%     \bf Event&\bf Count& \bf Time\\
+%%     \midrule
+%%     ClosureEntry&6.6B&234.5h\\
+%%     ClosureExit&6.3B&3.1h\\
+%%     PromLkp&5.8B&1.8h\\
+%%     PromExpr&2.8B&1.8h\\
+%%     VarRemoval&360.7M&10.4m\\
+%%     PromSubst&101.0M&4.7m\\
+%%     Error&494.0&0.1s\\
+%%     \bottomrule
+%%   \end{tabular}
+%% \end{table}
 
 During execution, \lazr collects information about function calls, arguments,
-side-effects, and reflective environment access from the model objects provided
-by the multiples events presented in Table~\ref{table:events}. This information
-is stored in compressed tabular format using R's \c{fst} library.
-Our goal in this work is to show that it is feasible to migrate R code at scale.
-Hence, scalability is a key goal behind the design of \lazr. This is a
-challenging problem because R creates a lot of objects, especially promises.
-Table~\ref{table:allocations} presents the number of R objects encountered by
-\lazr during the signature synthesis phase. To this end, \lazr implements a fast
-and conservative algorithm for identifying side-effecting and reflective
-arguments.
+side-effects, and reflective environment access from the model objects provided.
+This information is stored in compressed tabular format using R's \c{fst}
+library. To give an idea of the scale of the analysis
+Table~\ref{table:allocations} presents the number of model objects for which
+\lazr recorded information.
 
-
-
-\section{Results}\label{sec:results}
+The package in the corpus have 50,435 top-level functions We ignore anonymous
+and inner functions. Table~\ref{table:packsize} shows the distribution of these
+functions across packages. We observe that 148 packages have 25 functions or
+less. As expected, there is a steady decrease in packages with more functions.
+There are 12 packages with more than 500 functions. Package \emph{spatstat.geom}
+has the maximum number of functions, 886.
 
 \begin{wraptable}{r}{8cm}
   \vspace{-3mm}
@@ -975,19 +965,20 @@ arguments.
   \end{tabular}
 \end{wraptable}
 
-We generate signatures for 50,435 functions from 500 packages. These are
-top-level package functions. We ignore anonymous and inner functions.
-Table~\ref{table:packsize} shows the distribution of these functions across
-packages. We observe that 148 packages have 25 functions or less. As expected,
-there is a steady decrease in packages with more functions. There are 12
-packages with more than 500 functions. Package \emph{spatstat.geom} has the
-maximum number of functions, 886.
 
 We observe 137.2M calls to these functions. Figure ~\ref{fig:callDist} shows the
 number of distribution of calls across functions called in the synthesis
 phase. 49.5\% functions are called more than 10 times. 16.4\% functions are
 called only once, leading to low coverage. These functions are spread across 414
 packages.
+We observe 294.45M arguments created in our execution traces. Of those 3.9M are
+missing, 18.9M are $...$ arguments, and 271.6M are promises. These arguments
+correspond to 185.9K parameter positions of the 50,435 functions for which we
+generate signatures.
+7.3\% functions have 0 parameters, 19.6\% have 1, and 5.0\% have over 10. There
+are 15 functions with over 50 parameters that come from 10 packages. Of those,
+\c{rpart.plot::check.if.dot.arg.supported.by.rpart.rules} has the highest, 122
+parameters.
 %
 \begin{figure}[!h]
   \centering
@@ -996,417 +987,163 @@ packages.
   \label{fig:callDist}
 \end{figure}
 %
-We observe 294.45M arguments created in our execution traces. Of those 3.9M are
-missing, 18.9M are $...$ arguments, and 271.6M are promises. These arguments
-correspond to 185.9K parameter positions of the 50,435 functions for which we
-generate signatures.
 
-7.3\% functions have 0 parameters, 19.6\% have 1, and 5.0\% have over 10. There
-are 15 functions with over 50 parameters that come from 10 packages. Of those,
-\c{rpart.plot::check.if.dot.arg.supported.by.rpart.rules} has the highest, 122
-parameters.
+\subsection{Inferred strictness signatures}\label{sec:results}
 
-Table~\ref{table:strictdist} presents a summary of the lazy arguments of the
-signatures in terms of a distribution of parameters, functions, and packages
-that correspond to unevaluated, effectful or reflective arguments. Row \#0 (with
-tick-mark against \emph{Unevaluated}) tells that there are 128.3K parameters
-from 44.4K functions whose arguments are evaluated across all calls and they
-don't perform any effect or reflective operation. Similarly, row \#7 tells us
-that 25 parameters from 24 functions are not evaluated in at least one call, but
-whey they are evaluated, they perform a side-effect and a reflective operation.
-Similarly, row \#4 tells us that 27.1K parameters from 11.3K functions are never
-evaluated. A careful study of these rows yields the following insights. First,
-arguments passed to majority of parameters, 65.25\%, are always evaluated and
-don't perform any side-effects or reflective operations. So, they can be made
-unconditionally strict . Of the remaining parameters, only unevaluated arguments
-correspond to 13.76\% parameters, followed by only side-effecting arguments to
-4\% parameters, and only reflective promises to 0.07\% parameters. The remaining
-combinations amount to less than a percent each. It is important to note that a
-function can appear in multiple rows as different parameters can belong to
-different categories. Same reasoning applies to packages. Another interesting
-pattern in the data is that arguments performing reflective operations
-(alternate rows \#1, \#3, \#5, \#7) come from relatively few functions and
-packages.
-%
+\lazr obtained data for 50,435 functions and 186K parameters. The results are
+signals (M, U, S, R) for each individual parameter. There were 9,100 parameters
+that were marked M for meta-programmed. Table~\ref{table:strictdist} summarizes
+the distribution of combination of the other signals; note that functions and
+packages can be counted in multiple rows as different parameters fall in
+multiple categories. Rows can be interpreted as follows, the first row, for
+instance, shows that 128K parameters coming from 44K functions and 489 package
+were not marked in any way. The second row shows that only 134 for parameters
+were marked R only for their use of reflective operations.
+
+The data yields the following insights. First, the majority of parameters, 65\%,
+are always evaluated and the corresponding arguments do not perform side-effects
+or reflective operations. They can become strict. Of the remaining, there are
+13\% unevaluated parameters, the largest potential source of laziness. This is
+followed by 4\% of parameters whose arguments are marked S only. Everything else
+is quite small. Another observation, is that rows marked R come from very few
+functions and packages.
+
 \begin{table}
   \vspace{-3mm}
   \small
   \caption{Signature Summary} \label{table:strictdist}
   \centering
-  \begin{tabular}{lcccr|lr|lr}
+  \begin{tabular}{cccrrrrr}
     \toprule
-    \#&\bf Unevaluted (U) & \bf Side-Effecting (S) & \bf Reflective (R) & \multicolumn{2}{c}{\textbf{Parameters}} & \multicolumn{2}{c}{\textbf{Functions}}& \bf Packages\\
+    \bf U & \bf S & \bf R & \multicolumn{2}{c}{\textbf{Parameters}} & \multicolumn{2}{c}{\textbf{Functions}}& \bf Packages\\
     \midrule
-    0&\xmark{}&\xmark{}&\xmark{}&128305&65.25\%&44377&85.93\%&489\\
-    1&\xmark{}&\xmark{}&\cmark{}&134&0.07\%&124&0.24\%&47\\
-    2&\xmark{}&\cmark{}&\xmark{}&7871&4\%&5805&11.24\%&399\\
-    3&\xmark{}&\cmark{}&\cmark{}&408&0.21\%&385&0.75\%&93\\
-    4&\cmark{}&\xmark{}&\xmark{}&27050&13.76\%&11333&21.95\%&453\\
-    5&\cmark{}&\xmark{}&\cmark{}&13&0.01\%&12&0.02\%&11\\
-    6&\cmark{}&\cmark{}&\xmark{}&1213&0.62\%&813&1.57\%&199\\
-    7&\cmark{}&\cmark{}&\cmark{}&25&0.01\%&24&0.05\%&15\\
+    \xmark{}&\xmark{}&\xmark{}&128K &65.2\%&44K  &85.9\%&489\\
+    \xmark{}&\xmark{}&\cmark{}&134  &0.07\%&124  &0.2\%&47\\
+    \xmark{}&\cmark{}&\xmark{}&8K   &4\%&6K      &11.2\%&399\\
+    \xmark{}&\cmark{}&\cmark{}&408  &0.2\%&385   &0.7\%&93\\
+    \cmark{}&\xmark{}&\xmark{}&27K  &13.7\%&11K  &21.9\%&453\\
+    \cmark{}&\xmark{}&\cmark{}&13   &0.01\%&12   &0.02\%&11\\
+    \cmark{}&\cmark{}&\xmark{}&1K   &0.6\%&813   &1.5\%&199\\
+    \cmark{}&\cmark{}&\cmark{}&25   &0.01\%&24   &0.05\%&15\\
     \bottomrule
   \end{tabular}
 \end{table}
-%
-An important detail in this summary is that includes contribution of
-side-effects and reflective operations performed by R's \emph{base} package and
-other user packages not part of our corpus. This is because arguments are also
-transitively involved in side-effecting or reflective operations. The numbers
-provided in this table are upper-bounds, we over count the number of arguments
-transitively involved in effects and reflective operations.
 
-\subsection{Robustness} \label{Evaluation:Robustness}
+The inferred strictness signatures for library functions use these marks to
+decide which arguments should be lazy and which ones should be strict. While any
+parameter marked M \emph{must} be lazy, there is some freedom to decide for the
+other combinations. Our evaluation will probe the different configurations and
+show the error rates they may have.
 
-\begin{wraptable}{r}{6cm}
-  \vspace{-3mm}
-  \small
-  \centering
-  \caption{Client Corpus}\label{table:clientcorpus}
-  \vspace{-3mm}
-  \begin{tabular}{lrrr}
-    \toprule
-    &\bf Tests&\bf Examples&\bf Vignettes\\
-    \midrule
-    {Scripts} &9.8K&41.1K&1.7K\\
-    \midrule
-    {LOC} &751.2K&348.8K&112.3K\\
-    \bottomrule
-  \end{tabular}
-\end{wraptable}%%
+\medskip
 
-
-In this section, we evaluate the robustness of strictness signatures generated
-by \lazr. We run client programs to exercise the functions with signatures. The
-client programs are the tests, examples, and vignettes from 2000 dependent
-packages of the 500 packages from the synthesis corpus. These 2000 packages have
-4.5M lines of R code and 4.7M lines of native (C, C++, and Fortran) code. Table
-~\ref{table:clientcorpus} gives the number of scripts of each kind that were run
-and lines of code exercised.
-
-
-First, we run the client scripts twice without any signatures to filter programs
-which finish successfully with the same output in both runs. This provides us
-with baseline deterministic programs against which we can compare the
-effectiveness of our signatures. We extracted 49,484 runnable programs from the
-2000 client packages from which 42,637 programs yielded the same result on both
-runs. These are the programs for which we present the outcome of applying our
-signatures.
-
-%% NOTE: is this useful discussion?
-We consider an application of signature successful if it produces the same
-output as it produced without applying any signature. We believe that programs
-that produce the same output with and without signatures compute the same
-result. The rationale or this is that the top-level expressions in R scripts
-print their result on the console unless it is stored in a variable or
-explicitly silenced by surrounding the expressions in a call to the
-\code{invisible} function. R also prints messages on library loading, function
-shadowing, warnings, and errors. A simple heuristic to test this claim is to
-check for the degree of duplication in programs' output. If the outputs are
-unique they can be used as a ``fingerprint'' for the programs and a change in
-the programs' result by applying strictness signatures will likely change the
-output. In our baseline deterministic programs, 55.8\% had unique outputs.
-
-
-\begin{wraptable}{l}{6cm}
-  \small
-  \caption{Strictness Failure} \label{table:strictfail}
-  \centering
-  \begin{tabular}{lc|ll}
-    \toprule
-    \#&\textbf{Configuration}&\multicolumn{2}{c}{\textbf{Failures}}\\
-    \midrule
-    0&$+U+S+R$&239&0.56\%\\
-    1&$+U+S-R$&234&0.55\%\\
-    2&$+U-S+R$&1922&4.51\%\\
-    3&$+U-S-R$&6625&15.54\%\\
-    4&$-U+S+R$&610&1.43\%\\
-    5&$-U+S-R$&616&1.44\%\\
-    6&$-U-S+R$&2319&5.44\%\\
-    7&$-U-S-R$&7158&16.79\%\\
-    \bottomrule
-  \end{tabular}
-\end{wraptable}
-
-
-After identifying the baseline programs, we run them eight times, once for each
-signature configuration, and count programs that fail or produce a different
-output. The result of applying signatures to the deterministic programs are
-summarized in Table~\ref{table:strictfail}. Each row represents a signature
-configuration. For each configuration we report the number and percentage of
-failing programs, further broken down into failures per script type. The letters
-\emph{U}, \emph{S}, and \emph{R} represent unevaluated, side-effecting and
-reflective arguments. The \emph{+} sign signifies that the corresponding
-arguments are treated lazy in the signature configuration and \emph{-} sign
-means they are evaluated eagerly. For example, $+U+E+R$ means that arguments
-that are unevaluated, side-effecting, and reflective are treated lazy whereas
-$-U-E-R$ means that these arguments are evaluated strictly. Each row of this
-table directly corresponds to a row of Table~\ref{table:strictdist}. For
-example, from row \#1 of both tables, we can say the \config{1} will evaluate
-134 arguments strictly over and above the arguments which were already strict in
-the minimally lazy configuration.
-
-Now, we take a deeper look at Table~\ref{table:strictfail} for insights.
-\cconfig{0} corresponds to the configuration with maximum laziness and it
-failure rate is only 0.56\%. We can use this as a baseline to study the impact
-of making various arguments categories strict.
-
-First, we look at the impact of making a single argument category strict. In
-\config{1} only reflective arguments are made strict and surprisingly, it leads
-to a slightly better result of 0.55\% failures compared to \config{0}. This
-difference is however marginal. \cconfig{2} shows that evaluating only
-side-effecting arguments leads to a failure rate of 4.51\%. From \config{4},
-we see that evaluating unevaluated arguments leads to 1.43\% failures. Comparing
-these results with the number of lazy parameters from
-Table~\ref{table:strictdist}, we find that unevaluated arguments, which are the
-biggest source of laziness, do not cause a significant increase in failures when
-evaluated.
-
-Next, we look at the impact of making two argument categories strict.
-\cconfig{3} stands out with a very high failure rate of 15.54\%. This is
-followed by \config{6} with a failure rate of 5.44\% and finally \config{5} with
-a failure rate of 1.44\%. The failure rate is lowest when side-effecting
-arguments are made lazy. This is validated by the low failure rate observed when
-only unevaluated or reflective arguments are evaluated eagerly in \config{1} and
-\config{4}.
-
-Finally, we look at the impact of making everything strict. This corresponds to
-\config{7}. As expected, this leads to maximum failure, 16.79\%. It is
-interesting to compare this against \config{3}. The difference in failures for
-these two configurations is marginal, suggesting that treating unevaluated
-arguments strictly is not the major cause of failures. This is also validated by
-\config{4} in which only unevaluted arguments are forced and failure rate is
-1.43\%.
-
-From the results, we conclude that in the minimally strict configuration, we
-have least number of failures. A first attempt at removing laziness at scale can
-rely on this signature configuration. Next, reflective and unevaluated arguments
-can be made strict without a significant increase in failure rate.
-Side-effecting arguments result in many failures. Evaluating arguments which are
-both side-effecting and reflective results in maximum failures . However,
-Table~\ref{strictdist} tells that these arguments are very few in number. These
-arguments can perhaps be left lazy.
-
-\subsection{In-Depth Exploration}\label{sec:lazr-discussion}
-
-In this section, we present a quantitative and qualitative discussion of the
-different sources of laziness.
+We now discuss the different sources of laziness in more detail.
 
 \subsubsection{Metaprogramming}
 
-\begin{wraptable}{r}{4cm}
-  \vspace{-3mm}
-  \small
-  \caption{Metaprogramming} \label{table:meta}
-  \centering
-  \begin{tabular}{lll}
-    \toprule
-    &\textbf{C}&\textbf{R}\\
-    \midrule
-    Arguments&21.9M&1.3M\\
-    Parameters&9.1K&600\\
-    Functions&6.0K&370\\
-    Packages&374&89\\
-    \bottomrule
-  \end{tabular}
-\end{wraptable}
-
-For capturing uses of metaprogramming, we track calls to \code{substitute} from
-R code and \code{PREXPR} macro from C code. Table~\ref{table:meta} presents a
-summary of the frequency of their usage. We can make two observations from this
-table. First, metaprogramming is not very common, only 23.2M out of 294.25 total
-arguments are metaprogrammed. Second, metaprogramming is dominated by the use of
-\code{PREXPR} macro on promise objects from C code.
-
-We refer the reader to \citet{oopsla19b} for an in-depth discussion the use of
-\code{substitute}. We elaborate on the use of \code{PREXPR} for metaprogramming,
-since that is not addressed in \cite{oopsla19b}. The maximum uses of
-\code{PREXPR} come from the builtin functions. A canonical example is the
-\code{missing} function for checking if an argument is missing. Missingness
-check works transitively, since it is possible to pass missing arguments to
-callees. If the argument being checked for missingness is not bound to a
-sentinel missing value, the symbol inside the promise it is bound to is checked
-in the caller's environment for missingness.
-
-Many user packages use \code{PREXPR} to extract a promise's expression for
-ad-hoc evaluation strategies. We found uses of \code{PREXPR} in \code{igraph},
-\code{lazyeval}, \code{rlang} and \code{S4Vectors} packages. \code{rlang}
-particularly stands out because it provides an API to work with core R objects,
-including a rich set of APIs for metaprogramming. For this, it frequently uses
-\code{PREXPR} from C code.
+Meta-programming tracks calls to \code{substitute} (from R) and \code{PREXPR}
+(from C code). Out of 294M model arguments, 23M were meta-programmed, the
+majority of those from C code. We refer the reader to \cite{oopsla19b} for a
+discussion of the use of \code{substitute}. We elaborate on \code{PREXPR} since
+it was not addressed there. The macro is used by the bultin functions of the GNU
+R interpreter, a canonical example is the \code{missing} function to check if an
+argument was provided. Many packages also use \code{PREXPR} to extract a
+promise's expression for ad-hoc evaluation strategies. We found uses
+\code{igraph}, \code{lazyeval}, \code{rlang} and \code{S4Vectors}. \code{rlang}
+particularly stands out because it provides its own API for meta-programming.
 
 \subsubsection{Unevaluated Arguments}
 
-Of the 294.45M total arguments in our corpus, 30.4M argument promises were not
-evaluated. They correspond to 28.3K parameters of 12.1K functions.
+Of the 294M total arguments in our corpus, 30M promises were not evaluated. They
+correspond to 28K parameters. We can classify these parameters into two
+categories: parameters that are \sometimes evaluated and parameters that are
+\never evaluated. There are 16K \sometimes parameters and 12K \never parameters.
+These may correspond to code paths not exercised or to dummy parameters.
 %
-Based on argument evaluation, we can classify these parameter positions into two
-categories: \sometimes parameters whose arguments are evaluated at least once
-but not always, and \never parameters whose arguments are never evaluated. There
-are 16.4K \sometimes parameters and 11.9K \never parameters. Their presence
-indicates paths not exercised by inputs or that they are dummy parameters.
-
-We analyzed a sample of functions with \sometimes and \never parameters to
-identify usage patterns.
-%
-A patter occurring in 30 packages is the following definition of \code{\%||\%}
-function.
+A common pattern is the following:
 %
 \begin{lstlisting}
-lazyeval::\%||\% <- function(x, y) if(is.null(x)) y else x
+ lazyeval::%||% <- function(x, y) if(is.null(x)) y else x
 \end{lstlisting}
 %
-This function evaluates its second argument \code{y} only if \code{x} is
-\code{NULL}. This makes \code{y} a \sometimes parameter. Similarly, in
-\code{bayesplot::is_whole_number} function, the \code{tol} argument is only
-evaluated when \code{x} is a numeric value.
-%
-\begin{lstlisting}
-bayesplot::is_whole_number <- function(x, tol = .Machine$double.eps) {
-    if (!is.numeric(x)) { FALSE } else { abs(x - round(x)) < tol }
-}
-\end{lstlisting}
-
-Another pattern occurring in 4 packages is the definition of
-\code{on_package_load}.
+This function evaluates \code{y} only if \code{x} is \code{NULL}, making
+\code{y} a \sometimes parameter.
+\noindent
+Another pattern is to delay evaluation of a parameter.
 
 \begin{lstlisting}
-glue::on_package_load <- function(pkg, expr) {
-    if (isNamespaceLoaded(pkg)) { expr }
-    else {
-        thunk <- function(...) expr
-        setHook(packageEvent(pkg, "onLoad"), thunk)
-    }
-}
+ glue::on_package_load <- function(pkg, expr) {
+   if (isNamespaceLoaded(pkg)) { expr }
+   else {
+     thunk <- function(...) expr
+     setHook(packageEvent(pkg, "onLoad"), thunk)
+   }
+ }
 \end{lstlisting}
 %
-Here, if package \code{pkg} is not loaded, the \code{expr} argument's evaluation
-is delayed until the package's \code{onLoad} event occurs. In some executions,
-we see the \code{expr} argument being evaluated if package \code{pkg} is loaded
-and in other iterations, we don't. The way this code is written suggests that
-\code{expr} should not be evaluated strictly.
+Here, \code{expr} may be delayed until \code{pkg} is loaded. Thus \code{expr}
+should not be evaluated strictly.
 %
 S3 generics result in many \sometimes and \never parameters. These functions
 dynamically dispatch to a specific implementation based on the argument's class.
 In the following example, the first argument is always evaluated but \code{n}
-and \code{m} were only evaluated sometimes and \code{r} was never evaluated.
+and \code{m} are only evaluated sometimes and \code{r} never.
 %
 \begin{lstlisting}
-abind::acorn <- function(x, n=6, m=5, r=1, ...) UseMethod('acorn')
+ abind::acorn <- function(x, n=6, m=5, r=1, ...) UseMethod('acorn')
 \end{lstlisting}
+\noindent
+A cause of \never parameters is when a set of functions implements a common
+interface but not all functions need all parameters. The \code{proxy} package
+defines over a dozen methods with the interface \code{function(a,b,c,d,n)} that
+compute different proximity metrics using a subset of the arguments.
 
-
-The most common cause for \never arguments is when they are not used in some
-branch of a function. For example, \code{discretize} function of package
-\code{actuar} only uses \code{xlim} if \code{from} and \code{to} parameters are
-missing. Due to lack of call diversity, the branch in which the argument is used
-is never taken and the parameter is classified as \never.
+Arguments can be \never by design; \code{tail} is not defined for
+\code{tbl_lazy} objects and throws an error when called.
 \begin{lstlisting}
-actuar:::discretize <- function (cdf, from, to, ..., xlim = NULL) {
-    ...
-    if (missing(from)) from <- xlim[1];
-    if (missing(to)) to <- xlim[2];
-    ...
-}
-\end{lstlisting}
-%
-Another cause of \never parameters is when a function implements a certain
-interface even if it does not use those arguments. The \code{proxy} package
-defines over a dozen methods with the interface \code{function(a, b, c, d, n)
-  ...} that implement different proximity metrics by using only a subset of the
-arguments.
-
-Arguments can be \never by design. The \code{tail} operation
-in package \code{dbplyr} is not defined for \code{tbl_lazy} objects. So the
-function throws an error when called without using any of its arguments.
-\begin{lstlisting}
-dbplyr::tail.tbl_lazy <- function(x, n = 6L, ...) {
-    stop("tail() is not supported by sql sources", call. = FALSE)
-}
-\end{lstlisting}
-%
-Another example is the \code{jsonlite} package which implements \code{stop}
-function with the same interface as R's \code{base} package's \code{stop}
-function but ignores its \code{call.} argument.
-\begin{lstlisting}
-jsonlite::stop <- function(..., call. = FALSE) {
-    base::stop(..., call. = FALSE)
-}
+ dbplyr::tail.tbl_lazy <- function(x, n = 6L, ...)
+   stop("tail() is not supported by sql sources", call.=FALSE)
 \end{lstlisting}
 %
 \never parameters can also represent an erroneous condition that would not
-happen in a correct program. In \code{codetools} package, function
-\code{checkSymOrString} fails if the argument does not have the correct type. In
-all the calls we observed, the \code{signal} argument was not used because
-\code{e} had the correct type.
+happen in a correct program. The following function fails if its argument does
+not have the correct type. In all observed calls, \code{signal}
+went  unused because \code{e} had the right type.
 \begin{lstlisting}
-codetools::checkSymOrString <- function(e, signal = stop) {
-    type <- typeof(e)
-    if (type == "symbol" || type == "character") e
-    else signal("not a symbol or string")
-}
+ codetools::checkSymOrString <- function(e, signal = stop) {
+   type <- typeof(e)
+   if (type == "symbol" || type == "character") e
+   else signal("not a symbol or string")
+ }
 \end{lstlisting}
 
 \subsubsection{Side-Effects}
 
-\begin{wraptable}{r}{5cm}
-  \vspace{-3mm}
-  \small
-  \caption{Promise Expression} \label{table:promexpr}
-  \centering
-  \begin{tabular}{llllll}
-    \toprule
-    \textbf{Expression}&\textbf{All \%}&\textbf{SE \%}\\
-    \midrule
-    Symbol&48.99\%&0.11\%\\
-    Value&21.58\%&0\%\\
-    Call&17.49\%&0.39\%\\
-    Promise&4.18\%&0\%\\
-    \bottomrule
-  \end{tabular}
-\end{wraptable}
+Of all the promised observed by \lazr, only 0.5\% perform side-effects. Many
+side-effects are benign for our purposes because they happen in environments
+that are scoped by the evaluation of the promise, the side-effects are ignored.
 
-Arguments perform side effects when they contain a symbol, or a function call.
-Occasionally, the interpreter wraps arguments inside other arguments which could
-lead to transitive effects. Table ~\ref{table:promexpr} shows the distribution
-of expression type inside all and side-effecting arguments. Only 0.5\% arguments
-perform any effect. Out of these, 0.39\% contain a function call expression and
-0.11\% contain a symbol. As expected, arguments containing a value don't perform
-any effect. All promises containing a symbol will perform at least one lookup
-upon evaluation. Similarly, promises containing function calls will perform
-local side-effects in the function's scope. Our algorithm is able to discard
-most of these ``benign'' events.
-
-\begin{table}[!h]
-  \vspace{-3mm}
-  \small
-  \caption{Effects} \label{table:effects}
-  \centering
-  \begin{tabular}{llllll}
-    \toprule
-    \textbf{Effect}&\textbf{Count}&\textbf{Arguments}&\textbf{Parameters}&\textbf{Functions}&\textbf{Packages}\\
-    \midrule
+\begin{table}[!h]  \vspace{-3mm}  \small
+  \caption{Effects} \label{table:effects} \centering
+  \begin{tabular}{llllll}    \toprule
+    \textbf{Effect}&\textbf{Count}&\textbf{Arguments}&\textbf{Parameters}&\textbf{Functions}&\textbf{Packages}\\    \midrule
     L&3.7M&1.2M&5.6K&3.7K&359\\
     D&1.1M&159.0K&3.0K&2.6K&319\\
     A&235.8K&122.7K&511.0&487.0&109\\
-    R&2.8K&718.0&27.0&24.0&10\\
-    \bottomrule
+    R&2.8K&718.0&27.0&24.0&10\\    \bottomrule
   \end{tabular}
 \end{table}
 
-Table~\ref{table:effects} shows the number of effects, lookups (L), definitions
-(D), assignments (A), removals (R), and errors (E) and the number of arguments,
-parameters, functions and packages that are ``directly'' responsible for those
-effects. We observe that lookups are the most common cause for making arguments
-lazy. This is followed by definitions and assignments. Removing bindings from
-environments is not a common operation. Errors in argument positions were not
-observed. Functions performing lookups, definitions and assignments are spread
-across many packages.
+\noindent
+Table~\ref{table:effects} counts lookups (L), definitions (D), assignments (A),
+and removals (R) and the arguments, parameters, functions and packages directly
+responsible for those effects. Lookups are the most common cause for making
+arguments lazy. This is followed by definitions and assignments. Removing
+bindings from environments is not a common operation.
 %
-Comparing the number of events in this table against the total number of events
-from Table~\ref{table:events}, we find that our algorithm is able to filter
-89.4B variable lookups to 3.7M, 20.9B definitions to 1.1M, 7.6B assignments to
-235.8K, 360.7M removals to 2.8K, and 494 errors to 0.
+Comparing the number of events in this table against the total number of events,
+we narrow 89B variable lookups down to 3.7M, and 20B definitions to 1.1M and 7B
+assignments to 235K.
 
 \begin{wraptable}{r}{5cm}
   \vspace{-3mm}
@@ -1426,241 +1163,107 @@ from Table~\ref{table:events}, we find that our algorithm is able to filter
   \end{tabular}
 \end{wraptable}
 
-An argument can perform a combination of effects during
-evaluation.Table~\ref{table:effectseq} shows the sequence of operations
-performed by the arguments in our corpus. Majority of arguments, 99.5\% to be
-precise, do not perform any relevant effect. 0.41\% only perform a sequence of
-lookups, 0.04\% perform a sequence of definitions, 0.03\% perform assignments,
-and 0.01\% perform a sequence of lookups and definitions. From this, we conclude
-that majority of arguments have a simple pattern of events.
+An argument can perform a combination of effects during evaluation.
+Table~\ref{table:effectseq} shows the sequence of operations performed by the
+arguments in our corpus. Majority of arguments, 99.5\% to be precise, do not
+perform any relevant effect. 0.41\% only perform a sequence of lookups, 0.04\%
+perform a sequence of definitions, 0.03\% perform assignments, and 0.01\%
+perform a sequence of lookups and definitions. From this, we conclude that
+majority of arguments have a simple pattern of events.
 
-Our algorithm identifies 2.7K parameters as transitively lazy. As discussed
-before, \lazr traces off precision for scalability. However, impact of this
-imprecision is limited.
-
-A common source of non-local writes is the \emph{shiny} package used for
-building interactive webapps in a reactive style. For example, consider the call
-to \code{bindEvent} below which attaches an observer expression \code{x} to an
-event \code{trigger()}. The observer expression performs a non-local side-effect
-using the \code{<<-} super-assignment operator.
+A common source of non-local writes is the \c{shiny} package used for building
+interactive web applications. Consider the call to \code{bindEvent} which
+attaches an observer expression to an event. The observer performs a non-local
+side-effect using \code{<<-}, this is a common way to update global state.
 %
 \begin{lstlisting}
-bindEvent(trigger(), x = observe({\n    vals <<- c(vals, val())\n}))
+ bindEvent(trigger(), x=observe({vals <<- c(vals, val())}))
 \end{lstlisting}
 %
-This kind of pattern is common in applications using \emph{shiny} to update the
-program state in response to events. \code{bindCache} and
-\code{isolate} functions from this package are also called similarly with
-side-effecting expressions.
-
-Another important source of non-local writes is the use of functions from
-\code{withr} package. It provides a set of functions to evaluate code in
-temporarily modified global state. These code blocks typically compute
-assign their result in the current scope. We observe
-side-effecting expressions passed to \code{with\_dir} which temporarily changes
-the current working directory, \code{with\_envvar} which changes the environment
-variables, \code{with\_locale} which changes the current locale,
-\code{with\_options} which changes global program options, \code{with\_par},
-which changes graphical parameters for plotting, and \code{with\_seed} which
-changes the random number generation seed. The listing below shows some
-side-effecting calls to these functions that we observed in our corpus.
+\noindent
+Another source of non-local writes occurs in the \code{withr} package. It
+provides functions to evaluate code in temporarily modified global state. These
+code blocks assign their result in the current scope. In the following example, a
+side-effecting expression is passed to \code{with\_seed} which changes the
+random number generation seed.
 %
 \begin{lstlisting}
-with_envvar(c(R_ENVIRON_USER = ".Renviron"), { res <- ... })
-with_dir(path_dir(wd), { base <- path_file(wd); ... })
-with_seed(seed <- sample.int(.Machine$integer.max, 1), runif(5))
-with_options(list(callr.cond_hndlr = function(x) cond <<- x), rs$run(do))
-with_par(list(las = 1), { thm <- theme_par(); ...})
-with_locale(c(LC_CTYPE = "C"), { name <- "A"; ...})
+ with_seed(seed <- sample.int(.Machine$integer.max, 1), runif(5))
 \end{lstlisting}
 %
-Frequently these side-effecting patterns occur in test cases written using the
-\code{testthat} library where the global state is modified temporarily to test
-its effect on the function under consideration.
+\noindent
+Many side-effects occur in test cases written with the \code{testthat} library.
+The global state is modified temporarily to test its effect on the function
+under consideration.
 %
-A very common pattern that leads to side-effects is when the result of an
-intermediate computation is assigned to a variable for subsequent use. In the
-call below, the intermediate result is assigned to \code{x} before being passed
-on to the \code{as.data.table} function.
+Another common pattern is when the result of an intermediate computation is
+assigned to a variable for subsequent use. In the call below, the intermediate
+result is assigned to \code{x} before being passed on to the
+\code{as.data.table} function.
 %
 \begin{lstlisting}
-as.data.table(x <- as.character(sample(letters, 5)))
+ as.data.table(x <- as.character(sample(letters, 5)))
 \end{lstlisting}
 %
-This pattern is particularly common in \emph{testthat} tests.
+\noindent
+Deleting a variable from an environment is done with the \code{rm} function.
+The following function computes the number of rows of a data frame and assigns
+to a variable \code{.N} in the caller's environment. Eventually, it removes the
+variable.
 %
 \begin{lstlisting}
-expect_that(fe1 <- fixef(fm1), is_equivalent_to(1527.5))
+ [.data.table <- function (x, i, j, ...) {
+   assign(".N", nrow(x), envir=parent.frame(), inherits=FALSE)
+   if (remove.N) rm(list=".N", envir=parent.frame())
+   ...
 \end{lstlisting}
-%
-Since our analysis is conservative, at times we mis-classify arguments when they
-are not performing any visible side-effects.
-
-Arguments remove a variable from a scope using the \code{base} package's
-\code{remove} or \code{rm} function.
-%
-The function \code{knitr::in_dir} evaluates a code block from an RMarkdown
-notebook in a specific directory. The code block is wrapped in
-\code{evaluate::evaluate} function which sets and removes handlers for
-intercepting abnormal conditions when evaluating the block. The removal of a
-handler results in a call to the \code{remove} function.
-%
-\begin{lstlisting}
-in_dir(input_dir(), evaluate(code, envir = env, ...))
-\end{lstlisting}
-%
-The \code{evaluate} function is used quite often from many other sources. For
-example, the \code{testthat::expect_snapshot} function in the \code{testthat}
-testing library is used for storing a snapshot of the output of a code block for
-manual inspection. It internally evaluates the code block using the
-\code{evaluate} function.
-%
-We also observe a lot of variable removals from the \code{BiocParallel} package.
-The following line of code results in a call to \code{bplapply} which performs a
-parallel map operation. This function internally calls a package scope cluster
-manager which removes references to clusters from an environment on cleanup
-using the \code{rm} function.
-%
-\begin{lstlisting}
-bptry(bplapply(si, FUN1, ..., BPREDO = BPREDO[idx], BPPARAM = BPPARAM))
-\end{lstlisting}
-
-Another use of \code{rm} is in the \code{[.data.table} function which is used
-for subsetting a \code{data.table}. The function computes the number of rows of
-the data frame and assigns to a variable \code{.N} in the caller's environment.
-Eventually, it removes the variable using \code{rm}.
-%
-\begin{lstlisting}
-[.data.table <- function (x, i, j, ...) {
-    ...
-    assign(".N", nrow(x), envir=parent.frame(), inherits=FALSE)
-    ...
-    if (remove.N) rm(list=".N", envir=parent.frame())
-    ...
-}
-\end{lstlisting}
-
-Lastly, a very popular package, \code{rlang}, defines a function \code{env_bind}
-which can be used to create and remove bindings from an environment. When passed
-with the value \code{zap()}, it removes the corresponding symbol from the
-environment. Instead of using \code{base} package functions, it uses the C API
-function \code{R_removeVarFromFrame} exported by R to remove environment
-bindings.
-%
-\begin{lstlisting}
-env_bind(current_env(), foo = zap())
-\end{lstlisting}
-%
-We observe 0 cases where a function's argument produces an error on evaluation.
-However, we do observe 6 cases where an argument is transitively responsible for
-errors. Here is a call expression which accounts for 3 of those cases.
-%
-\begin{lstlisting}
-get_str_output(context_eval(join(src), private\$context, serialize))
-\end{lstlisting}
-%
-Here, \code{V8::get_str_output} is called whose first argument in turn calls
-\code{V8::context_eval} which in turn calls \code{V8::join}. The \code{src}
-argument passed to join is bound to a promise that reads the contents from a
-file. The file is missing and this raises an error. This example is interesting
-because it shows how the error originates in a file reading function from
-\code{base} package making three caller functions transitively responsible.
+\noindent
+Lastly, \code{rlang} defines a function \code{env_bind} which can be used to
+create and remove bindings from an environment. When passed with the value
+\code{zap()}, it removes the corresponding symbol from the environment. It uses
+the C function \code{R_removeVarFromFrame}.
 
 \subsubsection{Reflection}
-
-R allows reflective access to parent scope through \code{as.environment} and
-\code{pos.to.env} functions when called with argument \code{-1}. They return the
-environment of the caller with respect to call in which they are evaluated.
-Consider the following example in which function \code{f} is passed the same
-arguments. Argument \code{x} is evaluated immediately inside \code{f} and
-argument \code{y} is evaluated inside \code{id}. \code{x} evaluates to the
-environment of the parent of \code{f} which is the \code{global} environment,
-whereas \code{y} evaluates to the environment of \code{f} which is the parent
-caller of \code{id}.
+Reflective code is brittle. The following example shows that code that looks up
+its call stack is sensitive to small implementation changes, such as the
+addition of a call to an identity function. The evaluation of \c x and \c y will
+yield different results as the latter is executing within the \c{id} function.
 %
 \begin{lstlisting}
-id <- function(a) a
-f <- function(x, y) { x; id(y); }
-f(x = as.environment(-1), y = as.environment(-1))
+ id <- function(a) a
+ f <- function(x, y) { x; id(y); }
+ f(as.environment(-1), as.environment(-1))
 \end{lstlisting}
 %
-This implies that strictness of \code{f} with respect to \code{x} and \code{y}
-depends on how \code{f} is called. \code{f} will now be lazy in argument
-\code{y}, otherwise we will end up evaluating inside \code{f}. Erroneously
-evaluating \code{y} strictly would result in an incorrect environment, but not
-an error, which could turn into a debugging nightmare. \code{as.environment} is
-internally implemented using \code{pos.to.env} so the two functions have same
-semantics when called with \code{-1} as the argument.
-
-This can transitively affect the strictness of other function arguments. If
-\code{f} is called from \code{g} as shown below, we will have to make \code{g}
-non-strict in \code{u} and \code{v}. Their results depend upon how they are
-evaluated inside \code{f}.
+\noindent
+This can transitively affect the strictness of other parameters. If \code{f} is
+called from \code{g} as shown below, we will have to make \code{g} non-strict in
+\code{u} and \code{v}. Their results depend upon how they are evaluated inside
+\code{f}.
 
 \begin{lstlisting}
-g <- function(u, v) { f(u, v) }
-g(as.environment(-1), as.environment(-1))
+ g <- function(u, v) { f(u, v) }
+ g(as.environment(-1), as.environment(-1))
 \end{lstlisting}
 %
+\noindent
+R provides other functions for reflective stack access, \code{parent.frame},
+\code{sys.frame}, but they are less brittle they access frames relative to the
+promise's creation environment.
 
-R provides other functions for reflective access to call stack frames such as
-\code{parent.frame}, \code{sys.frame}, etc. These functions take into account
-the current evaluation environment to identify the parent caller. A promise
-evaluates the argument expression inside the caller's environment. So, a call to
-\code{parent.frame()} directly inside the argument will use the caller's
-environment to identify the dynamic parent scope. This makes its result
-independent of the point at which the promise is evaluated.
-
+We identified 2710 arguments which call \code{as.environment(-1)} and
+\code{pos.to.env(-1)}. They correspond to 2 parameters from 2 functions,
+\code{R.oo::.getFunctionByName}, and \code{backports:::get0}.
 %
-We identified 2710 arguments which directly call \code{as.environment(-1)} and
-\code{pos.to.env(-1)} in our corpus. They correspond to 2 parameters from 2
-functions, \code{R.oo::.getFunctionByName}, and \code{backports:::get0}.
-%
-\code{R.oo:::.getFunctionByName}, searches for a function by
-name in different scopes. Its argument \code{callEnvir}, has a default value of
-\code{as.environment(-1)} which is evaluated by assigning it to \code{envirT}
-before it is passed down to the \code{exists} function.
+The first searches for a function by name in different scopes. Its argument has
+a default value of \code{as.environment(-1)}.
 %
 \begin{lstlisting}
-R.oo:::.getFunctionByName <- function(..., callEnvir = as.environment(-1L), ...) {
-    ...
-    envirT <- callEnvir
-    ...
-}
+ R.oo:::.getFunctionByName <- function(..., callEnvir = as.environment(-1L), ...) {
+   envirT <- callEnvir
+   ...
 \end{lstlisting}
 %
-\code{backports::get0} looks up a variable in a scope, similar in spirit to
-\code{R.oo:::.getFunctionByName}. This function is always called with the
-default value \code{pos.to.env(-1)} for its \code{envir} argument. Unlike
-\code{R.oo:::.getFunctionByName}, \code{backports:::get0} passes \code{envir}
-unevaluated to \code{mget}. \code{mget} in turn evaluates \code{envir} and looks
-up variable referred to by \code{x} in \code{envir}. Clearly, with the default
-value of \code{envir}, lookup will happen in the environment of
-\code{backports::get0} which only has bindings for its parameters. What makes
-this work is that it is only called from the top-level, with the argument
-\code{inherits} set to \code{TRUE}. This causes \code{mget} to search
-recursively in enclosing scopes beginning from \code{envir} until lookup
-succeeds in the \code{global} environment used for top-level bindings.
-%
-\begin{lstlisting}
-backports::get0 <- function (x, envir = pos.to.env(-1L), ...)  {
-    ...
-    mget(x[1L], envir = envir, ...)[[1L]]
-    ...
-}
-\end{lstlisting}
-%
-Calls to \code{R.oo:::.getFunctionByName} result in transitively making 1821
-argument lazy. They correspond to 18 parameters from 15 functions of 3 packages.
-We manually analyzed these cases but found that none of these functions pass
-their arguments containing calls to \code{as.environment(-1)} or
-\code{pos.to.env(-1)} to \code{R.oo:::.getFunctionByName}. They are identified
-as lazy because our dynamic analyzer is conservative. When a reflective call
-happens from an argument promise, it taints all the function arguments on the
-stack. This has the effect of making more arguments lazy than needed.
-%
-\code{backports::get0} is invoked from the top-level so it does not result in
-spurious transitive laziness.
 
 \section{\Rsh: Compiling the Lazy Away}\label{sec:rsh}
 
@@ -1681,7 +1284,7 @@ To conduct our evaluation, we changed the first-tier
 compiler to eagerly evaluate all arguments at all call-sites, except for a
 manually curated list of exceptions. This eager bytecode also serves as the source
 code for the optimizing tier. In the following we will refer
-to this modified implementation as \Rshstrict.
+to our implementation as \Rshstrict.
 
 Our main hypothesis regarding performance is that eager semantics lead to faster
 execution of R programs. This hypothesis might seem unexpected to some readers,
@@ -1718,7 +1321,6 @@ the containerization to be uniform. All measurements are recorded repeatedly and
 keep a historical record to spot unstable behavior. This lead us to exclude the
 \lstinline{convolution} benchmark from the suite, which appears to have a
 bi-modal performance profile, likely caused by the llvm backend of \Rsh.
-Table~\ref{table:bms} in the appendix presents our benchmark selection.
 
 Performance measurements are gathered by running $t_e$ invocations of \Rsh on
 each benchmark. Within each invocation we measure the execution time of $t_i$
@@ -1815,61 +1417,149 @@ smaller in that case, because it allocates much less promises to start with.
 
 \paragraph{Discussion}
 
-In both tiers we observed a proportional reduction of the time spent in tracing
-the heap and allocating promises.
-However, surprisingly, that was not the main contribution to the speedups.
-We investigated the remaining difference using the \lstinline{perf} profiler
-and found that the overheads of lazy evaluation are to be found in setting up the
-execution context for promise evaluation. This includes marking it as 'executing'
-to detect recursive evaluation dependencies, and either calling the interpreters
-main eval-loop on the code of the promise or calling the natively compiled
-function. In the case of the native backend, having the promises inlined at the
-call-site instead of in a separate native function invoked by the callee,
-resulted in fewer instruction cache misses.
+In both tiers we observed a proportional reduction of time spent tracing the
+heap and allocating promises. Surprisingly, that was not the main reason
+for the speedups. We investigated the remaining difference using the
+\lstinline{perf} profiler and found that the overheads of lazy evaluation are to
+be found in setting up the execution context for promise evaluation. This
+includes marking it as 'executing' to detect recursive evaluation dependencies,
+and either calling the interpreters main eval-loop on the code of the promise or
+calling the compiled function. In the case of the native backend, having the
+promises inlined at the call-site instead of in a separate native function
+invoked by the callee, resulted in fewer instruction cache misses. We also found
+some instances where both tiers sped up similarly, however the underlying
+reasons were very different. Take for instance the \lstinline{bin} benchmark,
+which showed in both interpreter and compiler a speedup of about $1.5\times$ in
+the strict mode. In native, the execution time decreased from 79ms to 53ms. In
+the interpreter, time went from 143ms to 97ms per iteration. In the former case,
+the speedup comes from the effects described above; for the latter, part of the
+speedup is due to a better optimizations. Previously the local environment of
+the innermost function was live. Thanks to eager evaluation of the arguments,
+the argument promises do not leak the environment and therefore \Rsh is able to
+elide it.
 
-We also found some instances where both tiers sped up similarly,
-however the underlying reasons were very different.
-Take for instance the \lstinline{bin} benchmark, which showed in both
-the bytecode interpreter and the native compiler a speedup of about $1.5\times$
-in the strict mode. In native, the execution time decreased from 79ms to 53ms. In
-the interpreter, time went from 143ms to 97ms per iteration. In the former case, the speedup
-comes from the effects described above; \SK{please review from here to the end of the paragraph} for the latter, part of the speedup is due to a better optimizations: Previously the local
-environment of the innermost function was live (since \Rsh does not yet
-support speculative environment elision for recursive functions). Thanks to eager
-evaluation of the arguments, the argument promises do not leak the environment
-and therefore \Rsh is able to elide it.
+
+\newpage
+\section{Robustness of inferred signatures} \label{Evaluation:Robustness}
+
+In this section, we evaluate the robustness of strictness signatures generated
+by \lazr. This done by running scripts extracted from 2000 client packages of
+our corpus. These packages have 4.5M lines of R code and 4.7M lines of native
+code. Table ~\ref{table:clientcorpus} gives numbers scripts and lines of code
+exercised.
+
+\begin{wraptable}{r}{6cm}  \vspace{-3mm}  \small  \centering
+  \caption{Client Corpus}\label{table:clientcorpus}  \vspace{-3mm}
+  \begin{tabular}{lrrr}    \toprule
+    &\bf Tests&\bf Examples&\bf Vignettes\\
+    \midrule
+    {Scripts} &9.8K&41.1K&1.7K\\
+    \midrule
+    {LOC} &751.2K&348.8K&112.3K\\    \bottomrule
+  \end{tabular}
+\end{wraptable}%%
+
+Using \lazr, we extracted 52K scripts from the clients. From these, we filtered
+scripts whose output was non-deterministic, leaving us with 42K scripts. The
+goal of the next step is to validate if, after applying strictness signatures,
+produce identical outputs.
+
+Comparing output of scripts is standard practice in the R community for
+detecting regressions. There may be difference in execution that are not
+manifest in the output, this may hide some errors, so the results reported here
+should be considered a lower bound.
+
+
+\begin{wraptable}{r}{6cm}
+  \small
+  \caption{Strictness Failure} \label{table:strictfail}
+  \centering
+  \begin{tabular}{lc|ll}
+    \toprule
+    \#&\textbf{Configuration}&\multicolumn{2}{c}{\textbf{Failures}}\\
+    \midrule
+    0&$+U+S+R$&239&0.56\%\\
+    1&$+U+S-R$&234&0.55\%\\
+    2&$+U-S+R$&1922&4.51\%\\
+    3&$+U-S-R$&6625&15.54\%\\
+    4&$-U+S+R$&610&1.43\%\\
+    5&$-U+S-R$&616&1.44\%\\
+    6&$-U-S+R$&2319&5.44\%\\
+    7&$-U-S-R$&7158&16.79\%\\
+    \bottomrule
+  \end{tabular}
+\end{wraptable}
+
+Table~\ref{table:strictfail} reports on the eight configurations we evaluated.
+For each row in the table, we ran all 42K scripts and counted the number of
+differences from expected outputs. Each row corresponds to a different set of
+strictness signatures for the corpus. The 9K parameters that were inferred to be
+meta-programmed (M) are always lazy. The 128K parameters that were not marked
+were always strict. For the 36K remaining parameters (those with a combination
+of U, S, R) each row represents a different strictness setting.
+
+For each configuration we report the number and percentage of failing programs.
+The \emph{+} sign indicates the corresponding parameters is lazy in and \emph{-}
+means strict. For example, in the $+U+S+R$ configuration, any parameter marked
+as either U, S or R, is lazy. Whereas configuration $+U+S-R$, means that any
+parameter marked U or S must be lazy, and configure $-U+S+R$ means that
+parameters marked S and R must be lazy.
+
+\cconfig 0 is the most lazy of the configurations and only 239 scripts out of
+42K have erroneous outputs. The reason for these errors comes from some of the
+unmarked parameters. Consider for instance a library function \c f, that was
+always called without side-effects during inference, and for which there is a
+side-effecting client. \lazr would mark that function as strict, but the client
+may be able to observe the semantic difference. Luckily this is quite rare.
+
+All other configuration are strictly stricter, and thus are likely to experience
+more errors. The case of \config 1 is surprising, as making reflective arguments
+hides 5 errors. This is an outlier that should be elucidated.
+
+At the extremum, \config 7 makes all parameters marked either U, S or R, strict.
+This leads to 16\% of failures which is rather high. This suggests a substantial
+amount of accidental laziness which can be observed.
+
+One takeway from this evaluation is that unevaluated parameters (U) have only a
+small impact on correctness, while S and R are the sources of most errors.
+
+From the results, we conclude that it safest to use \config 0 as a starting
+point for migration. A first attempt at removing laziness at scale can rely on
+this signature configuration. Next, reflective and unevaluated arguments can be
+made strict without a significant increase in failure rate. Side-effecting
+arguments result in many failures.
 
 \section{Conclusion}\label{sec:conclusion}
 
-In R function arguments are passed lazily. They are not evaluated at the
-call-site, instead the evaluation is suspended until the callee needs them. The
-definition of \emph{need} is quite liberal here, as for example local
-re-binding, returning, and many builtin functions are strict. As was reported in
-previous work, this leads to many programs being on the eager side of the
-spectrum for a lazy language. Why is R strict \SK{you mean lazy?} at all? It turns out that
-allowing users to reflectively alter argument expressions, before evaluating
-them, is a very expressive and powerful meta-programming technique, enjoyed by
-many package authors in the R ecosystem, to build embedded domain specific languages
-and so on. It is part of what makes R appealing to its users, even
-if they do not realize that the language they use has a lazy core. However,
-the joy is limited when it comes to writing robust R code --- as both caller and
-callee co-determine what a function actually does --- and also when implementing
-the language itself. When we turned R into a mostly strict mode, the \Rsh just-in-time
-compiler ran \speedupRshStrict faster through our benchmarks without any
-further changes. Taken everything into account, we believe that R should be
-strict by default, giving package authors the option to opt-in to laziness. We
-provide a strategy for R as an ecosystem to get there, by automatically inferring
-robust strictness signatures for package code. These signatures try to capture
-the desired and accidental laziness of arguments passed to R packages, thereby
-allowing most of the client code to run unchanged --- in our experiments only
-\robustnesResult of all depending packages tests failed. Such automatically
-generated strictness signatures can then subsequently be refined by the package authors and
-users. The change to the language would be beneficial in several ways.
-Implementations would become faster, compilers and program analysis easier to
-perform, users would be presented with a more commonly expected call semantic
-and it would open up the path for further evolution. Currently, many standard
-techniques such as gradually typed function signatures and efficient just-in-time
-optimizations are difficult to apply to R because of laziness.
+In R, function arguments are not evaluated at the call-site, instead the
+evaluation is suspended until the callee needs them. The definition of
+\emph{need} is quite liberal here, as for example local re-binding, returning,
+and many builtin functions are strict. As was reported in previous work, this
+leads to many programs being on the eager side of the spectrum for a lazy
+language. Why is R lazy at all? It turns out that allowing users to reflectively
+alter argument expressions, before evaluating them, is a very expressive and
+powerful meta-programming technique, enjoyed by many package authors in the R
+ecosystem, to build embedded domain specific languages and so on. It is part of
+what makes R appealing to its users, even if they do not realize that the
+language they use has a lazy core. However, the joy is limited when it comes to
+writing robust R code --- as both caller and callee co-determine what a function
+actually does --- and also when implementing the language itself. When we turned
+R into a mostly strict mode, the \Rsh just-in-time compiler ran
+\speedupRshStrict faster through our benchmarks without any further changes.
+Taken everything into account, we believe that R should be strict by default,
+giving package authors the option to opt-in to laziness. We provide a strategy
+for R as an ecosystem to get there, by automatically inferring robust strictness
+signatures for package code. These signatures try to capture the desired and
+accidental laziness of arguments passed to R packages, thereby allowing most of
+the client code to run unchanged --- in our experiments only \robustnesResult of
+all depending packages tests failed. Such automatically generated strictness
+signatures can then subsequently be refined by the package authors and users.
+The change to the language would be beneficial in several ways. Implementations
+would become faster, compilers and program analysis easier to perform, users
+would be presented with a more commonly expected call semantic and it would open
+up the path for further evolution. Currently, many standard techniques such as
+gradually typed function signatures and efficient just-in-time optimizations are
+difficult to apply to R because of laziness.
 
 
 %%\section*{Acknowledgments}
@@ -1879,6 +1569,11 @@ optimizations are difficult to apply to R because of laziness.
 \appendix
 
 \section{Benchmark Selection}
+
+Table~\ref{table:bms} in presents our benchmark selection. We use all benchmarks
+from the language shootout suite. We have acquired one real-world program,
+\c{flx}, and we have ported three programs from the \emph{Are we fast} suite to
+R. All of these are available with our artifact.
 
 \begin{table}[!h]
   \vspace{-3mm}
