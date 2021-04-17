@@ -183,7 +183,7 @@ will be observed to happen randomly. Functional languages prevent this by reflec
 effects in their type system. R developers cannot do this. Instead, they
 routinely add code to force evaluation at library boundaries. The design
 of laziness is inconsistent as there are multiple points where evaluation
-is arbitrarily forced, \emph{e.g}, the right-hand side of assignments and function
+is arbitrarily forced, \eg the right-hand side of assignments and function
 returns. To support object-oriented multiple dispatch, all dispatched arguments
 are evaluated eagerly. Lastly, there are costs to laziness. Each argument must be
 boxed in a data structure containing the expression to evaluate, its environment and
@@ -1443,9 +1443,9 @@ elide it.
 \section{Robustness of inferred signatures} \label{Evaluation:Robustness}
 
 In this section, we evaluate the robustness of strictness signatures generated
-by \lazr. This is done by running scripts extracted from 2000 client packages of
+by \lazr. This is done by running scripts extracted from 2,000 client packages of
 our corpus. These packages have 4.5M lines of R code and 4.7M lines of native
-code. Table ~\ref{table:clientcorpus} gives number of scripts and lines of code
+code. Table ~\ref{table:clientcorpus} gives the number of scripts and lines of code
 exercised.
 
 \begin{wraptable}{r}{6cm}  \vspace{-3mm}  \small  \centering
@@ -1462,10 +1462,10 @@ exercised.
 Using \lazr, we extracted 52K scripts from the clients. From these, we filtered
 scripts whose output was non-deterministic, leaving us with 42K scripts. The
 goal of the next step is to validate if, after applying strictness signatures,
-produce identical outputs.
+they produce identical outputs.
 
 Comparing the output of scripts is standard practice in the R community for
-detecting regressions. There may be a difference in execution that is not
+detecting regressions. There may be a difference in execution that does not
 manifest in the output; this may hide some errors, so the results reported here
 should be considered a lower bound.
 
@@ -1498,32 +1498,32 @@ were always strict. For the 36K remaining parameters (those with a combination
 of U, S, R), each row represents a different strictness setting.
 
 For each configuration, we report the number and percentage of failing programs.
-The \emph{+} sign indicates the corresponding parameters is lazy in and \emph{-}
+The \emph{+} sign indicates the corresponding parameter is lazy and \emph{-}
 means strict. For example, in the $+U+S+R$ configuration, any parameter marked
-as either U, S or R, is lazy. Whereas configuration $+U+S-R$, means that any
-parameter marked U or S must be lazy, and configuration $-U+S+R$ means that
+as either U, S or R, is lazy, whereas the configuration $+U+S-R$ means that any
+parameter marked U or S must be lazy, and the configuration $-U+S+R$ means that
 parameters marked S and R must be lazy.
 
 \cconfig 0 is the laziest of the configurations; only 239 scripts out of 42K
-have erroneous outputs. The reason for these errors comes from some of the
-unmarked parameters. Consider, for instance, a library function \c f, that was
-always called without side-effects during inference, and for which there is a
+have erroneous outputs. These errors come from some of the
+unmarked parameters. Consider, for instance, a library function \c f that was
+always called without side-effects during inference and for which there is a
 side-effecting client. \lazr would mark that function as strict, but the client
-may be able to observe the semantic difference. Luckily this is quite rare.
+may be able to observe the semantic difference. Luckily, this is quite rare.
 
-All other configuration are strictly stricter, and thus are likely to experience
-more errors. The case of \config 1 is surprising, as making reflective arguments
+All other configurations are strictly stricter, and thus are likely to experience
+more errors. The case of \config 1 is surprising, as making arguments reflective
 hides 5 errors. This is an outlier that should be elided.
 
-At the extremum, \config 7 makes all parameters marked either U, S or R, strict.
+In the extreme, \config 7 makes all parameters marked either U, S, or R strict.
 This leads to 16\% of failures which is rather high. This suggests a substantial
 amount of accidental laziness which can be observed.
 
 One takeaway from this evaluation is that unevaluated parameters (U) have only a
 small impact on correctness, while S and R are the sources of most errors.
 
-From the results, we conclude that it safest to use \config 0 as a starting
-point for migration. A first attempt at removing laziness at scale can rely on
+From the results, we conclude that using \config 0 as the starting point for 
+migration is the safest. The first attempt at removing laziness at scale can rely on
 this signature configuration. Next, reflective and unevaluated arguments can be
 made strict without a significant increase in failure rate. Side-effecting
 arguments result in many failures.
@@ -1531,31 +1531,31 @@ arguments result in many failures.
 \section{Conclusion}\label{sec:conclusion}
 
 In R, function arguments are not evaluated at the call-site, instead, the
-evaluation is suspended until the callee needs them. The definition of
-\emph{need} is quite liberal here, as for example, local re-binding, returning,
+evaluation is suspended until the callee needs it. The definition of
+\emph{need} is quite liberal here as, for example, local re-binding, returning,
 and many builtin functions are strict. As was reported in previous work, this
 leads to many programs being on the eager side of the spectrum for a lazy
 language. Why is R lazy at all? It turns out that allowing users to reflectively
 alter argument expressions, before evaluating them, is a very expressive and
 powerful meta-programming technique, enjoyed by many package authors in the R
-ecosystem, to build embedded domain specific languages and so on. It is part of
+ecosystem to build, \eg embedded domain specific languages. It is part of
 what makes R appealing to its users, even if they do not realize that the
 language they use has a lazy core. However, the joy is limited when it comes to
-writing robust R code --- as both caller and callee co-determine what a function
+writing robust R code --- as both the caller and the callee co-determine what a function
 actually does --- and also when implementing the language itself. When we turned
 R into a mostly strict mode, the \Rsh just-in-time compiler ran
 \speedupRshStrict faster through our benchmarks without any further changes.
-Taken everything into account, we believe that R should be strict by default,
+Taking everything into account, we believe that R should be strict by default,
 giving package authors the option to opt-in to laziness. We provide a strategy
 for R as an ecosystem to get there by automatically inferring robust strictness
 signatures for package code. These signatures try to capture the desired and
 accidental laziness of arguments passed to R packages, thereby allowing most of
 the client code to run unchanged --- in our experiments, only \robustnesResult of
-all depending packages tests failed. Such automatically generated strictness
+all depending packages' tests failed. Such automatically generated strictness
 signatures can then subsequently be refined by the package authors and users.
 The change to the language would be beneficial in several ways. Implementations
 would become faster, compilers and program analysis easier to perform, users
-would be presented with a more commonly expected call semantic and it would open
+would be presented with a more commonly expected call semantic, and it would open
 up the path for further evolution. Currently, many standard techniques such as
 gradually typed function signatures and efficient just-in-time optimizations are
 difficult to apply to R because of laziness.
