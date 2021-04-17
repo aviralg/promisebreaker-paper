@@ -804,7 +804,7 @@ For this paper, a corpus of 500 packages from CRAN~\cite{ligges2017} and
 Bioconductor~\cite{bioc} was selected based on their number of clients,
 \emph{i.e.}, the packages which are the most widely used in the ecosystem. The
 chosen packages have a total of 15,362 clients. The most widely used package,
-\c{ggplot2} has 2,669 clients and the package with the fewest clients in our
+\c{ggplot2}, has 2,669 clients and, the package with the fewest clients in our
 corpus, \c{spatstat.linnet}, has 5. The selected 500 packages have 2.2M lines of
 R code and 2.7M lines of native code. For synthesizing signatures for their
 functions, \lazr extracts all executable artifacts from each package.
@@ -863,7 +863,7 @@ functions, \lazr extracts all executable artifacts from each package.
 \end{wraptable}%%
 
 Table~\ref{table:corpus} summarizes the runnable code in the corpus. Each test
-file is run a separate script. Examples and vignettes are snippets of code
+file is run as a separate script. Examples and vignettes are snippets of code
 embedded in the documentation. \lazr extracts them into self-standing scripts.
 Typically, vignettes are longer examples that come with input data, while
 examples are smaller code fragments meant to illustrate the use of the package's
@@ -922,7 +922,7 @@ library. To give an idea of the scale of the analysis
 Table~\ref{table:allocations} presents the number of model objects for which
 \lazr recorded information.
 
-The package in the corpus have 50,435 top-level functions We ignore anonymous
+The packages in the corpus have 50,435 top-level functions We ignore anonymous
 and inner functions. Table~\ref{table:packsize} shows the distribution of these
 functions across packages. We observe that 148 packages have 25 functions or
 less. As expected, there is a steady decrease in packages with more functions.
@@ -966,7 +966,7 @@ has the maximum number of functions, 886.
 
 We observe 137.2M calls to these functions. Figure ~\ref{fig:callDist} shows the
 number of distribution of calls across functions called in the synthesis
-phase. 49.5\% functions are called more than 10 times. 16.4\% functions are
+phase. 49.5\% functions are called more than ten times. 16.4\% functions are
 called only once, leading to low coverage. These functions are spread across 414
 packages.
 We observe 294.45M arguments created in our execution traces. Of those 3.9M are
@@ -989,22 +989,22 @@ parameters.
 \subsection{Inferred strictness signatures}\label{sec:results}
 
 \lazr obtained data for 50,435 functions and 186K parameters. The results are
-signals (M, U, S, R) for each individual parameter. There were 9,100 parameters
-that were marked M for meta-programmed. Table~\ref{table:strictdist} summarizes
-the distribution of combination of the other signals; note that functions and
+signals (M, U, S, R) for individual parameters. There were 9,100 parameters that
+were marked M for meta-programmed. Table~\ref{table:strictdist} summarizes the
+distribution of the combination of the other signals; note that functions and
 packages can be counted in multiple rows as different parameters fall in
 multiple categories. Rows can be interpreted as follows, the first row, for
-instance, shows that 128K parameters coming from 44K functions and 489 package
-were not marked in any way. The second row shows that only 134 for parameters
+instance, shows that 128K parameters coming from 44K functions and 489 packages
+were not marked in any way. The second row shows that only 134 parameters
 were marked R only for their use of reflective operations.
 
 The data yields the following insights. First, the majority of parameters, 65\%,
-are always evaluated and the corresponding arguments do not perform side-effects
-or reflective operations. They can become strict. Of the remaining, there are
-13\% unevaluated parameters, the largest potential source of laziness. This is
-followed by 4\% of parameters whose arguments are marked S only. Everything else
-is quite small. Another observation, is that rows marked R come from very few
-functions and packages.
+are always evaluated, and the corresponding arguments do not perform
+side-effects or reflective operations. They can become strict. Of the remaining,
+there are 13\% unevaluated parameters, the most significant potential source of
+laziness. This is followed by 4\% of parameters whose arguments are marked S
+only. Everything else is quite small. Another observation is that rows marked R
+come from very few functions and packages.
 
 \begin{table}
   \vspace{-3mm}
