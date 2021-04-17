@@ -203,7 +203,7 @@ extension and to create embedded domain-specific languages. While one could
 imagine using macros instead, the number of libraries that would have to be
 refactored would be significant.
 
-\paragraph{A pragmatic path forward.} How to  migrate an entire ecosystem?
+\paragraph{A pragmatic path forward.} How to migrate an entire ecosystem?
 A viable migration path should abide by four tenets: ({\bf T1}) minimal legacy
 code changes, ({\bf T2}) semi-automated migration with limited developer
 involvement, ({\bf T3}) measurable benefits, and ({\bf T4}) testable outcomes.\\
@@ -594,7 +594,7 @@ for the individual elements. This happens in object-oriented dispatch where the
 vararg is forwarded from the dispatcher to the target method. One solution would
 be to make vararg strict if it is strict in all of its constituents. However,
 this may not occur frequently enough to justify the added complexity. The
-current choice is pragmatic but imprecise; we are considering options for more
+current choice is pragmatic but imprecise; we are considering options for a more
 accurate treatment of varargs.
 
 
@@ -1181,7 +1181,7 @@ side-effect using \code{<<-}, this is a common way to update the global state.
 %
 \noindent
 Another source of non-local writes occurs in the \code{withr} package. It
-provides functions to evaluate code in temporarily modified global state. These
+provides functions to evaluate code in a temporarily modified global state. These
 code blocks assign their result in the current scope. In the following example, a
 side-effecting expression is passed to \code{with\_seed} which changes the
 random number generation seed.
@@ -1266,8 +1266,8 @@ a default value of \code{as.environment(-1)}.
 
 \section{\Rsh: Compiling the Lazy Away}\label{sec:rsh}
 
-In this section we report on our experiments to evaluate the implications of
-eagerness on an implementations of R. To that end we modified \Rsh, a just-in-time
+In this section, we report on our experiments to evaluate the implications of
+eagerness on an implementation of R. To that end we modified \Rsh, a just-in-time
 compiler for the language. \Rsh is based on the GNU R reference implementation
 and introduces an additional two-tiered compilation strategy. The
 first tier is realized by a naive bytecode interpreter, the second tier
@@ -1282,7 +1282,7 @@ to elide promises (as long as the default semantics allows it).
 To conduct our evaluation, we changed the first-tier
 compiler to eagerly evaluate all arguments at all call-sites, except for a
 manually curated list of exceptions. This eager bytecode also serves as the source
-code for the optimizing tier. In the following we will refer
+code for the optimizing tier. In the following, we will refer
 to our implementation as \Rshstrict.
 
 Our main hypothesis regarding performance is that eager semantics lead to faster
@@ -1317,7 +1317,7 @@ running Ubuntu 18.04 on a 4.15.0-136 Linux kernel. For ease of use, experiments
 are built as containers, based on Ubuntu 20.04, and executed on
 the Docker runtime 20.10.5, build 55c4c88. We verified the overhead introduced by
 the containerization to be uniform. All measurements are recorded repeatedly and we
-keep a historical record to spot unstable behavior. This lead us to exclude the
+keep a historical record to spot unstable behavior. This led us to exclude the
 \lstinline{convolution} benchmark from the suite, which appears to have a
 bi-modal performance profile, likely caused by the llvm backend of \Rsh.
 
@@ -1378,12 +1378,12 @@ this section.
 \end{figure}
 
 We measure the number of promises allocated in the
-benchmark suite per iteration for GNU R, \Rsh and \Rsh-strict. The results are shown in
+benchmark suite per iteration for GNU R, \Rsh, and \Rsh-strict. The results are shown in
 \autoref{fig:gc-pressure}. The first jump from GNU R's bytecode interpreter to
 the optimizing just-in-time compiler \Rsh, leads to an \promiseAlocationReductionGnurRsh
 reduction in allocations. The second step
 from lazy to eager semantics leads to \promiseAlocationReductionRshStrictToZero
-benchmarks not allocating any promises at all. On the remainder we see an additional
+benchmarks not allocating any promises at all. On the remainder, we see an additional
 \promiseAlocationReductionRshStrict reduction.
 Overall, \promiseAlocationReductionRshStrictToZero benchmarks reduce to zero
 allocations, the rest reduce on average by \promiseAlocationReductionGnurRshStrict.
@@ -1395,12 +1395,12 @@ originate largely from special forms, \ie R builtins with a custom evaluation
 strategy, that are not yet natively supported in the \Rsh bytecode.
 
 It turns out that even an optimizing compiler has to allocate many promises for R
-code, as often times, they cannot be eliminated entirely. \Rshstrict allows for
+code, as oftentimes, they cannot be eliminated entirely. \Rshstrict allows for
 a larger reduction in the number of promises allocated.
 Thus, we expected a significant portion of the overall speedup to originate from
 the reduced allocation rate. We measured the differences in garbage collection
 time and it ranged from \speedupGCRshStrictMin to \speedupGCRshStrictMax, but
-found the contribution to the overal speedup to be smaller than expected.
+found the contribution to the overall speedup to be smaller than expected.
 The GNU R garbage collector, which is reused in \Rsh, has a fairly slow allocation path, which
 includes mutating a doubly-linked list. Therefore, some portion of the speedup
 could be due to the saved time in the allocation of promises, which is not counted in the GC time.
@@ -1411,28 +1411,28 @@ This configuration led to an overall speedup of
 about \speedupDueToReducedGC of the performance improvement in the bytecode interpreter is due to the
 reduced allocation. Unfortunately, a similar experiment cannot be as easily conducted
 for the optimizing tier of \Rsh, since its compiler would just optimize away all
-unneccessary allocations. We conjecture that the contribution should be even
-smaller in that case, because it allocates much less promises to start with.
+unnecessary allocations. We conjecture that the contribution should be even
+smaller in that case, because it allocates much fewer promises to start with.
 
 \paragraph{Discussion}
 
-In both tiers we observed a proportional reduction of time spent tracing the
+In both tiers, we observed a proportional reduction of time spent tracing the
 heap and allocating promises. Surprisingly, that was not the main reason
 for the speedups. We investigated the remaining difference using the
 \lstinline{perf} profiler and found that the overheads of lazy evaluation are to
 be found in setting up the execution context for promise evaluation. This
 includes marking it as 'executing' to detect recursive evaluation dependencies,
-and either calling the interpreters main eval-loop on the code of the promise or
+and either calling the interpreter's main eval-loop on the code of the promise or
 calling the compiled function. In the case of the native backend, having the
 promises inlined at the call-site instead of in a separate native function
 invoked by the callee, resulted in fewer instruction cache misses. We also found
-some instances where both tiers sped up similarly, however the underlying
+some instances where both tiers sped up similarly, however, the underlying
 reasons were very different. Take for instance the \lstinline{bin} benchmark,
 which showed in both interpreter and compiler a speedup of about $1.5\times$ in
 the strict mode. In native, the execution time decreased from 79ms to 53ms. In
 the interpreter, time went from 143ms to 97ms per iteration. In the former case,
 the speedup comes from the effects described above; for the latter, part of the
-speedup is due to a better optimizations. Previously the local environment of
+speedup is due to better optimizations. Previously the local environment of
 the innermost function was live. Thanks to eager evaluation of the arguments,
 the argument promises do not leak the environment and therefore \Rsh is able to
 elide it.
@@ -1510,7 +1510,7 @@ always called without side-effects during inference, and for which there is a
 side-effecting client. \lazr would mark that function as strict, but the client
 may be able to observe the semantic difference. Luckily this is quite rare.
 
-All other configuration are strictly stricter, and thus are likely to experience
+All other configurations are strictly stricter, and thus are likely to experience
 more errors. The case of \config 1 is surprising, as making reflective arguments
 hides 5 errors. This is an outlier that should be elided.
 
@@ -1537,7 +1537,7 @@ leads to many programs being on the eager side of the spectrum for a lazy
 language. Why is R lazy at all? It turns out that allowing users to reflectively
 alter argument expressions, before evaluating them, is a very expressive and
 powerful meta-programming technique, enjoyed by many package authors in the R
-ecosystem, to build embedded domain specific languages and so on. It is part of
+ecosystem, to build embedded domain specific languages, and so on. It is part of
 what makes R appealing to its users, even if they do not realize that the
 language they use has a lazy core. However, the joy is limited when it comes to
 writing robust R code --- as both caller and callee co-determine what a function
