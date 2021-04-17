@@ -515,7 +515,7 @@ which conditionally defines and then re-defines \c f.
 \end{lstlisting}
 
 \paragraph{Applying signatures.}
-To apply signatures in the GNU R reference implemetation, \strictr performs
+To apply signatures in the GNU R reference implementation, \strictr performs
 source-to-source rewriting of functions as they are loaded. The rewriting is
 simple; each function must \c{force} every argument that was not declared lazy.
 Arguments are checked for missingness before forcing; if they are either not
