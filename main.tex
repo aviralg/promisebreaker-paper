@@ -107,7 +107,7 @@
 
 \begin{abstract}
   Function calls in the R language do not evaluate their arguments; these are
-  passed to the callee as suspended computations and evaluated only if needed.
+  passed to the callee as suspended computations and only evaluated if needed.
   After 25 years of experience with the language, there are very few cases where
   programmers leverage delayed evaluation intentionally. Yet, being lazy comes
   at a price in performance and complexity. This paper explores how to evolve
@@ -160,8 +160,8 @@
 \section{Introduction}
 
 The R programming language is widely used in data science. Apparently,
-unbeknownst to many of its end-users, function calls have a lazy semantics:
-arguments are suspended computations which are evaluated if and when they are
+unbeknownst to many of its end-users, function calls have lazy semantics:
+arguments are suspended computations that are evaluated if and when they are
 needed. \citet{oopsla19b} provided a thorough observational study of a corpus of
 16,707 R packages. For the most part, the corpus appears to have been written
 without reliance on laziness with the exception of code that leverages it for
@@ -175,12 +175,12 @@ conceivable that their code accidentally depends on it. A change in the order of
 evaluation of arguments may introduce errors if that code was performing side
 effects.
 
-\paragraph{The case for strictness.} Laziness is error-prone, inconsistent
+\paragraph{The case for strictness.} Laziness is error-prone, inconsistent,
 and costly! The combination of delayed evaluation and side-effects in a language
 without type annotations is an invitation to subtle errors. If a function that
 has multiple evaluation orders is called with effectful arguments, their effects
 will be observed to happen randomly. Functional languages prevent this by reflecting
-effects in their type system. R developers cannot do this, instead they
+effects in their type system. R developers cannot do this, instead, they
 routinely add code to force evaluation at the boundaries of libraries. The design
 of laziness is inconsistent because there are multiple points where evaluation
 is arbitrarily forced, \emph{e.g}, right-hand side of assignments and function
@@ -199,7 +199,7 @@ to protect the ecosystem. There is also a genuine need for lazy evaluation: it i
 the building block of R's meta-programming facilities. Unevaluated arguments can
 be coerced back to their source code, that code can be modified and evaluated in
 an environment of the programmer's choice. Meta-programming is used for language
-extension and to create embedded domain specific languages. While one could
+extension and to create embedded domain-specific languages. While one could
 imagine using macros instead, the number of libraries that would have to be
 refactored would be significant.
 
@@ -211,8 +211,8 @@ We propose a migration path towards a mostly strict language
 with the following characteristics.
 \vspace{1mm}
 \begin{compactitem}[---]
-\item {\bf T1:} Our extensions to the R syntax and semantics is non-invasive.
-  The behavior expected by most users closely aligns to a strict semantics. Our
+\item {\bf T1:} Our extensions to the R syntax and semantics are non-invasive.
+  The behavior expected by most users closely aligns to strict semantics. Our
   extension does not require changes in end-user code. For libraries, strictness
   signatures come as external files.
 \item {\bf T2:} We propose to infer annotations for legacy library code. R
@@ -233,7 +233,7 @@ with the following characteristics.
 \end{compactitem}
 
 \medskip
-\noindent Our long term aim is to propose such a migration path to the R community. In
+\noindent Our long-term aim is to propose such a migration path to the R community. In
 this paper we evaluate this migration path and make the following contributions:
 \vspace{1mm}
 
@@ -241,7 +241,7 @@ this paper we evaluate this migration path and make the following contributions:
 \item We introduce \strictr, a non-invasive extension of the R language, where
   optional signature files specify, for individual functions, which of their
   arguments are strict. The proposal is integrated in the R environment and
-  compatible with the package loading model. In the reference implementation the
+  compatible with the package loading model. In the reference implementation, the
   proposal is realized by instrumentation.
 \item We implement \lazr, an infrastructure for large-scale inference of
   strictness signatures for legacy libraries. We evaluate \lazr on packages
@@ -286,7 +286,7 @@ language migration.
 
 \paragraph{Call by need}  Functional languages with
 a call by need evaluation strategy must contend with memory pressure and
-associated performance issues due to allocation of a substantial numbers of
+associated performance issues due to allocation of a substantial number of
 thunks (suspended computations)~\cite{transformopt,stricteffective,opteval}. The
 Glasgow Haskell Compiler performs a strictness analysis pass to identify
 arguments that can be evaluated eagerly. While most programs benefit from such a
@@ -295,12 +295,12 @@ opportunities for optimizations. To recover performance programmers can manually
 insert strictness annotations to control evaluation; identifying where to put
 them, however, can be challenging. \citet{autobahn} proposed Autobahn, a tool
 that automatically infers strictness annotations using a genetic algorithm. The
-approach relies on a dynamic analysis, as it does not approximate and cannot
+approach relies on dynamic analysis, as it does not approximate and cannot
 guarantee termination on all inputs. As the annotations are based on a
 heuristic, developers must manually validate their soundness. The authors report
 an average 8.5\% speedup (with a maximum speedup of 89\%). \citet{lazyprof}
 solve the complementary problem of suggesting laziness annotations for
-call-by-value $\lambda$ calculus using a dynamic analysis. They introduce the
+call-by-value $\lambda$ calculus using dynamic analysis. They introduce the
 notion of laziness potential, a predictor of the benefit obtained by making an
 expression lazy. They use this as a guide to insert laziness annotations. They
 demonstrate benefits on Racket implementations of Okasaki's purely functional
@@ -308,22 +308,22 @@ data structures, monadic parser combinators, and an AI game. Our work is similar
 to Autobahn in that we infer annotations dynamically and we do not guarantee
 soundness. Our work departs from Autobahn in that we use dynamic analysis of
 execution traces to determine strictness. Furthermore, we must deal with
-side-effects and reflective operations, adding extra complexity for our
+side-effects and reflective operations, adding extra complexity to our
 inference algorithm.
 
 \paragraph{The R language} \citet{oopsla19b} investigated the design and use of
 laziness in R. They provide a detailed account of the language's evaluation
 strategy with a small-step operational semantics and an empirical evaluation of
-laziness in 16,707 packages. Their study shows that most of R code is written
+laziness in 16,707 packages. Their study shows that most of the R code is written
 without reliance on, or awareness of, laziness. Out of 388K functions, 83\%
 evaluate all of their arguments in a single order across all calls. The authors
 found that programmers sometimes force evaluation of arguments at the beginning
 of a function to protect their code from non-deterministic effects. Only a
 single instance of a lazy data structure could be found. The main \emph{raison
-d'\^etre} for delayed evaluation seems to be meta-programming. In that work a
+d'\^etre} for delayed evaluation seems to be meta-programming. In that work, a
 function was deemed to be strict if it had a single evaluation order for its
 arguments. Our approach is inspired by that work, but we do not require a single
-evaluation order for a function, instead we choose to look at clients and
+evaluation order for a function, instead, we choose to look at clients and
 declare a parameter lazy if some clients call the function with effectful
 arguments. \citet{oopsla20b} empirically inferred \emph{type} signatures for
 functions by observing the type of arguments and return values. The authors
@@ -335,12 +335,12 @@ evaluated, it evaluates to the expected type. For strictness, we have to worry
 about the interplay of side-effects and changes to the order of evaluation of
 arguments. This makes validation of strictness signatures hard.
 
-\paragraph{Language migration} Changing a language with a large code base
+\paragraph{Language migration} Changing a language with a large codebase
 is challenging. No migration has been more fraught than that of Python. Python 3
-was released in 2008 with many changes that broke backwards compatibility and no
+was released in 2008 with many changes that broke backward compatibility and no
 automated upgrade path. \citet{Agg15} attempted to use statistical machine
 learning to convert Python 2 to 3. \citet{Pra20} described a tool for
-discovering types in Python programs as a combination of probalistic type
+discovering types in Python programs as a combination of probabilistic type
 prediction and search-based refinement. Migration was also studied in the
 context of Java libraries~\cite{Xu19}, Android apps~\cite{Orso20} and C++
 applications~\cite{OB20}. A more successful experience is the migration from PHP
