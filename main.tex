@@ -763,7 +763,7 @@ model parameter corresponding to that promise is marked with an S.
 
 
 \paragraph{Reflective arguments (R)}
-When a promise calls \code{as.environment(v)} or and \code{pos.to.end(v)}, and
+When a promise calls \code{as.environment(v)} or \code{pos.to.env(v)}, and
 \c v is \c{-1}, then the model parameter corresponding to that promise should be
 marked R. \lazr uses the same approach as above marking the topmost active
 promise as the direct cause, subsequent promises are transitively responsible.
@@ -787,7 +787,7 @@ a simple map-reduce style. Each analysis is split in 4 phases. The reduce maps
 an function on the output of one trace to get a partial summary. The combine
 phase concatenates partial summaries. Then, the summarize phase aggregates
 summaries into a result table. At this point, the file is less than 100MB in
-size. Finally, in the report phase creates graphs, and tables for inclusion in
+size. Finally, the report phase creates graphs, and tables for inclusion in
 the paper.
 
 The \lazr pipeline is set up with a container image that includes all the
