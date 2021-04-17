@@ -575,7 +575,7 @@ strict at the developer's discretion.
 code, some parameters will be labeled as lazy even if the called function does
 not require this. An argument that performs a side-effect will be treated as
 lazy to retain semantics. For instance in the call \c{f(g(),x<-1)}, function \c
-f is free to evaluate is arguments in any order. Enforcing one particular order
+f is free to evaluate its arguments in any order. Enforcing one particular order
 may lead to observable differences in behavior, \eg if the call to \c{g()} reads
 \c{x}. Writing such code is bad form, as small changes in the implementation of
 \c f may break it. R has a call-by-value semantics for vectors and lists. These
