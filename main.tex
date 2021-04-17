@@ -203,7 +203,7 @@ extension and to create embedded domain-specific languages. While one could
 imagine using macros instead, the number of libraries that would have to be
 refactored would be significant.
 
-\paragraph{A pragmatic path forward.} How to  migrate an entire ecosystem?
+\paragraph{A pragmatic path forward.} How to migrate an entire ecosystem?
 A viable migration path should abide by four tenets: ({\bf T1}) minimal legacy
 code changes, ({\bf T2}) semi-automated migration with limited developer
 involvement, ({\bf T3}) measurable benefits, and ({\bf T4}) testable outcomes.\\
@@ -594,7 +594,7 @@ for the individual elements. This happens in object-oriented dispatch where the
 vararg is forwarded from the dispatcher to the target method. One solution would
 be to make vararg strict if it is strict in all of its constituents. However,
 this may not occur frequently enough to justify the added complexity. The
-current choice is pragmatic but imprecise; we are considering options for more
+current choice is pragmatic but imprecise; we are considering options for a more
 accurate treatment of varargs.
 
 
@@ -1181,7 +1181,7 @@ side-effect using \code{<<-}, this is a common way to update the global state.
 %
 \noindent
 Another source of non-local writes occurs in the \code{withr} package. It
-provides functions to evaluate code in temporarily modified global state. These
+provides functions to evaluate code in a temporarily modified global state. These
 code blocks assign their result in the current scope. In the following example, a
 side-effecting expression is passed to \code{with\_seed} which changes the
 random number generation seed.
@@ -1379,12 +1379,12 @@ this section.
 \end{figure}
 
 We measure the number of promises allocated in the
-benchmark suite per iteration for GNU R, \Rsh and \Rsh-strict. The results are shown in
+benchmark suite per iteration for GNU R, \Rsh, and \Rsh-strict. The results are shown in
 \autoref{fig:gc-pressure}. The first jump from GNU R's bytecode interpreter to
 the optimizing just-in-time compiler \Rsh, leads to a \promiseAlocationReductionGnurRsh
 reduction in allocations. The second step
 from lazy to eager semantics leads to \promiseAlocationReductionRshStrictToZero
-benchmarks not allocating any promises at all. On the remainder we see an additional
+benchmarks not allocating any promises at all. On the remainder, we see an additional
 \promiseAlocationReductionRshStrict reduction.
 Overall, \promiseAlocationReductionRshStrictToZero benchmarks reduce to zero
 allocations, the rest reduce on average by \promiseAlocationReductionGnurRshStrict.
@@ -1396,12 +1396,12 @@ originate largely from special forms, \ie R builtins with a custom evaluation
 strategy, that are not yet natively supported in the \Rsh bytecode.
 
 It turns out that even an optimizing compiler has to allocate many promises for R
-code, as often times, they cannot be eliminated entirely. \Rshstrict allows for
+code, as oftentimes, they cannot be eliminated entirely. \Rshstrict allows for
 a larger reduction in the number of promises allocated.
 Thus, we expected a significant portion of the overall speedup to originate from
 the reduced allocation rate. We measured the differences in garbage collection
 time and it ranged from \speedupGCRshStrictMin to \speedupGCRshStrictMax, but
-found the contribution to the overal speedup to be smaller than expected.
+found the contribution to the overall speedup to be smaller than expected.
 The GNU R garbage collector, which is reused in \Rsh, has a fairly slow allocation path, which
 includes mutating a doubly-linked list. Therefore, some portion of the speedup
 could be due to the saved time in the allocation of promises, which is not counted in the GC time.
@@ -1412,22 +1412,22 @@ This configuration led to an overall speedup of
 about \speedupDueToReducedGC of the performance improvement in the bytecode interpreter is due to the
 reduced allocation. Unfortunately, a similar experiment cannot be as easily conducted
 for the optimizing tier of \Rsh, since its compiler would just optimize away all
-unneccessary allocations. We conjecture that the contribution should be even
-smaller in that case, because it allocates much less promises to start with.
+unnecessary allocations. We conjecture that the contribution should be even
+smaller in that case, because it allocates much fewer promises to start with.
 
 \paragraph{Discussion}
 
-In both tiers we observed a proportional reduction of time spent tracing the
+In both tiers, we observed a proportional reduction of time spent tracing the
 heap and allocating promises. Surprisingly, that was not the main reason
 for the speedups. We investigated the remaining difference using the
 \lstinline{perf} profiler and found that the overheads of lazy evaluation are to
 be found in setting up the execution context for promise evaluation. This
 includes marking it as 'executing' to detect recursive evaluation dependencies,
-and either calling the interpreters main eval-loop on the code of the promise or
+and either calling the interpreter's main eval-loop on the code of the promise or
 calling the compiled function. In the case of the native backend, having the
 promises inlined at the call-site instead of in a separate native function
 invoked by the callee, resulted in fewer instruction cache misses. We also found
-some instances where both tiers sped up similarly, however the underlying
+some instances where both tiers sped up similarly, however, the underlying
 reasons were very different. Take for instance the \lstinline{bin} benchmark,
 which showed in both interpreter and compiler a speedup of about $1.5\times$ in
 the strict mode. In native, the execution time decreased from 79ms to 53ms. In
