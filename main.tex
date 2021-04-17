@@ -300,15 +300,15 @@ guarantee termination on all inputs. As the annotations are based on a
 heuristic, developers must manually validate their soundness. The authors report
 an average 8.5\% speedup (with a maximum speedup of 89\%). \citet{lazyprof}
 solve the complementary problem of suggesting laziness annotations for
-call-by-value $\lambda$ calculus using dynamic analysis. They introduce the
+call-by-value $\lambda$~calculus using dynamic analysis. They introduce the
 notion of laziness potential, a predictor of the benefit obtained by making an
 expression lazy. They use this as a guide to insert laziness annotations. They
 demonstrate benefits on Racket implementations of Okasaki's purely functional
 data structures, monadic parser combinators, and an AI game. Our work is similar
 to Autobahn in that we infer annotations dynamically and we do not guarantee
-soundness. Our work departs from Autobahn in that we use dynamic analysis of
+soundness. We depart from Autobahn in that we use dynamic analysis of
 execution traces to determine strictness. Furthermore, we must deal with
-side-effects and reflective operations, adding extra complexity to our
+side-effects and reflective operations which adds extra complexity to our
 inference algorithm.
 
 \paragraph{The R language} \citet{oopsla19b} investigated the design and use of
@@ -329,8 +329,8 @@ arguments. \citet{oopsla20b} empirically inferred \emph{type} signatures for
 functions by observing the type of arguments and return values. The authors
 validated these signatures by inserting type checking code inside functions and
 monitoring type failures on client programs. This approach inspired our strictness
-inference, but types are easier to check for soundness than strictness. For
-types, one simply inserts code that checks that, if an argument is eventually
+inference, however, types are easier to check for soundness than strictness. For
+types, one simply inserts code that checks that if an argument is eventually
 evaluated, it evaluates to the expected type. For strictness, we have to worry
 about the interplay of side-effects and changes to the order of evaluation of
 arguments. This makes validation of strictness signatures hard.
@@ -370,7 +370,7 @@ definition can include default expressions for parameters, these can refer to
 other parameters. R functions are higher-order. The following snippet declares a
 function \code f which takes a variable number of arguments, whose parameters
 \code x and \code y, if missing, have default expressions \code y and
-\code{3*x}, which are only evaluated when needed. The function returns a closure.
+\code{3*x}, and which are only evaluated when needed. The function returns a closure.
 \begin{lstlisting}
  > f <- function(x=y, ..., y=3*x) { function(z) x+y+z }
 \end{lstlisting}\vspace{1mm}
@@ -385,7 +385,7 @@ used to check if parameter \code{x} was provided at the call site or not, even
 if it was later substituted by a default value. A vararg parameter, written
 \code{...}, accepts an arbitrary number of arguments, including missing
 arguments. A vararg can be materialized into a list with \code{list(...)}. Most
-frequently varargs are passed forward to a called function. This enables the
+frequently varargs are forwarded to a called function. This enables the
 function to expose its callee's interface to the callers without listing the
 callee's parameters and their default values.
 
@@ -400,7 +400,7 @@ a list of names. For instance, \code{class(x)<-"human"} sets the class of
 of a function, whereas the ``S4 object system'' allows dispatch on all
 arguments. These names refer to the version of the S language which introduced
 them. Popular data types, such as data frames, also leverage attributes. A data
-frame is a list of vectors with \code{class} and \code{colname} attributes.
+frame is a list of vectors with the \code{class} and \code{colname} attributes.
 
 \paragraph{Reflection}
 R supports meta-programming. The \code{substitute(e,envir)}
