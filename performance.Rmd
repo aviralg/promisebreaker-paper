@@ -68,6 +68,8 @@ promiseReductionExperiment <- list(
 
 This experiment shows the impact on GC of base Ř and Ř strict, and the percentage
 speedup due to GC.
+# Each run produces an extra artifact dataGC.csv. One value per benchmark. 
+# Values represent 'seconds spent on GC in 10 iterations'
 
 ```{r echo=FALSE, warning=FALSE, message=FALSE, eval=TRUE}
 gcExperiment <- list(
@@ -78,6 +80,8 @@ gcExperiment <- list(
 
 This experiment shows the impact on GC of base Ř and Ř strict, and the percentage
 speedup due to GC, but without the optimizer.
+# Each run produces an extra artifact dataGC.csv. One value per benchmark. 
+# Values represent 'seconds spent on GC in 10 iterations'
 
 ```{r echo=FALSE, warning=FALSE, message=FALSE, eval=TRUE}
 gcExperiment_bc <- list(
