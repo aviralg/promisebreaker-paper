@@ -161,7 +161,7 @@ validation_summary <-
                    2 * str_detect(signature, fixed("-E")) + 
                    1 * str_detect(signature, fixed("-R"))) %>%
     arrange(order) %>%
-    select(order, signature, test, vignette, example, testthat, total)
+    select(order, signature, total) #test, vignette, example, testthat, total)
     
 
 validation_summary %>% datatable()
