@@ -5,7 +5,7 @@
 \citestyle{acmauthoryear}   %% For author/year citations
 \usepackage{listings,multirow,wrapfig,xspace,paralist}
 \usepackage{xcolor,tikz,graphicx, pifont}
-%\usetikzlibrary{positioning}
+\usetikzlibrary{positioning,automata,fit,shapes.geometric,backgrounds,calc}
 
 %% \newcommand{\authorcomment}[3]{\xspace\textcolor{#1}{{\bf #2} #3}\xspace}
 \newcommand{\authorcomment}[3]{}
@@ -669,6 +669,61 @@ new code, we expect programmers to specify what needs to be lazy in their
 documentation and mostly use strict parameters.
 
 \subsection{Tracing the execution of R scripts}
+
+\begin{figure}[h!]
+  \centering
+  \scalebox{0.85}{
+    \begin{tikzpicture}
+      \definecolor{maroon}{HTML}{D5A6BD}
+      \definecolor{yellow}{HTML}{FFF2CC}
+      \definecolor{blue}{HTML}{DAE8FC}
+      \definecolor{green}{HTML}{D5E8D4}
+      \definecolor{orange}{HTML}{FFE6CC}
+      \definecolor{red}{HTML}{F8CECC}
+      \definecolor{purple}{HTML}{E1D5E7}
+      \definecolor{gray}{HTML}{F5F5F5}
+
+      \newcommand{\nodesep}[0]{0.030 \textwidth}
+      \newcommand{\textsep}[0]{0.010 \textwidth}
+
+      \newcommand{\nodename}[1]{\large \begin{tabular}{c}#1\end{tabular}}
+      \newcommand{\nodedesc}[1]{\small \begin{tabular}{c}#1\end{tabular}}
+
+      \tikzstyle{block}     = [rectangle, minimum width=.08 \textwidth, minimum height=35pt]
+      \tikzstyle{connector} = [line width=0.25mm, ->]
+
+      \node [block, fill = maroon]                                (install)   {\nodename{Install\\CRAN}};
+      \node [block, right = \nodesep of install,   fill = yellow] (extract)   {\nodename{Extract\\Programs}};
+      \node [block, right = \nodesep of extract,   fill = blue]   (trace)     {\nodename{Trace}};
+      \node [block, right = \nodesep of trace,     fill = green]  (reduce)    {\nodename{Reduce}};
+      \node [block, right = \nodesep of reduce,    fill = orange] (combine)   {\nodename{Combine}};
+      \node [block, right = \nodesep of combine,   fill = red]    (summarize) {\nodename{Summarize}};
+      \node [block, right = \nodesep of summarize, fill = purple] (report)    {\nodename{Report}};
+
+      \draw [connector] (install)   edge (extract);
+      \draw [connector] (extract)   edge (trace);
+      \draw [connector] (trace)     edge (reduce);
+      \draw [connector] (reduce)    edge (combine);
+      \draw [connector] (combine)   edge (summarize);
+      \draw [connector] (summarize) edge (report);
+
+      \node [below = \textsep of install]   (installdesc)   {\nodedesc{XXs\\XX Packages}};
+      \node [below = \textsep of extract]   (extractdesc)   {\nodedesc{XXs\\XX Packages\\XX Files}};
+      \node [below = \textsep of trace]     (tracedesc)     {\nodedesc{XXs\\XX Files\\XX TB}};
+      \node [below = \textsep of reduce]    (reducedesc)    {\nodedesc{XXs\\XX Files\\XX TB}};
+      \node [below = \textsep of combine]   (combinedesc)   {\nodedesc{XXs\\XX Files\\XX TB}};
+      \node [below = \textsep of summarize] (summarizedesc) {\nodedesc{XXs\\XX Files\\XX TB}};
+      \node [below = \textsep of report]    (reportdesc)    {\nodedesc{XXs\\XX Files}};
+
+      \begin{scope}[on background layer]
+        \node[fit=(install) (extract), rectangle, fill=gray, fill opacity=0.8, label=above:\textbf{Corpus}]          (corpus) {};
+        \node[fit=(trace),             rectangle, fill=gray, fill opacity=0.8, label=above:\textbf{Tracing}]         (exectrace) {};
+        \node[fit=(reduce) (report),   rectangle, fill=gray, fill opacity=0.8, label=above:\textbf{Post-processing}] (postprocessing) {};
+      \end{scope}
+    \end{tikzpicture}
+  }
+  \caption{Analysis Pipeline}\label{fig:analysisPipeline}
+\end{figure}
 
 The heart of \lazr is a dynamic analysis tool built on the \rdyn package which
 extends the GNU R virtual machine version 4.0.2~\cite{oopsla19b}.
@@ -1441,6 +1496,64 @@ elide it.
 
 \newpage
 \section{Robustness of inferred signatures} \label{Evaluation:Robustness}
+
+\begin{figure}[th!]
+  \centering
+  \scalebox{0.85}{
+    \begin{tikzpicture}
+
+      \definecolor{gray}{HTML}{F5F5F5}
+      \definecolor{green}{HTML}{D5E8D4}
+      \definecolor{yellow}{HTML}{FFF2CC}
+      \definecolor{blue}{HTML}{DAE8FC}
+      \definecolor{purple}{HTML}{E1D5E7}
+      \definecolor{red}{HTML}{F8CECC}
+
+      \tikzstyle{block}      = [rectangle, minimum width=.1 \textwidth, minimum height=35pt]
+      \tikzstyle{dummyblock} = [rectangle, minimum width=.1 \textwidth, minimum height=23pt]
+
+      \tikzstyle{connector} = [line width=0.25mm, ->]
+
+      \newcommand{\nodesep}[0]{0.060 \textwidth}
+      \newcommand{\dummynodesep}[0]{8mm}
+      \newcommand{\textsep}[0]{10mm}
+
+      \newcommand{\nodename}[1]{\large \begin{tabular}{c}#1\end{tabular}}
+      \newcommand{\nodedesc}[1]{\small \begin{tabular}{c}#1\end{tabular}}
+
+      \node [block, fill = green]                                                           (corpus)            {\nodename{Corpus}};
+      \node [block, right = \nodesep of corpus, fill = gray]                                (dummyrun)          {};
+      \node [block, above = \dummynodesep of dummyrun.north, anchor = north, fill = yellow] (runone)            {\nodename{First\\Run}};
+      \node [block, below = \dummynodesep of dummyrun.south, anchor = south, fill = yellow] (runtwo)            {\nodename{Second\\Run}};
+      \node [block, right = \nodesep of dummyrun, fill = blue]                              (outone)            {\nodename{Compare\\Output}};
+      \node [block, right = \nodesep of outone, fill = purple]                              (strictrun)         {\nodename{Run with\\StrictR}};
+      \node [dummyblock, above = 0mm of strictrun.north, fill = gray]                       (dummystrictrun)    {};
+      \node [dummyblock, below = 0mm of strictrun.south, fill = gray]                       (dummystrictruntwo) {};
+      \node [block, right = \nodesep of strictrun, fill = red]                              (outtwo)            {\nodename{Compare\\Output}};
+
+      \draw [connector] (corpus)       -- (runone.west);
+      \draw [connector] (corpus)       -- (runtwo.west);
+      \draw [connector] (runone.east)  -- (outone);
+      \draw [connector] (runtwo.east)  -- (outone);
+      \draw [connector] (outone)       -- (strictrun);
+      \draw [connector] (strictrun)    -- (outtwo);
+      \draw [connector] (runtwo.south) -- ++(0, -0.2) -| ($(runtwo) !1.0! (outtwo.south)$);
+
+      \node [below = \textsep of corpus]    (corpusdesc)     {\nodedesc{XXs\\XX Packages\\XX Files}};
+      \node [below = \textsep of dummyrun]  (rundesc)        {\nodedesc{XXs}};
+      \node [below = \textsep of outone]    (outonedesc)     {\nodedesc{XXs\\XX Files}};
+      \node [below = \textsep of strictrun] (strictrundesc)  {\nodedesc{XXs\\XX Signatures}};
+      \node [below = \textsep of outtwo]    (outtwodesc)     {\nodedesc{XXs\\XX Files}};
+
+      \begin{scope}[on background layer]
+        \node[fit=(corpus) (runone) (runtwo) (outone),                       rectangle, fill=gray, fill opacity=0.8, label=above:\textbf{Deterministic Corpus}] (detcorpus) {};
+        \node[fit=(strictrun) (dummystrictrun) (dummystrictruntwo) (outtwo), rectangle, fill=gray, fill opacity=0.8, label=above:\textbf{Failures}] (failures) {};
+      \end{scope}
+
+    \end{tikzpicture}
+  }
+  \caption{Validation Pipeline}\label{fig:validationPipeline}
+\end{figure}
 
 In this section, we evaluate the robustness of strictness signatures generated
 by \lazr. This is done by running scripts extracted from 2,000 client packages of
