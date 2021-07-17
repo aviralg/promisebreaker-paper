@@ -675,30 +675,38 @@ documentation and mostly use strict parameters.
   \scalebox{0.85}{
     \begin{tikzpicture}
       \definecolor{maroon}{HTML}{D5A6BD}
+      \definecolor{darkmaroon}{HTML}{741B47}
       \definecolor{yellow}{HTML}{FFF2CC}
+      \definecolor{darkyellow}{HTML}{D6B656}
       \definecolor{blue}{HTML}{DAE8FC}
+      \definecolor{darkblue}{HTML}{6C8EBF}
       \definecolor{green}{HTML}{D5E8D4}
+      \definecolor{darkgreen}{HTML}{82B366}
       \definecolor{orange}{HTML}{FFE6CC}
+      \definecolor{darkorange}{HTML}{D79B00}
       \definecolor{red}{HTML}{F8CECC}
+      \definecolor{darkred}{HTML}{B85450}
       \definecolor{purple}{HTML}{E1D5E7}
+      \definecolor{darkpurple}{HTML}{9673A6}
       \definecolor{gray}{HTML}{F5F5F5}
 
       \newcommand{\nodesep}[0]{0.030 \textwidth}
       \newcommand{\textsep}[0]{0.010 \textwidth}
+      \newcommand{\backopacity}[0]{0.9}
 
       \newcommand{\nodename}[1]{\large \begin{tabular}{c}#1\end{tabular}}
       \newcommand{\nodedesc}[1]{\small \begin{tabular}{c}#1\end{tabular}}
 
-      \tikzstyle{block}     = [rectangle, minimum width=.08 \textwidth, minimum height=35pt]
+      \tikzstyle{block}     = [rectangle, rounded corners, minimum width=.08 \textwidth, minimum height=35pt]
       \tikzstyle{connector} = [line width=0.25mm, ->]
 
-      \node [block, fill = maroon]                                (install)   {\nodename{Install\\CRAN}};
-      \node [block, right = \nodesep of install,   fill = yellow] (extract)   {\nodename{Extract\\Programs}};
-      \node [block, right = \nodesep of extract,   fill = blue]   (trace)     {\nodename{Trace}};
-      \node [block, right = \nodesep of trace,     fill = green]  (reduce)    {\nodename{Reduce}};
-      \node [block, right = \nodesep of reduce,    fill = orange] (combine)   {\nodename{Combine}};
-      \node [block, right = \nodesep of combine,   fill = red]    (summarize) {\nodename{Summarize}};
-      \node [block, right = \nodesep of summarize, fill = purple] (report)    {\nodename{Report}};
+      \node [block, draw = darkmaroon, very thick, fill = maroon]                                (install)   {\nodename{Install\\CRAN}};
+      \node [block, draw = darkyellow, very thick, fill = yellow, right = \nodesep of install  ] (extract)   {\nodename{Extract\\Programs}};
+      \node [block, draw = darkblue,   very thick, fill = blue  , right = \nodesep of extract  ] (trace)     {\nodename{Trace}};
+      \node [block, draw = darkgreen,  very thick, fill = green , right = \nodesep of trace    ] (reduce)    {\nodename{Reduce}};
+      \node [block, draw = darkorange, very thick, fill = orange, right = \nodesep of reduce   ] (combine)   {\nodename{Combine}};
+      \node [block, draw = darkred,    very thick, fill = red   , right = \nodesep of combine  ] (summarize) {\nodename{Summarize}};
+      \node [block, draw = darkpurple, very thick, fill = purple, right = \nodesep of summarize] (report)    {\nodename{Report}};
 
       \draw [connector] (install)   edge (extract);
       \draw [connector] (extract)   edge (trace);
@@ -716,9 +724,9 @@ documentation and mostly use strict parameters.
       \node [below = \textsep of report]    (reportdesc)    {\nodedesc{XXs\\XX Files}};
 
       \begin{scope}[on background layer]
-        \node[fit=(install) (extract), rectangle, fill=gray, fill opacity=0.8, label=above:\textbf{Corpus}]          (corpus) {};
-        \node[fit=(trace),             rectangle, fill=gray, fill opacity=0.8, label=above:\textbf{Tracing}]         (exectrace) {};
-        \node[fit=(reduce) (report),   rectangle, fill=gray, fill opacity=0.8, label=above:\textbf{Post-processing}] (postprocessing) {};
+        \node[fit=(install) (extract), rectangle, rounded corners, fill=gray, fill opacity=\backopacity, label=above:\textbf{Corpus}]          (corpus) {};
+        \node[fit=(trace),             rectangle, rounded corners, fill=gray, fill opacity=\backopacity, label=above:\textbf{Tracing}]         (exectrace) {};
+        \node[fit=(reduce) (report),   rectangle, rounded corners, fill=gray, fill opacity=\backopacity, label=above:\textbf{Post-processing}] (postprocessing) {};
       \end{scope}
     \end{tikzpicture}
   }
@@ -1504,32 +1512,38 @@ elide it.
 
       \definecolor{gray}{HTML}{F5F5F5}
       \definecolor{green}{HTML}{D5E8D4}
+      \definecolor{darkgreen}{HTML}{82B366}
       \definecolor{yellow}{HTML}{FFF2CC}
+      \definecolor{darkyellow}{HTML}{D6B656}
       \definecolor{blue}{HTML}{DAE8FC}
+      \definecolor{darkblue}{HTML}{6C8EBF}
       \definecolor{purple}{HTML}{E1D5E7}
+      \definecolor{darkpurple}{HTML}{9673A6}
       \definecolor{red}{HTML}{F8CECC}
+      \definecolor{darkred}{HTML}{B85450}
 
-      \tikzstyle{block}      = [rectangle, minimum width=.1 \textwidth, minimum height=35pt]
-      \tikzstyle{dummyblock} = [rectangle, minimum width=.1 \textwidth, minimum height=23pt]
+      \tikzstyle{block}      = [rectangle, rounded corners, minimum width=.12 \textwidth, minimum height=35pt]
+      \tikzstyle{dummyblock} = [rectangle, rounded corners, minimum width=.10 \textwidth, minimum height=22pt]
 
       \tikzstyle{connector} = [line width=0.25mm, ->]
 
       \newcommand{\nodesep}[0]{0.060 \textwidth}
       \newcommand{\dummynodesep}[0]{8mm}
       \newcommand{\textsep}[0]{10mm}
+      \newcommand{\backopacity}[0]{0.9}
 
       \newcommand{\nodename}[1]{\large \begin{tabular}{c}#1\end{tabular}}
       \newcommand{\nodedesc}[1]{\small \begin{tabular}{c}#1\end{tabular}}
 
-      \node [block, fill = green]                                                           (corpus)            {\nodename{Corpus}};
-      \node [block, right = \nodesep of corpus, fill = gray]                                (dummyrun)          {};
-      \node [block, above = \dummynodesep of dummyrun.north, anchor = north, fill = yellow] (runone)            {\nodename{First\\Run}};
-      \node [block, below = \dummynodesep of dummyrun.south, anchor = south, fill = yellow] (runtwo)            {\nodename{Second\\Run}};
-      \node [block, right = \nodesep of dummyrun, fill = blue]                              (outone)            {\nodename{Compare\\Output}};
-      \node [block, right = \nodesep of outone, fill = purple]                              (strictrun)         {\nodename{Run with\\StrictR}};
-      \node [dummyblock, above = 0mm of strictrun.north, fill = gray]                       (dummystrictrun)    {};
-      \node [dummyblock, below = 0mm of strictrun.south, fill = gray]                       (dummystrictruntwo) {};
-      \node [block, right = \nodesep of strictrun, fill = red]                              (outtwo)            {\nodename{Compare\\Output}};
+      \node [block,      draw = darkgreen,  very thick, fill = green]                                                           (corpus)            {\nodename{Corpus}};
+      \node [block,      draw = gray,       very thick, fill = gray,   right = \nodesep of corpus]                              (dummyrun)          {};
+      \node [block,      draw = darkyellow, very thick, fill = yellow, above = \dummynodesep of dummyrun.north, anchor = north] (runone)            {\nodename{First\\Run}};
+      \node [block,      draw = darkyellow, very thick, fill = yellow, below = \dummynodesep of dummyrun.south, anchor = south] (runtwo)            {\nodename{Second\\Run}};
+      \node [block,      draw = darkblue,   very thick, fill = blue,   right = \nodesep of dummyrun]                            (outone)            {\nodename{Compare\\Output}};
+      \node [block,      draw = darkpurple, very thick, fill = purple, right = \nodesep of outone]                              (strictrun)         {\nodename{Run with\\StrictR}};
+      \node [dummyblock, draw = gray,       very thick, fill = gray,   above = 0mm of strictrun.north]                          (dummystrictrun)    {};
+      \node [dummyblock, draw = gray,       very thick, fill = gray,   below = 0mm of strictrun.south]                          (dummystrictruntwo) {};
+      \node [block,      draw = darkred,    very thick, fill = red,    right = \nodesep of strictrun]                           (outtwo)            {\nodename{Compare\\Output}};
 
       \draw [connector] (corpus)       -- (runone.west);
       \draw [connector] (corpus)       -- (runtwo.west);
@@ -1546,8 +1560,8 @@ elide it.
       \node [below = \textsep of outtwo]    (outtwodesc)     {\nodedesc{XXs\\XX Files}};
 
       \begin{scope}[on background layer]
-        \node[fit=(corpus) (runone) (runtwo) (outone),                       rectangle, fill=gray, fill opacity=0.8, label=above:\textbf{Deterministic Corpus}] (detcorpus) {};
-        \node[fit=(strictrun) (dummystrictrun) (dummystrictruntwo) (outtwo), rectangle, fill=gray, fill opacity=0.8, label=above:\textbf{Failures}] (failures) {};
+        \node[fit=(corpus) (runone) (runtwo) (outone),                       rectangle, rounded corners, fill=gray, fill opacity=\backopacity, label=above:\textbf{Deterministic Corpus}] (detcorpus) {};
+        \node[fit=(strictrun) (dummystrictrun) (dummystrictruntwo) (outtwo), rectangle, rounded corners, fill=gray, fill opacity=\backopacity, label=above:\textbf{Failures}] (failures) {};
       \end{scope}
 
     \end{tikzpicture}
