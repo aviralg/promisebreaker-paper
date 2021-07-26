@@ -865,13 +865,14 @@ Xeon 6140, 2.30GHz machines with 72 cores and 256GB of RAM each.
 \subsection{Selecting a corpus}\label{sec:corpus}
 
 For this paper, a corpus of 500 packages from CRAN~\cite{ligges2017} and
-Bioconductor~\cite{bioc} was selected based on their number of clients,
-\emph{i.e.}, the packages which are the most widely used in the ecosystem. The
-chosen packages have a total of 15,362 clients. The most widely used package,
-\c{ggplot2}, has 2,669 clients, and the package with the fewest clients in our
-corpus, \c{spatstat.linnet}, has 5. The selected 500 packages have 2.2M lines of
-R code and 2.7M lines of native code. For synthesizing signatures for their
-functions, \lazr extracts all executable artifacts from each package.
+Bioconductor~\cite{bioc} was selected on 26th July 2021, 2 PM UTC, based on
+their number of clients, \emph{i.e.}, the packages which are the most widely
+used in the ecosystem. The chosen packages have a total of 15,362 clients. The
+most widely used package, \c{ggplot2}, has 2,669 clients, and the package with
+the fewest clients in our corpus, \c{spatstat.linnet}, has 5. The selected 500
+packages have 2.2M lines of R code and 2.7M lines of native code. For
+synthesizing signatures for their functions, \lazr extracts all executable
+artifacts from each package.
 
 \begin{wraptable}{r}{7cm}
   \vspace{-3mm}
