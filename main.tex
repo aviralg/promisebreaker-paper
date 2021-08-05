@@ -390,19 +390,6 @@ frequently varargs are forwarded to a called function. This enables the
 function to expose its callee's interface to the callers without listing the
 callee's parameters and their default values.
 
-\paragraph{Attributes}
-Values can be tagged by user-defined attributes. For instance, one can attach
-the attribute \code{dim} to the value \code{x<-c(1,2,3,4)} by evaluating
-\code{attr(x,"dim")<-c(2,2)}. Once done, arithmetic functions will treat \code x
-as a \code{2x2} matrix. Another attribute is \code{class} which can be bound to
-a list of names. For instance, \code{class(x)<-"human"} sets the class of
-\code{x} to \code{human}. Attributes are used for object-oriented dispatch. The
-``S3 object system'' supports single dispatch on the class of the first argument
-of a function, whereas the ``S4 object system'' allows dispatch on all
-arguments. These names refer to the version of the S language which introduced
-them. Popular data types, such as data frames, also leverage attributes. A data
-frame is a list of vectors with the \code{class} and \code{colname} attributes.
-
 \paragraph{Reflection}
 R supports meta-programming. The \code{substitute(e,envir)}
 function yields the parse tree of the expression \code{e} after performing
