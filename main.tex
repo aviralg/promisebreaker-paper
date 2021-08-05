@@ -1483,11 +1483,20 @@ experiments is that it allows us to better evaluate the impact of laziness. In
 \Rsh we can both measure the impact on an interpreter with few optimizations
 applied to the bytecode, and an optimizing compiler that already does its best
 to elide promises (as long as the default semantics allows it).
-To conduct our evaluation, we changed the first-tier
+
+We conducted limit-study experiment to assess the highest achievable performance 
+by removing maximum possible promises over an aggresively optimizing compiler. 
+We do this by changing the evaluation semantics of the \Rsh VM. This is an isolated 
+experiment and does not involve \strictr in any ways (which is
+a testing tool not intended to provide speedup). 
+
+For our evaluation, we changed the first-tier
 compiler to eagerly evaluate all arguments at all call-sites, except for a
-manually curated list of exceptions. This eager bytecode also serves as the source
-code for the optimizing tier. In the following text we refer
-to our implementation as \Rshstrict.
+manually curated list of exceptions in order to preserve appropriate semantics. 
+This eager bytecode also serves as the source code for the optimizing tier. In the following
+text we refer to our implementation as \Rshstrict. Note that a realistic implementation
+would, instead, re-write externally provided annotatted functions and rely on already
+existing speculative monomorphization of call-sites in \Rsh.
 
 Our main hypothesis regarding performance is that eager semantics lead to faster
 execution of R programs. This hypothesis might seem unexpected to some readers,
