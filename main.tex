@@ -205,13 +205,12 @@ extension and to create embedded domain-specific languages. While one could
 imagine using macros instead, the number of libraries that would have to be
 refactored would be significant.
 
-\paragraph{A pragmatic path forward.} How to migrate an entire ecosystem?
-A viable migration path should abide by four tenets: ({\bf T1}) minimal legacy
+\paragraph{A pragmatic path forward.} How to migrate an entire ecosystem? A
+viable migration path should abide by four tenets: ({\bf T1}) minimal legacy
 code changes, ({\bf T2}) semi-automated migration with limited developer
-involvement, ({\bf T3}) measurable benefits, and ({\bf T4}) testable outcomes.\\
-We propose a migration path towards a mostly strict language
-with the following characteristics.
-\vspace{1mm}
+involvement, ({\bf T3}) testable outcomes, and ({\bf T4}) measurable benefits.\\
+We propose a migration path towards a mostly strict language with the following
+characteristics. \vspace{1mm}
 \begin{compactitem}[---]
 \item {\bf T1:} Our extensions to the R syntax and semantics are non-invasive.
   The behavior expected by most users closely aligns with strict semantics. Our
@@ -222,16 +221,16 @@ with the following characteristics.
   package to be runnable and tested. We leverage tests in a dynamic analysis
   that infers candidate signatures for all packages. The signatures are then
   expected to be refined iteratively by developers.
-\item {\bf T3:} One incentive for library developers to adopt strictness
+\item {\bf T3:} The robustness of the inferred signatures under different
+  calling contexts can be estimated by running the transitive closure
+  of their clients and their tests. Programs that crash or depart from their
+  expected behavior indicate erroneous strictness annotations.
+\item {\bf T4:} One incentive for library developers to adopt strictness
   annotations would be to have a compiler that optimizes the program to remove
   laziness. A compiler extended to support strictness signatures would evaluate
   most arguments at the call-site (thus requiring fewer resources for keeping
   track of delayed computations), need fewer switches in execution context for
   evaluating arguments, and could potentially optimize code more thoroughly.
-\item {\bf T4:} The robustness of the inferred signatures under different
-  calling contexts can be estimated by running the transitive closure
-  of their clients and their tests. Programs that crash or depart from their
-  expected behavior indicate erroneous strictness annotations.
 \end{compactitem}
 
 \medskip
@@ -251,15 +250,15 @@ this paper we evaluate this migration path and make the following contributions:
   code from the package documentation, examples and tests, and infers signatures
   for all functions. The process is shown to scale to the 500 most widely used
   packages in the R ecosystem.
+\item We evaluate the robustness of the inferred signatures by testing them
+  against \todo{XXXX} clients of the packages for which signatures were
+  inferred. We report \robustnesResult error rate, \ie signatures that cause
+  executions to diverge from the reference semantics.
 \item We conduct an experiment using the \Rsh optimizing just-in-time compiler
   to evaluate the benefits of unboxing and inlining delayed evaluation on a
   benchmark suite of small computational tasks. We show a mean
   \speedupRshStrict speedup, ranging from \speedupRshStrictMin to
   \speedupRshStrictMax.
-\item We evaluate the robustness of the inferred signatures by testing them
-  against 2,000 clients of the packages for which signatures were inferred. We
-  report \robustnesResult error rate, \ie signatures that cause executions to
-  diverge from the reference semantics.
 
 \end{compactitem}
 
