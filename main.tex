@@ -1,5 +1,5 @@
-\documentclass[review,nonacm,screen,acmsmall,anonymous=true]{acmart}
-\settopmatter{printfolios=false,printccs=false,printacmref=false}
+\documentclass[review,creen,acmsmall]{acmart}
+%\settopmatter{printfolios=false,printccs=false,printacmref=false}
 
 \bibliographystyle{ACM-Reference-Format}
 \citestyle{acmauthoryear}   %% For author/year citations
@@ -83,19 +83,21 @@
 
 \include{results}
 
-%%% \setcopyright{rightsretained}
-%%% \acmPrice{}
-%%% \acmDOI{10.1145/3360579}
-%%% \acmYear{2019}
-%%% \copyrightyear{2019}
-%%% \acmJournal{PACMPL}
-%%% \acmVolume{3}
-%%% \acmNumber{OOPSLA}
-%% \acmArticle{153}
-%%% \acmMonth{10}
+\setcopyright{rightsretained}
+\acmPrice{}
+\acmDOI{10.1145/3360579}
+\acmYear{2019}
+\copyrightyear{2019}
+\acmJournal{PACMPL}
+\acmVolume{3}
+\acmNumber{OOPSLA}
+\acmArticle{153}
+\acmMonth{10}
+
 \begin{document}
 \title{Promises Are Made To Be Broken}
-\subtitle{Migrating the R ecosystem to strict evaluation semantics}
+\subtitle{Migrating R to Strict
+  Semantics}
 
 \author{Aviral Goel}\affiliation{\institution{Northeastern University}\country{USA}}
 \author{Jan Ječmen}\affiliation{\institution{Czech Technical University}\country{Czechia}}
@@ -746,7 +748,7 @@ well as control flow through the code.
 
 To provide a layer of abstraction, \lazr maintains \emph{model objects} to
 abstract from the concrete R data structures. The model objects represent,
-among others, function instances, the hierarchy of environments, and frames 
+among others, function instances, the hierarchy of environments, and frames
 on the call stack. Model objects are particularly helpful for handling some of the
 complexities of R. For instance, model objects have unique identities, whereas R
 objects are identified by their memory address, and the garbage collector can
@@ -1650,7 +1652,7 @@ amount of accidental laziness which can be observed.
 One takeaway from this evaluation is that unevaluated parameters (U) have only a
 small impact on correctness, while S and R are the sources of most errors.
 
-From the results, we conclude that using \config 0 as the starting point for 
+From the results, we conclude that using \config 0 as the starting point for
 migration is the safest. The first attempt at removing laziness at scale can rely on
 this signature configuration. Next, reflective and unevaluated arguments can be
 made strict without a significant increase in failure rate. Side-effecting
