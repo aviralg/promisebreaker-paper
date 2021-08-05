@@ -1330,6 +1330,158 @@ a default value of \code{as.environment(-1)}.
 \end{lstlisting}
 %
 
+\section{Robustness of inferred signatures} \label{Evaluation:Robustness}
+
+\begin{figure}[th!]
+  \centering
+  \scalebox{0.85}{
+    \begin{tikzpicture}
+
+      \definecolor{gray}{HTML}{F5F5F5}
+      \definecolor{green}{HTML}{D5E8D4}
+      \definecolor{darkgreen}{HTML}{82B366}
+      \definecolor{yellow}{HTML}{FFF2CC}
+      \definecolor{darkyellow}{HTML}{D6B656}
+      \definecolor{blue}{HTML}{DAE8FC}
+      \definecolor{darkblue}{HTML}{6C8EBF}
+      \definecolor{purple}{HTML}{E1D5E7}
+      \definecolor{darkpurple}{HTML}{9673A6}
+      \definecolor{red}{HTML}{F8CECC}
+      \definecolor{darkred}{HTML}{B85450}
+
+      \tikzstyle{block}      = [rectangle, rounded corners, minimum width=.12 \textwidth, minimum height=35pt]
+      \tikzstyle{dummyblock} = [rectangle, rounded corners, minimum width=.10 \textwidth, minimum height=22pt]
+
+      \tikzstyle{connector} = [line width=0.25mm, ->]
+
+      \newcommand{\nodesep}[0]{0.060 \textwidth}
+      \newcommand{\dummynodesep}[0]{8mm}
+      \newcommand{\textsep}[0]{10mm}
+      \newcommand{\backopacity}[0]{0.9}
+
+      \newcommand{\nodename}[1]{\large \begin{tabular}{c}#1\end{tabular}}
+      \newcommand{\nodedesc}[1]{\small \begin{tabular}{c}#1\end{tabular}}
+
+      \node [block,      draw = darkgreen,  very thick, fill = green]                                                           (corpus)            {\nodename{Corpus}};
+      \node [block,      draw = gray,       very thick, fill = gray,   right = \nodesep of corpus]                              (dummyrun)          {};
+      \node [block,      draw = darkyellow, very thick, fill = yellow, above = \dummynodesep of dummyrun.north, anchor = north] (runone)            {\nodename{First\\Run}};
+      \node [block,      draw = darkyellow, very thick, fill = yellow, below = \dummynodesep of dummyrun.south, anchor = south] (runtwo)            {\nodename{Second\\Run}};
+      \node [block,      draw = darkblue,   very thick, fill = blue,   right = \nodesep of dummyrun]                            (outone)            {\nodename{Compare\\Output}};
+      \node [block,      draw = darkpurple, very thick, fill = purple, right = \nodesep of outone]                              (strictrun)         {\nodename{Run with\\StrictR}};
+      \node [dummyblock, draw = gray,       very thick, fill = gray,   above = 0mm of strictrun.north]                          (dummystrictrun)    {};
+      \node [dummyblock, draw = gray,       very thick, fill = gray,   below = 0mm of strictrun.south]                          (dummystrictruntwo) {};
+      \node [block,      draw = darkred,    very thick, fill = red,    right = \nodesep of strictrun]                           (outtwo)            {\nodename{Compare\\Output}};
+
+      \draw [connector] (corpus)       -- (runone.west);
+      \draw [connector] (corpus)       -- (runtwo.west);
+      \draw [connector] (runone.east)  -- (outone);
+      \draw [connector] (runtwo.east)  -- (outone);
+      \draw [connector] (outone)       -- (strictrun);
+      \draw [connector] (strictrun)    -- (outtwo);
+      \draw [connector] (runtwo.south) -- ++(0, -0.2) -| ($(runtwo) !1.0! (outtwo.south)$);
+
+      \node [below = \textsep of corpus]    (corpusdesc)     {\nodedesc{XXs\\XX Packages\\XX Files}};
+      \node [below = \textsep of dummyrun]  (rundesc)        {\nodedesc{XXs}};
+      \node [below = \textsep of outone]    (outonedesc)     {\nodedesc{XXs\\XX Files}};
+      \node [below = \textsep of strictrun] (strictrundesc)  {\nodedesc{XXs\\XX Signatures}};
+      \node [below = \textsep of outtwo]    (outtwodesc)     {\nodedesc{XXs\\XX Files}};
+
+      \begin{scope}[on background layer]
+        \node[fit=(corpus) (runone) (runtwo) (outone),                       rectangle, rounded corners, fill=gray, fill opacity=\backopacity, label=above:\textbf{Deterministic Corpus}] (detcorpus) {};
+        \node[fit=(strictrun) (dummystrictrun) (dummystrictruntwo) (outtwo), rectangle, rounded corners, fill=gray, fill opacity=\backopacity, label=above:\textbf{Failures}] (failures) {};
+      \end{scope}
+
+    \end{tikzpicture}
+  }
+  \caption{Validation Pipeline}\label{fig:validationPipeline}
+\end{figure}
+
+In this section, we evaluate the robustness of strictness signatures generated
+by \lazr. This is done by running scripts extracted from 2,000 client packages of
+our corpus. These packages have 4.5M lines of R code and 4.7M lines of native
+code. Table ~\ref{table:clientcorpus} gives the number of scripts and lines of code
+exercised.
+
+\begin{wraptable}{r}{6cm}  \vspace{-3mm}  \small  \centering
+  \caption{Client Corpus}\label{table:clientcorpus}  \vspace{-3mm}
+  \begin{tabular}{lrrr}    \toprule
+    &\bf Tests&\bf Examples&\bf Vignettes\\
+    \midrule
+    {Scripts} &9.8K&41.1K&1.7K\\
+    \midrule
+    {LOC} &751.2K&348.8K&112.3K\\    \bottomrule
+  \end{tabular}
+\end{wraptable}%%
+
+Using \lazr, we extracted 52K scripts from the clients. From these, we filtered
+scripts whose output was non-deterministic, leaving us with 42K scripts. The
+goal of the next step is to validate if, after applying strictness signatures,
+they produce identical outputs.
+
+Comparing the output of scripts is standard practice in the R community for
+detecting regressions. There may be a difference in execution that does not
+manifest in the output; this may hide some errors, so the results reported here
+should be considered a lower bound.
+
+\begin{wraptable}{r}{5cm}
+  \small
+  \caption{Strictness Failure} \label{table:strictfail}
+  \centering
+  \begin{tabular}{lc|ll}
+    \toprule
+    \#&\textbf{Configuration}&\multicolumn{2}{c}{\textbf{Failures}}\\
+    \midrule
+    0&$+U+S+R$&239&0.56\%\\
+    1&$+U+S-R$&234&0.55\%\\
+    2&$+U-S+R$&1922&4.51\%\\
+    3&$+U-S-R$&6625&15.54\%\\
+    4&$-U+S+R$&610&1.43\%\\
+    5&$-U+S-R$&616&1.44\%\\
+    6&$-U-S+R$&2319&5.44\%\\
+    7&$-U-S-R$&7158&16.79\%\\
+    \bottomrule
+  \end{tabular}
+\end{wraptable}
+
+Table~\ref{table:strictfail} reports on the eight configurations we evaluated.
+For each row in the table, we ran all 42K scripts and counted the number of
+differences from expected outputs. Each row corresponds to a different set of
+strictness signatures for the corpus. The 9K parameters that were inferred to be
+meta-programmed (M) are always lazy. The 128K parameters that were not marked
+were always strict. For the 36K remaining parameters (those with a combination
+of U, S, R), each row represents a different strictness setting.
+
+For each configuration, we report the number and percentage of failing programs.
+The \emph{+} sign indicates the corresponding parameter is lazy and \emph{-}
+means strict. For example, in the $+U+S+R$ configuration, any parameter marked
+as either U, S or R, is lazy, whereas the configuration $+U+S-R$ means that any
+parameter marked U or S must be lazy, and the configuration $-U+S+R$ means that
+parameters marked S and R must be lazy.
+
+\cconfig 0 is the laziest of the configurations; only 239 scripts out of 42K
+have erroneous outputs. These errors come from some of the
+unmarked parameters. Consider, for instance, a library function \c f that was
+always called without side-effects during inference and for which there is a
+side-effecting client. \lazr would mark that function as strict, but the client
+may be able to observe the semantic difference. Luckily, this is quite rare.
+
+All other configurations are strictly stricter, and thus are likely to experience
+more errors. The case of \config 1 is surprising, as making arguments reflective
+hides 5 errors. This is an outlier that should be elided.
+
+In the extreme, \config 7 makes all parameters marked either U, S, or R strict.
+This leads to 16\% of failures which is rather high. This suggests a substantial
+amount of accidental laziness which can be observed.
+
+One takeaway from this evaluation is that unevaluated parameters (U) have only a
+small impact on correctness, while S and R are the sources of most errors.
+
+From the results, we conclude that using \config 0 as the starting point for
+migration is the safest. The first attempt at removing laziness at scale can rely on
+this signature configuration. Next, reflective and unevaluated arguments can be
+made strict without a significant increase in failure rate. Side-effecting
+arguments result in many failures.
+
 \section{\Rsh: Compiling the Lazy Away}\label{sec:rsh}
 
 In this section we report on our experiments to evaluate the implications of
@@ -1504,160 +1656,6 @@ the innermost function was live. Thanks to eager evaluation of the arguments,
 the argument promises do not leak the environment and therefore \Rsh is able to
 elide it.
 
-
-\newpage
-\section{Robustness of inferred signatures} \label{Evaluation:Robustness}
-
-\begin{figure}[th!]
-  \centering
-  \scalebox{0.85}{
-    \begin{tikzpicture}
-
-      \definecolor{gray}{HTML}{F5F5F5}
-      \definecolor{green}{HTML}{D5E8D4}
-      \definecolor{darkgreen}{HTML}{82B366}
-      \definecolor{yellow}{HTML}{FFF2CC}
-      \definecolor{darkyellow}{HTML}{D6B656}
-      \definecolor{blue}{HTML}{DAE8FC}
-      \definecolor{darkblue}{HTML}{6C8EBF}
-      \definecolor{purple}{HTML}{E1D5E7}
-      \definecolor{darkpurple}{HTML}{9673A6}
-      \definecolor{red}{HTML}{F8CECC}
-      \definecolor{darkred}{HTML}{B85450}
-
-      \tikzstyle{block}      = [rectangle, rounded corners, minimum width=.12 \textwidth, minimum height=35pt]
-      \tikzstyle{dummyblock} = [rectangle, rounded corners, minimum width=.10 \textwidth, minimum height=22pt]
-
-      \tikzstyle{connector} = [line width=0.25mm, ->]
-
-      \newcommand{\nodesep}[0]{0.060 \textwidth}
-      \newcommand{\dummynodesep}[0]{8mm}
-      \newcommand{\textsep}[0]{10mm}
-      \newcommand{\backopacity}[0]{0.9}
-
-      \newcommand{\nodename}[1]{\large \begin{tabular}{c}#1\end{tabular}}
-      \newcommand{\nodedesc}[1]{\small \begin{tabular}{c}#1\end{tabular}}
-
-      \node [block,      draw = darkgreen,  very thick, fill = green]                                                           (corpus)            {\nodename{Corpus}};
-      \node [block,      draw = gray,       very thick, fill = gray,   right = \nodesep of corpus]                              (dummyrun)          {};
-      \node [block,      draw = darkyellow, very thick, fill = yellow, above = \dummynodesep of dummyrun.north, anchor = north] (runone)            {\nodename{First\\Run}};
-      \node [block,      draw = darkyellow, very thick, fill = yellow, below = \dummynodesep of dummyrun.south, anchor = south] (runtwo)            {\nodename{Second\\Run}};
-      \node [block,      draw = darkblue,   very thick, fill = blue,   right = \nodesep of dummyrun]                            (outone)            {\nodename{Compare\\Output}};
-      \node [block,      draw = darkpurple, very thick, fill = purple, right = \nodesep of outone]                              (strictrun)         {\nodename{Run with\\StrictR}};
-      \node [dummyblock, draw = gray,       very thick, fill = gray,   above = 0mm of strictrun.north]                          (dummystrictrun)    {};
-      \node [dummyblock, draw = gray,       very thick, fill = gray,   below = 0mm of strictrun.south]                          (dummystrictruntwo) {};
-      \node [block,      draw = darkred,    very thick, fill = red,    right = \nodesep of strictrun]                           (outtwo)            {\nodename{Compare\\Output}};
-
-      \draw [connector] (corpus)       -- (runone.west);
-      \draw [connector] (corpus)       -- (runtwo.west);
-      \draw [connector] (runone.east)  -- (outone);
-      \draw [connector] (runtwo.east)  -- (outone);
-      \draw [connector] (outone)       -- (strictrun);
-      \draw [connector] (strictrun)    -- (outtwo);
-      \draw [connector] (runtwo.south) -- ++(0, -0.2) -| ($(runtwo) !1.0! (outtwo.south)$);
-
-      \node [below = \textsep of corpus]    (corpusdesc)     {\nodedesc{XXs\\XX Packages\\XX Files}};
-      \node [below = \textsep of dummyrun]  (rundesc)        {\nodedesc{XXs}};
-      \node [below = \textsep of outone]    (outonedesc)     {\nodedesc{XXs\\XX Files}};
-      \node [below = \textsep of strictrun] (strictrundesc)  {\nodedesc{XXs\\XX Signatures}};
-      \node [below = \textsep of outtwo]    (outtwodesc)     {\nodedesc{XXs\\XX Files}};
-
-      \begin{scope}[on background layer]
-        \node[fit=(corpus) (runone) (runtwo) (outone),                       rectangle, rounded corners, fill=gray, fill opacity=\backopacity, label=above:\textbf{Deterministic Corpus}] (detcorpus) {};
-        \node[fit=(strictrun) (dummystrictrun) (dummystrictruntwo) (outtwo), rectangle, rounded corners, fill=gray, fill opacity=\backopacity, label=above:\textbf{Failures}] (failures) {};
-      \end{scope}
-
-    \end{tikzpicture}
-  }
-  \caption{Validation Pipeline}\label{fig:validationPipeline}
-\end{figure}
-
-In this section, we evaluate the robustness of strictness signatures generated
-by \lazr. This is done by running scripts extracted from 2,000 client packages of
-our corpus. These packages have 4.5M lines of R code and 4.7M lines of native
-code. Table ~\ref{table:clientcorpus} gives the number of scripts and lines of code
-exercised.
-
-\begin{wraptable}{r}{6cm}  \vspace{-3mm}  \small  \centering
-  \caption{Client Corpus}\label{table:clientcorpus}  \vspace{-3mm}
-  \begin{tabular}{lrrr}    \toprule
-    &\bf Tests&\bf Examples&\bf Vignettes\\
-    \midrule
-    {Scripts} &9.8K&41.1K&1.7K\\
-    \midrule
-    {LOC} &751.2K&348.8K&112.3K\\    \bottomrule
-  \end{tabular}
-\end{wraptable}%%
-
-Using \lazr, we extracted 52K scripts from the clients. From these, we filtered
-scripts whose output was non-deterministic, leaving us with 42K scripts. The
-goal of the next step is to validate if, after applying strictness signatures,
-they produce identical outputs.
-
-Comparing the output of scripts is standard practice in the R community for
-detecting regressions. There may be a difference in execution that does not
-manifest in the output; this may hide some errors, so the results reported here
-should be considered a lower bound.
-
-\begin{wraptable}{r}{5cm}
-  \small
-  \caption{Strictness Failure} \label{table:strictfail}
-  \centering
-  \begin{tabular}{lc|ll}
-    \toprule
-    \#&\textbf{Configuration}&\multicolumn{2}{c}{\textbf{Failures}}\\
-    \midrule
-    0&$+U+S+R$&239&0.56\%\\
-    1&$+U+S-R$&234&0.55\%\\
-    2&$+U-S+R$&1922&4.51\%\\
-    3&$+U-S-R$&6625&15.54\%\\
-    4&$-U+S+R$&610&1.43\%\\
-    5&$-U+S-R$&616&1.44\%\\
-    6&$-U-S+R$&2319&5.44\%\\
-    7&$-U-S-R$&7158&16.79\%\\
-    \bottomrule
-  \end{tabular}
-\end{wraptable}
-
-Table~\ref{table:strictfail} reports on the eight configurations we evaluated.
-For each row in the table, we ran all 42K scripts and counted the number of
-differences from expected outputs. Each row corresponds to a different set of
-strictness signatures for the corpus. The 9K parameters that were inferred to be
-meta-programmed (M) are always lazy. The 128K parameters that were not marked
-were always strict. For the 36K remaining parameters (those with a combination
-of U, S, R), each row represents a different strictness setting.
-
-For each configuration, we report the number and percentage of failing programs.
-The \emph{+} sign indicates the corresponding parameter is lazy and \emph{-}
-means strict. For example, in the $+U+S+R$ configuration, any parameter marked
-as either U, S or R, is lazy, whereas the configuration $+U+S-R$ means that any
-parameter marked U or S must be lazy, and the configuration $-U+S+R$ means that
-parameters marked S and R must be lazy.
-
-\cconfig 0 is the laziest of the configurations; only 239 scripts out of 42K
-have erroneous outputs. These errors come from some of the
-unmarked parameters. Consider, for instance, a library function \c f that was
-always called without side-effects during inference and for which there is a
-side-effecting client. \lazr would mark that function as strict, but the client
-may be able to observe the semantic difference. Luckily, this is quite rare.
-
-All other configurations are strictly stricter, and thus are likely to experience
-more errors. The case of \config 1 is surprising, as making arguments reflective
-hides 5 errors. This is an outlier that should be elided.
-
-In the extreme, \config 7 makes all parameters marked either U, S, or R strict.
-This leads to 16\% of failures which is rather high. This suggests a substantial
-amount of accidental laziness which can be observed.
-
-One takeaway from this evaluation is that unevaluated parameters (U) have only a
-small impact on correctness, while S and R are the sources of most errors.
-
-From the results, we conclude that using \config 0 as the starting point for
-migration is the safest. The first attempt at removing laziness at scale can rely on
-this signature configuration. Next, reflective and unevaluated arguments can be
-made strict without a significant increase in failure rate. Side-effecting
-arguments result in many failures.
-
 \section{Conclusion}\label{sec:conclusion}
 
 In R, function arguments are not evaluated at the call-site, instead, the
@@ -1690,9 +1688,6 @@ up the path for further evolution. Currently, many standard techniques such as
 gradually typed function signatures and efficient just-in-time optimizations are
 difficult to apply to R because of laziness.
 
-
-%%\section*{Acknowledgments}
-%% TODO: Thank Flip
 \bibliography{bib/jv,bib/aviral,bib/ml,bib/bib}
 
 \appendix
