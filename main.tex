@@ -1487,15 +1487,14 @@ to elide promises (as long as the default semantics allows it).
 We conducted limit-study experiment to assess the highest achievable performance 
 by removing maximum possible promises over an aggresively optimizing compiler. 
 We do this by changing the evaluation semantics of the \Rsh VM. This is an isolated 
-experiment and does not involve \strictr in any ways (which is
-a testing tool not intended to provide speedup). 
+experiment and does not involve neither \strictr nor \lazr in any ways.
 
 For our evaluation, we changed the first-tier
 compiler to eagerly evaluate all arguments at all call-sites, except for a
 manually curated list of exceptions in order to preserve appropriate semantics. 
 This eager bytecode also serves as the source code for the optimizing tier. In the following
 text we refer to our implementation as \Rshstrict. Note that a realistic implementation
-would, instead, re-write externally provided annotatted functions and rely on already
+would, instead, re-write externally provided function annotations and rely on already
 existing speculative monomorphization of call-sites in \Rsh.
 
 Our main hypothesis regarding performance is that eager semantics lead to faster
@@ -1556,8 +1555,8 @@ $t_e = 1, t_i = 15$. We found a mean speedup of \speedupRsh, ranging between
 First, we compare \Rsh against \Rshstrict. This experiment estimates the end-to-end
 improvement on performance that a change to eager semantics in the R language
 would have on \Rsh. The execution times were measured with $t_e = 4, t_i = 25$.
-\autoref{fig:speedup} shows a boxplot for the execution times of \Rsh-strict,
-normalized to \Rsh. Overall, we observe a mean speedup of
+\autoref{fig:speedup} shows a boxplot for the speedups of \Rshstrict along the X-axis,
+normalized with respect to \Rsh (lazy). Outliers are represented by black dots. Overall, we observe a mean speedup of
 \speedupRshStrict, ranging from \speedupRshStrictMin to \speedupRshStrictMax.
 For \speedupRshStrictSignificant out of \benchmarkSuiteSize benchmarks we measure a significant increase in performance.
 %
@@ -1570,8 +1569,8 @@ For \speedupRshStrictSignificant out of \benchmarkSuiteSize benchmarks we measur
 %
 
 Then, we repeated the performance experiment, but with the second tier
-optimizer completely disabled. Since this variant executes overall \rshBCSlowdown
-slower, we chose to only run with $t_e = 1, t_i = 15$.
+optimizer completely disabled. In other words, we compare non optimized variants of \Rshstrict vs. \Rsh.  
+Since this variant executes overall \rshBCSlowdown slower, we chose to only run with $t_e = 1, t_i = 15$.
 The results are presented in \autoref{fig:speedup-bc}. We found that the bytecode
 interpreter also gains a speedup of \speedupBCRshStrict, ranging from
 \speedupBCRshStrictMin to \speedupBCRshStrictMax.
