@@ -8,6 +8,7 @@ library(scales)
 library(tikzDevice)
 library(viridis)
 library(RColorBrewer)
+library(experimentr)
 
 new_theme <-
     theme_minimal(base_size = 8) +
@@ -58,6 +59,13 @@ save_graph <- function(plot, filename, width = 5.4, height = 1.8, ...) {
 
 as_perc <- function(col) {
     paste(col, "\\%", sep = "")
+}
+
+
+label_num <- function(numbers, accuracy = 0.1) {
+    string_nums <- map_chr(numbers, toString)
+
+    if_else(map_int(string_nums, nchar) <= 3, string_nums, label_number_si(accuracy = accuracy)(numbers))
 }
 
 read_lazy(extract_index, "extract-index.fst")

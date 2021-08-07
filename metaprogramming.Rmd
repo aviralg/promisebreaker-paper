@@ -28,9 +28,44 @@ source("analysis.R", local = knitr::knit_global())
 ```{r echo = FALSE, warning=FALSE, message=FALSE}
 str(metaprogramming)
 
-metaprogramming %>%
-filter(meta_type == "substitute") %>%
-datatable()
+metaprogramming <-
+    metaprogramming %>%
+    mutate(relevant = native_fun %in% c("substitute", ".External(NA)", ".Call(NA)"))
+    
+MacGen <- LatexMacroGenerator$new(params$macrodir)
+```
+
+# Native Function
+
+```{r echo = FALSE, warning=FALSE, message=FALSE}
+meta_source <-
+    metaprogramming %>%
+    group_by(relevant) %>%
+    summarize(funs = paste0(unique(native_fun), collapse = "    "),
+              arguments = sum(argument_count),
+              parameters = length(unique(paste0(source_pack_name, source_fun_name, source_formal_pos))),
+              functions = length(unique(paste0(source_pack_name, source_fun_name))),
+              packages = length(unique(source_pack_name))) %>%
+    ungroup() %>%
+    arrange(desc(arguments)) %>%
+    mutate(arg_perc = round(100 * arguments / sum(arguments), 2)) %>%
+    mutate(arg_cumperc = cumsum(arg_perc))
+    
+meta_source %>% datatable()
+```
+
+# .Call Functions
+
+```{r echo = FALSE, warning=FALSE, message=FALSE}
+meta_source <-
+    metaprogramming %>%
+    filter(native_fun %in% c(".Call(NA)", ".External(NA)")) %>%
+    count(native_fun, source_pack_name, source_fun_name, wt = argument_count, name = "arguments") %>%
+    arrange(desc(arguments)) %>%
+    mutate(arg_perc = round(100 * arguments / sum(arguments), 2)) %>%
+    mutate(arg_cumperc = cumsum(arg_perc))
+
+meta_source %>% datatable()
 ```
 
 # Type
@@ -38,6 +73,9 @@ datatable()
 ```{r echo = FALSE, warning=FALSE, message=FALSE}
 meta_summary <-
     metaprogramming %>%
+    filter(relevant) %>%
+    mutate(meta_type = case_when(meta_type == "expression" & native_fun != "substitute" ~ "Native",
+                                 meta_type == "substitute" | native_fun == "substitute" ~ "R")) %>%
     group_by(meta_type) %>%
     summarize(arguments = sum(argument_count),
               parameters = length(unique(paste0(source_pack_name, source_fun_name, source_formal_pos))),
@@ -45,12 +83,33 @@ meta_summary <-
               packages = length(unique(source_pack_name))) %>%
     ungroup() %>%
     pivot_longer(!meta_type, names_to = "thing", values_to = "count") %>%
-    mutate(count = label_number_si(accuracy=0.1)(count),
+    mutate(count = label_num(count),
            thing = str_to_title(thing)) %>%
     pivot_wider(names_from = "meta_type", values_from = "count")
     
+    
+meta_summary_total <-
+    metaprogramming %>%
+    filter(relevant) %>%
+    summarize(arguments = sum(argument_count),
+              parameters = length(unique(paste0(source_pack_name, source_fun_name, source_formal_pos))),
+              functions = length(unique(paste0(source_pack_name, source_fun_name))),
+              packages = length(unique(source_pack_name))) %>%
+    mutate(meta_type = "Total") %>%
+    pivot_longer(!meta_type, names_to = "thing", values_to = "count") %>%
+    mutate(count = label_num(count),
+           thing = str_to_title(thing)) %>%
+    pivot_wider(names_from = "meta_type", values_from = "count")
+
+meta_summary <-
+    meta_summary %>%
+    left_join(meta_summary_total, by = "thing")
 
 meta_summary %>% datatable()
+
+
+meta_summary %>%
+MacGen$from_df(Native, R, Total, prefix = paste0("MetaCount", meta_summary$thing))
     
 meta_summary %>%
 pmap_chr(function(...) {
@@ -67,7 +126,8 @@ cat()
 ```{r echo = FALSE, warning=FALSE, message=FALSE}
 meta_depth_summary <-
     metaprogramming %>%
-    filter(meta_type == "substitute") %>%
+    filter(relevant) %>%
+    #filter(meta_type == "substitute") %>%
     count(depth, wt = argument_count, name = "argument_count")
     
 meta_depth_summary %>% datatable()

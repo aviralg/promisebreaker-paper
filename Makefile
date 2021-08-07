@@ -5,6 +5,7 @@ ANALYSIS := corpus
 DATADIR := $(PROJECTDIR)data
 GRAPHDIR := $(PROJECTDIR)graphs
 MACRODIR := $(PROJECTDIR)macros
+MACROFILE := $(PROJECTDIR)macros.tex
 
 # Tools
 LATEXMK = latexmk
@@ -25,6 +26,9 @@ clean:
 
 analysis:
 	$(R) --slave -e "rmarkdown::render('$(ANALYSIS).Rmd', 'html_document', params = list(datadir = '$(DATADIR)', graphdir = '$(GRAPHDIR)', macrodir = '$(MACRODIR)'))"
+
+merge-macros:
+	R --slave -e "invisible(experimentr::merge_macros('$(MACRODIR)', '$(MACROFILE)'))"
 
 corpus:
 	make analysis ANALYSIS=corpus

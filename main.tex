@@ -7,8 +7,8 @@
 \usepackage{xcolor,tikz,graphicx, pifont}
 \usetikzlibrary{positioning,automata,fit,shapes.geometric,backgrounds,calc}
 
-%% \newcommand{\authorcomment}[3]{\xspace\textcolor{#1}{{\bf #2} #3}\xspace}
-\newcommand{\authorcomment}[3]{}
+\newcommand{\authorcomment}[3]{\xspace\textcolor{#1}{{\bf #2} #3}\xspace}
+%%\newcommand{\authorcomment}[3]{}
 % For author notes:
 \newcommand{\AG}[1]{\authorcomment{orange}{AG}{#1}}
 \newcommand{\JV}[1]{\authorcomment{red}{JV}{#1}}
@@ -80,6 +80,8 @@
 \newcommand{\ie}{\emph{i.e.},\xspace}
 \newcommand{\config}[1]{configuration \#{#1}}
 \newcommand{\cconfig}[1]{Configuration \#{#1}}
+
+\input{macros.tex}
 
 \include{results}
 
@@ -1092,16 +1094,45 @@ We now discuss the different sources of laziness in more detail.
 
 \subsubsection{Metaprogramming}
 
+\begin{wraptable}{r}{5.5cm}
+  \small
+  \centering
+  \caption{Metaprogramming}\label{table:metaprogramming}
+  \vspace{-3mm}
+  \begin{tabular}{lrrr}
+    \toprule
+    &\bf R&\bf Native&\bf Total\\
+    \midrule
+    {Arguments}&\MetaCountArgumentsR&\MetaCountArgumentsNative&\MetaCountArgumentsTotal\\
+    {Parameters}&\MetaCountParametersR&\MetaCountParametersNative&\MetaCountParametersTotal\\
+    {Functions}&\MetaCountFunctionsR&\MetaCountFunctionsNative&\MetaCountFunctionsTotal\\
+    {Packages}&\MetaCountPackagesR&\MetaCountPackagesNative&\MetaCountPackagesTotal\\
+    \bottomrule
+  \end{tabular}
+\end{wraptable}
+
+
 Meta-programming tracks calls to \code{substitute} (from R) and \code{PREXPR}
-(from C code). Out of 294M model arguments, 23M were meta-programmed, the
-majority of those from C code. We refer the reader to \citet{oopsla19b} for a
-discussion of the use of \code{substitute}. We elaborate on \code{PREXPR} since
-it was not addressed there. This macro is used by the builtin functions of the
-GNU R interpreter, a canonical example is the \code{missing} function to check
-if an argument was provided. Many packages also use \code{PREXPR} to extract a
-promise's expression for ad-hoc evaluation strategies. We found uses in
-\code{igraph}, \code{lazyeval}, \code{rlang} and \code{S4Vectors}. \code{rlang}
-particularly stands out because it provides its own API for meta-programming.
+(from native code). Table~\ref{table:metaprogramming} shows the number of
+arguments, parameters, functions, and packages using metaprogramming. Out of
+\AG{total number of arguments} model arguments, \MetaCountArgumentsTotal were
+meta-programmed. This results in \MetaCountParametersTotal lazy parameters from
+\MetaCountFunctionsTotal functions of \MetaCountPackagesTotal packages. While
+more arguments are metaprogrammed using \code{substitute} than \code{PREXPR},
+they correspond to fewer parameters.
+
+For a discussion of the use of \code{substitute} we refer the reader to
+\citet{oopsla19b}. We elaborate on \code{PREXPR} since it was not addressed
+there. This macro is used by many packages to extract a promise's expression for
+ad-hoc evaluation strategies. We found its uses in packages like \code{lazyeval}
+and \code{rlang}. The \code{rlang} package particularly stands out because it
+provides its own API for meta-programming. The \code{PREXPR} macro is also used
+by the builtin functions of the GNU R interpreter, a canonical example is the
+\code{missing} function to check if an argument was provided. Unlike user
+packages, these uses of \code{PREXPR} don't require the corresponding arguments
+to be lazily evaluated. Hence, parameters metaprogrammed using \code{PREXPR}
+from GNU R interpreter are not made lazy. They are also not included in
+Table~\ref{table:metaprogramming}.
 
 \subsubsection{Unevaluated Arguments}
 
