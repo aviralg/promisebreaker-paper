@@ -1592,17 +1592,23 @@ this section.
 
 We measure the number of promises allocated in the
 benchmark suite per iteration for GNU R, \Rsh, and \Rsh-strict. The results are shown in
-\autoref{fig:gc-pressure}. The first jump from GNU R's bytecode interpreter to
-the optimizing just-in-time compiler \Rsh, leads to a \promiseAlocationReductionGnurRsh
-reduction in allocations. The second step
-from lazy to eager semantics leads to \promiseAlocationReductionRshStrictToZero
+\autoref{fig:gc-pressure}. We report on the geometric mean of the reductions in each benchmark.   
+
+The first jump from GNU R's bytecode interpreter to the optimizing just-in-time compiler \Rsh, 
+leads to a \promiseAlocationReductionGnurRsh reduction in allocations. The number is reached by taking
+the geometric mean of light-gray bars, a \promiseAllocationGnurRsh. Therefore, the reduction 
+is \promiseAlocationReductionGnurRsh ({$100\%$\xspace} -  \promiseAllocationGnurRsh). 
+Note that for some benchmarks the light-gray bar is too small to be seen and replaced by the actual number.  
+
+The second step from lazy to eager semantics leads to \promiseAlocationReductionRshStrictToZero
 benchmarks not allocating any promises at all. On the remainder, we see an additional
-\promiseAlocationReductionRshStrict reduction.
+\promiseAlocationReductionRshStrict reduction (\Rshstrict normalized to \Rsh). 
+
 Overall, \promiseAlocationReductionRshStrictToZero benchmarks reduce to zero
-allocations, the rest reduce on average by \promiseAlocationReductionGnurRshStrict.
-The lowest reduction observed is
-\promiseAlocationReductionGnurRshStrictMin.
-Surprisingly the number of remaining promises is
+allocations, the rest reduce on average by \promiseAlocationReductionGnurRshStrict. To reach this number, 
+once again we compute the geometric mean of dark bars, yielding \promiseAllocatioGnurRshStrict. Therefore, the reduction is ~\promiseAlocationReductionGnurRshStrict ({$100\%$\xspace} -  \promiseAllocatioGnurRshStrict).    
+
+The lowest reduction observed is \promiseAlocationReductionGnurRshStrictMin. Surprisingly the number of remaining promises is
 still relatively high in some cases. As far as we were able to observe, they
 originate largely from special forms, \ie R builtins with a custom evaluation
 strategy, that are not yet natively supported in the \Rsh bytecode.
