@@ -1333,9 +1333,27 @@ R provides other functions for reflective stack access, \code{parent.frame} and
 \code{sys.frame}; these are less brittle as they access frames relative to the
 promise's creation environment.
 
-We identified 2710 arguments which call \code{as.environment(-1)} and
-\code{pos.to.env(-1)}. They correspond to 2 parameters from 2 functions,
-\code{R.oo::.getFunctionByName}, and \code{backports:::get0}.
+\begin{wraptable}{r}{5.5cm}
+  \small
+  \centering
+  \caption{Reflection}\label{table:reflection}
+  \vspace{-3mm}
+  \begin{tabular}{lrrr}
+    \toprule
+    &\bf Direct&\bf Transitive&\bf Total\\
+    \midrule
+    {Arguments}&\RefCountArgumentsDirect&\RefCountArgumentsTransitive&\RefCountArgumentsTotal\\
+    {Parameters}&\RefCountParametersDirect&\RefCountParametersTransitive&\RefCountParametersTotal\\
+    {Functions}&\RefCountFunctionsDirect&\RefCountFunctionsTransitive&\RefCountFunctionsTotal\\
+    {Packages}&\RefCountPackagesDirect&\RefCountPackagesTransitive&\RefCountPackagesTotal\\
+    \bottomrule
+  \end{tabular}
+\end{wraptable}
+
+Table~\ref{table:reflection} presents the number of arguments that call
+\code{as.environment(-1)} and \code{pos.to.env(-1)} directly or transitively.
+Two parameters from two functions, \code{R.oo::.getFunctionByName}, and
+\code{backports:::get0} call these functions directly.
 %
 The first searches for a function by name in different scopes. Its argument has
 a default value of \code{as.environment(-1)}.

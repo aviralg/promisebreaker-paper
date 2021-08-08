@@ -21,6 +21,7 @@ params:
 ```{r echo = FALSE, warning=FALSE, message=FALSE}
 ## https://bookdown.org/yihui/rmarkdown-cookbook/source-script.html
 source("analysis.R", local = knitr::knit_global())
+MacGen <- LatexMacroGenerator$new(params$macrodir)
 ```
 
 # Direct
@@ -33,12 +34,47 @@ arg_ref %>%
     arrange(desc(perc)) %>%
     datatable()
     
-    
 arg_ref %>%
     filter(!transitive) %>%
     distinct(ref_type, pack_name, fun_name, formal_pos, call_expr, count) %>%
     count(ref_type, pack_name, fun_name, formal_pos, call_expr, wt = count, name = "count") %>%
     datatable()
+    
+
+total_arg_summary <- 
+    arg_ref %>%
+    count(pack_name, fun_name, formal_pos, wt = count, name = "count") %>%
+    mutate(full_fun = paste0(pack_name, fun_name),
+           full_pos = paste0(pack_name, fun_name, formal_pos))
+    
+MacGen$from_args(RefCountArgumentsTotal = label_num(sum(total_arg_summary$count)),
+                 RefCountPackagesTotal = length(unique(total_arg_summary$pack_name)),
+                 RefCountFunctionsTotal = length(unique(total_arg_summary$full_fun)),
+                 RefCountParametersTotal = length(unique(total_arg_summary$full_pos)))
+                 
+direct_arg_summary <- 
+    arg_ref %>%
+    filter(!transitive) %>%
+    count(pack_name, fun_name, formal_pos, wt = count, name = "count") %>%
+    mutate(full_fun = paste0(pack_name, fun_name),
+           full_pos = paste0(pack_name, fun_name, formal_pos))
+    
+MacGen$from_args(RefCountArgumentsDirect = label_num(sum(direct_arg_summary$count)),
+                 RefCountPackagesDirect = length(unique(direct_arg_summary$pack_name)),
+                 RefCountFunctionsDirect = length(unique(direct_arg_summary$full_fun)),
+                 RefCountParametersDirect = length(unique(direct_arg_summary$full_pos)))
+                 
+transitive_arg_summary <- 
+    arg_ref %>%
+    filter(transitive) %>%
+    count(pack_name, fun_name, formal_pos, wt = count, name = "count") %>%
+    mutate(full_fun = paste0(pack_name, fun_name),
+           full_pos = paste0(pack_name, fun_name, formal_pos))
+    
+MacGen$from_args(RefCountArgumentsTransitive = label_num(sum(transitive_arg_summary$count)),
+                 RefCountPackagesTransitive = length(unique(transitive_arg_summary$pack_name)),
+                 RefCountFunctionsTransitive = length(unique(transitive_arg_summary$full_fun)),
+                 RefCountParametersTransitive = length(unique(transitive_arg_summary$full_pos)))                 
 ```
 
 # Transitive
