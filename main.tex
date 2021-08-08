@@ -1209,23 +1209,23 @@ base64encode <- function(what, linewidth, newline) {
     \toprule
     &\bf Sometimes&\bf Never&\bf Total\\
     \midrule
-    {Parameters}&\SometimesCountParameters&\NeverCountParameters&\UnevaluatedCountParameters\\
-    {Functions}&\SometimesCountFunctions&\NeverCountFunctions&\UnevaluatedCountFunctions\\
-    {Packages}&\SometimesCountPackages&\NeverCountPackages&\UnevaluatedCountPackages\\
+    {Parameters}&\UnevaluatedSometimesCountParameters&\UnevaluatedNeverCountParameters&\UnevaluatedTotalCountParameters\\
+    {Functions}&\UnevaluatedSometimesCountFunctions&\UnevaluatedNeverCountFunctions&\UnevaluatedTotalCountFunctions\\
+    {Packages}&\UnevaluatedSometimesCountPackages&\UnevaluatedNeverCountPackages&\UnevaluatedTotalCountPackages\\
     \bottomrule
   \end{tabular}
 \end{wraptable}
 
-Of the 294M total arguments in our corpus, \UnevaluatedCountArguments of
-promises were not evaluated. They correspond to \UnevaluatedCountParameters
-parameters from \UnevaluatedCountFunctions functions of
-\UnevaluatedCountPackages packages. We can classify these parameters into two
-categories: parameters that are \sometimes evaluated and parameters that are
+Of the 294M total arguments in our corpus, \UnevaluatedTotalCountArguments of
+promises were not evaluated. They correspond to \UnevaluatedTotalCountParameters
+parameters from \UnevaluatedTotalCountFunctions functions of
+\UnevaluatedTotalCountPackages packages. We can classify these parameters into
+two categories: parameters that are \sometimes evaluated and parameters that are
 \never evaluated. Table~\ref{table:unevaluated} presents the number of
 parameters, functions, and packages in these two categories. There are
-\SometimesCountParameters \sometimes parameters and \NeverCountParameters \never
-parameters. These may correspond to code paths not exercised or to dummy
-parameters.
+\UnevaluatedSometimesCountParameters \sometimes parameters and
+\UnevaluatedNeverCountParameters \never parameters. These may correspond to code
+paths not exercised or to dummy parameters.
 %
 A common pattern is the following:
 %
