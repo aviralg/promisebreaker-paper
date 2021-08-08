@@ -36,6 +36,9 @@ corpus:
 unevaluated:
 	make analysis ANALYSIS=unevaluated
 
+missing:
+	make analysis ANALYSIS=missing
+
 side-effects:
 	make analysis ANALYSIS=side-effects
 

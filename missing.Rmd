@@ -1,0 +1,68 @@
+---
+title: "Missing Arguments"
+output:
+    html_document:
+        toc: true
+        toc_depth: 3
+        toc_float: true
+        number_sections: true
+        theme: cerulean
+        highlight: pygments
+        code_folding: hide
+        fig_width: 9
+        fig_height: 3
+        css: style.css
+params:
+    datadir: "./data"
+    graphdir: "./graphs"
+    macrodir: "./macros"
+---
+
+```{r echo = FALSE, warning=FALSE, message=FALSE}
+## https://bookdown.org/yihui/rmarkdown-cookbook/source-script.html
+source("analysis.R", local = knitr::knit_global())
+MacGen <- LatexMacroGenerator$new(params$macrodir)
+```
+
+```{r echo = FALSE, warning=FALSE, message=FALSE}
+
+str(parameters)
+
+missing_summary <-
+    parameters %>%
+    filter(!vararg) %>%
+    filter(missing != 0) %>%
+    group_by(pack_name, fun_name, formal_pos) %>%
+    summarize(missing_count = sum(missing),
+              call_count = sum(call_count)) %>%
+    ungroup() %>%
+    mutate(always_missing = missing_count == call_count) %>%
+    mutate(full_fun = paste0(pack_name, fun_name),
+           full_pos = paste0(pack_name, fun_name, formal_pos))
+    
+datatable(missing_summary)
+
+sometimes_missing <- 
+    missing_summary %>%
+    filter(!always_missing)
+    
+always_missing <- 
+    missing_summary %>%
+    filter(always_missing)
+    
+    
+MacGen$from_args(MissingAlwaysCountArguments = label_num(sum(always_missing$missing_count)),
+                 MissingAlwaysCountPackages = length(unique(always_missing$pack_name)),
+                 MissingAlwaysCountFunctions = label_num(length(unique(always_missing$full_fun))),
+                 MissingAlwaysCountParameters = label_num(length(unique(always_missing$full_pos))))
+                 
+MacGen$from_args(MissingSometimesCountArguments = label_num(sum(sometimes_missing$missing_count)),
+                 MissingSometimesCountPackages = length(unique(sometimes_missing$pack_name)),
+                 MissingSometimesCountFunctions = label_num(length(unique(sometimes_missing$full_fun))),
+                 MissingSometimesCountParameters = label_num(length(unique(sometimes_missing$full_pos))))
+
+MacGen$from_args(MissingTotalCountArguments = label_num(sum(missing_summary$missing_count)),
+                 MissingTotalCountPackages = length(unique(missing_summary$pack_name)),
+                 MissingTotalCountFunctions = label_num(length(unique(missing_summary$full_fun))),
+                 MissingTotalCountParameters = label_num(length(unique(missing_summary$full_pos))))
+```

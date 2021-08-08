@@ -1092,6 +1092,7 @@ show the error rates they may have.
 
 We now discuss the different sources of laziness in more detail.
 
+
 \subsubsection{Metaprogramming}
 
 \begin{wraptable}{r}{5.5cm}
@@ -1134,13 +1135,97 @@ to be lazily evaluated. Hence, parameters metaprogrammed using \code{PREXPR}
 from GNU R interpreter are not made lazy. They are also not included in
 Table~\ref{table:metaprogramming}.
 
-\subsubsection{Unevaluated Arguments}
 
-Of the 294M total arguments in our corpus, 30M of promises were not evaluated. They
-correspond to 28K parameters. We can classify these parameters into two
+\subsubsection{Missing Arguments}
+
+\begin{wraptable}{r}{6cm}
+  \small
+  \centering
+  \caption{Missing}\label{table:missing}
+  \vspace{-3mm}
+  \begin{tabular}{lrrr}
+    \toprule
+    &\bf Sometimes&\bf Always&\bf Total\\
+    \midrule
+    {Argments}&\MissingSometimesCountArguments&\MissingAlwaysCountArguments&\MissingTotalCountArguments\\
+    {Parameters}&\MissingSometimesCountParameters&\MissingAlwaysCountParameters&\MissingTotalCountParameters\\
+    {Functions}&\MissingSometimesCountFunctions&\MissingAlwaysCountFunctions&\MissingTotalCountFunctions\\
+    {Packages}&\MissingSometimesCountPackages&\MissingAlwaysCountPackages&\MissingTotalCountPackages\\
+    \bottomrule
+  \end{tabular}
+\end{wraptable}
+
+Of the 294M total arguments in our corpus, \MissingTotalCountArguments arguments
+were missing. This excludes the \c{...} parameters which could also be missing,
+but are separately discussed above. These \MissingTotalCountArguments arguments
+correspond to \MissingTotalCountParameters parameters. Arguments to
+\MissingAlwaysCountParameters of these parameters are always missing. These
+parameters are classified as \always, in contrast to the
+\MissingSometimesCountParameters \sometimes parameters which are sometimes
+passed an argument. The distribution of these two categories is presented in
+Table~\ref{table:missing}. The \always parameters are treated as lazy, whereas
+the \sometimes parameters are treated as lazy if they don't evaluate the
+arguments passed to them at least once. These parameters are dealt like other
+parameters in Section~\ref{subsubsection:unevaluted_arguments} discussed below.
+
+The example below shows an example of \always missing parameter. The \c{names}
+argument was missing in all the calls to this function defined in the \c{rlang}
+package. Since the function does not use this argument, it is present presumably
+for future evolution or backwards compatibility.
+
+\begin{lstlisting}
+new_environments <- function(envs, names) {
+  stopifnot(is_list(envs))
+  structure(envs,
+            names = map_chr(unname(envs), env_name),
+            class = "rlang_envs")
+}
+\end{lstlisting}
+
+The example below shows an example of \sometimes missing parameter. The
+\c{linewidth} argument was missing in some calls to this function defined in the
+\c{base64enc} package. The function assigns a default value of \c{0L} to
+\c{linewidth} if it is missing.
+
+\begin{lstlisting}
+base64encode <- function(what, linewidth, newline) {
+  linewidth <- if (missing(linewidth) || !is.numeric(linewidth) ||
+                  length(linewidth) < 1L) 0L
+               else as.integer(linewidth[1L])
+    ...
+}
+
+\end{lstlisting}
+
+
+\subsubsection{Unevaluated Arguments} \label{subsubsection:unevaluted_arguments}
+
+\begin{wraptable}{r}{6cm}
+  \small
+  \centering
+  \caption{Reflection}\label{table:reflection}
+  \vspace{-3mm}
+  \begin{tabular}{lrrr}
+    \toprule
+    &\bf Sometimes&\bf Never&\bf Total\\
+    \midrule
+    {Parameters}&\SometimesCountParameters&\NeverCountParameters&\UnevaluatedCountParameters\\
+    {Functions}&\SometimesCountFunctions&\NeverCountFunctions&\UnevaluatedCountFunctions\\
+    {Packages}&\SometimesCountPackages&\NeverCountPackages&\UnevaluatedCountPackages\\
+    \bottomrule
+  \end{tabular}
+\end{wraptable}
+
+Of the 294M total arguments in our corpus, \UnevaluatedCountArguments of
+promises were not evaluated. They correspond to \UnevaluatedCountParameters
+parameters from \UnevaluatedCountFunctions functions of
+\UnevaluatedCountPackages packages. We can classify these parameters into two
 categories: parameters that are \sometimes evaluated and parameters that are
-\never evaluated. There are 16K \sometimes parameters and 12K \never parameters.
-These may correspond to code paths not exercised or to dummy parameters.
+\never evaluated. Table~\ref{table:unevaluated} presents the number of
+parameters, functions, and packages in these two categories. There are
+\SometimesCountParameters \sometimes parameters and \NeverCountParameters \never
+parameters. These may correspond to code paths not exercised or to dummy
+parameters.
 %
 A common pattern is the following:
 %

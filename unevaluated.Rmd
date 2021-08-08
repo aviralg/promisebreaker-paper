@@ -21,9 +21,13 @@ params:
 ```{r echo = FALSE, warning=FALSE, message=FALSE}
 ## https://bookdown.org/yihui/rmarkdown-cookbook/source-script.html
 source("analysis.R", local = knitr::knit_global())
+MacGen <- LatexMacroGenerator$new(params$macrodir)
 ```
 
 ```{r echo = FALSE, warning=FALSE, message=FALSE}
+
+str(parameters)
+
 parameters <-
     parameters %>%
     filter(pack_name %in% corpus)
@@ -66,20 +70,50 @@ cat()
 ```
 
 ```{r echo = FALSE, warning=FALSE, message=FALSE}
-parameters <-
-    parameters %>%
-    filter(pack_name %in% corpus)
-    
 unevaluated <-
     parameters %>%
-    filter(force_lazy) %>%
-    distinct(pack_name, fun_name, formal_pos)
+    filter(!vararg) %>%
+    mutate(call_count = call_count - missing) %>%
+    group_by(pack_name, fun_name, formal_pos) %>%
+    summarize(eval_kind = case_when(call_count == 0 | force_tot == 0 ~ "Never",
+                                    force_tot < call_count ~ "Sometimes",
+                                    force_tot == call_count ~ "Always"),
+              arguments = call_count - force_tot) %>%
+    ungroup() %>%
+    mutate(full_fun = paste0(pack_name, fun_name),
+           full_pos = paste0(pack_name, fun_name, formal_pos)) %>%
+    filter(eval_kind != "Always")
     
 datatable(unevaluated)
+
+never_evaluated <- 
+    unevaluated %>%
+    filter(eval_kind == "Never")
+    
+sometimes_evaluated <- 
+    unevaluated %>%
+    filter(eval_kind == "Sometimes")
+    
+    
+MacGen$from_args(NeverCountPackages = length(unique(never_evaluated$pack_name)),
+                 NeverCountFunctions = label_num(length(unique(never_evaluated$full_fun))),
+                 NeverCountParameters = label_num(length(unique(never_evaluated$full_pos))))
+                 
+MacGen$from_args(SometimesCountPackages = length(unique(sometimes_evaluated$pack_name)),
+                 SometimesCountFunctions = label_num(length(unique(sometimes_evaluated$full_fun))),
+                 SometimesCountParameters = label_num(length(unique(sometimes_evaluated$full_pos))))
+
+MacGen$from_args(UnevaluatedCountPackages = length(unique(unevaluated$pack_name)),
+                 UnevaluatedCountFunctions = label_num(length(unique(unevaluated$full_fun))),
+                 UnevaluatedCountParameters = label_num(length(unique(unevaluated$full_pos))))
+                 
+MacGen$from_args(UnevaluatedCountArguments = label_num(sum(sometimes_evaluated$arguments)))
+
 
 tot_uneval_arg <-
     parameters %>% 
     filter(!vararg & !missing) %>%
+    filter(force_lazy) %>%
     mutate(diff = call_count - force_tot) %>%
     pull(diff) %>%
     sum()
@@ -94,7 +128,14 @@ cat("Total unevaluated argument functions",
     
 cat("Total unevaluated argument packages", 
     nrow(unevaluated %>% distinct(pack_name)))
-    
+
+parameters %>% 
+    filter(vararg | missing) %>%
+    nrow()
+
+parameters %>% 
+    filter(vararg) %>%
+    nrow()
 
 
 promise_params <-
@@ -143,9 +184,6 @@ uneval_summary <-
     ungroup() %>%
     mutate(param_perc = round(100 * param / tot_param, 2),
            fun_perc = round(100 * fun / tot_fun, 2))
-
-
-    
 
 datatable(uneval_summary)
 
