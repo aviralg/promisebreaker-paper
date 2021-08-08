@@ -1,0 +1,172 @@
+---
+title: "Signature"
+output:
+    html_document:
+        toc: true
+        toc_depth: 3
+        toc_float: true
+        number_sections: true
+        theme: cerulean
+        highlight: pygments
+        code_folding: hide
+        fig_width: 9
+        fig_height: 3
+        css: style.css
+params:
+    datadir: "./data"
+    graphdir: "./graphs"
+    macrodir: "./macros"
+    sigdir: "./signatures"
+---
+
+```{r echo = FALSE, warning=FALSE, message=FALSE}
+## https://bookdown.org/yihui/rmarkdown-cookbook/source-script.html
+source("analysis.R", local = knitr::knit_global())
+MacGen <- LatexMacroGenerator$new(params$macrodir)
+```
+
+```{r echo = FALSE, warning=FALSE, message=FALSE}
+
+str(parameters)
+
+total_param_count <- nrow(parameters)
+total_fun_count <- nrow(distinct(functions, pack_name, fun_name))
+
+metaprogram_table <-
+    metaprogramming %>%
+    filter(native_fun %in% c("substitute", ".External(NA)", ".Call(NA)")) %>%
+    distinct(source_pack_name, source_fun_name, source_formal_pos) %>%
+    rename(pack_name = source_pack_name, fun_name = source_fun_name, formal_pos = source_formal_pos) %>%
+    mutate(metaprogram = TRUE)
+
+reflection_table <- 
+    arg_ref %>%
+    distinct(pack_name, fun_name, formal_pos) %>%
+    mutate(reflection = TRUE)
+
+signature_summary <-
+    parameters %>%
+    mutate(non_missing_calls = call_count - missing) %>%
+    mutate(missing = non_missing_calls == 0) %>%
+    mutate(unevaluated = non_missing_calls != force_tot) %>%
+    left_join(metaprogram_table, by = c("pack_name", "fun_name", "formal_pos")) %>%
+    mutate(metaprogram = if_else(is.na(metaprogram), FALSE, metaprogram)) %>%
+    left_join(reflection_table, by = c("pack_name", "fun_name", "formal_pos")) %>%
+    mutate(reflection = if_else(is.na(reflection), FALSE, reflection))
+
+vararg_summary <-
+    signature_summary %>%
+    filter(vararg) %>%
+    mutate(metaprogram = FALSE,
+           missing = FALSE,
+           unevaluated = FALSE,
+           effects = FALSE,
+           reflection = FALSE) %>%
+    select(vararg, metaprogram, missing, unevaluated, effects, reflection, pack_name, fun_name, formal_pos)
+
+metaprogram_summary <-
+    signature_summary %>%
+    filter(metaprogram) %>%
+    mutate(vararg = FALSE,
+           missing = FALSE,
+           unevaluated = FALSE,
+           effects = FALSE,
+           reflection = FALSE) %>%
+    select(vararg, metaprogram, missing, unevaluated, effects, reflection, pack_name, fun_name, formal_pos)
+
+missing_summary <-
+    signature_summary %>%
+    filter(missing) %>%
+    mutate(vararg = FALSE,
+           metaprogram = FALSE,
+           unevaluated = FALSE,
+           effects = FALSE,
+           reflection = FALSE) %>%
+    select(vararg, metaprogram, missing, unevaluated, effects, reflection, pack_name, fun_name, formal_pos)
+
+other_summary <-
+    signature_summary %>%
+    filter(!vararg & !metaprogram & !missing) %>%
+    mutate(vararg = FALSE,
+           metaprogram = FALSE,
+           missing = FALSE) %>%
+    select(vararg, metaprogram, missing, unevaluated, effects = effect_lazy, reflection, pack_name, fun_name, formal_pos)
+    
+
+signature_table <-
+    bind_rows(vararg_summary, metaprogram_summary, missing_summary, other_summary)
+
+signature_summary <-
+    signature_table %>%
+    mutate(fun_name = paste0(pack_name, fun_name),
+           formal_pos = paste0(pack_name, fun_name, formal_pos)) %>%
+    group_by(vararg, metaprogram, missing, unevaluated, effects, reflection) %>%
+    summarize(param_count = length(unique(formal_pos)),
+              fun_count = length(unique(fun_name)),
+              pack_count= length(unique(pack_name))) %>%
+    ungroup() %>%
+    mutate(order = 32 * vararg + 16 * metaprogram + 8 * missing + 4 * unevaluated + 2 * effects + 1 * reflection) %>%
+    arrange(order) %>%
+    mutate(param_perc = round(100 * param_count / total_param_count, 2),
+           fun_perc = round(100 * fun_count / total_fun_count, 2)) %>%
+    mutate(param_cumperc = cumsum(param_perc)) %>%
+    mutate(param_count = label_num(param_count),
+           fun_count = label_num(fun_count))
+
+datatable(signature_summary)
+
+
+signature_summary %>%
+select(vararg, metaprogram, missing, unevaluated, effects, reflection, param_count, param_perc, fun_count, fun_perc, pack_count) %>%
+pmap_chr(function(vararg, metaprogram, missing, unevaluated, effects, reflection, param_count, param_perc, fun_count, fun_perc, pack_count) {
+    values <- c(vararg, metaprogram, missing, unevaluated, effects, reflection) + 1
+    if (vararg | metaprogram | missing) {
+        marks <- c("\\rmark{}", "\\cmark{}")[values]
+    }
+    else {
+        marks <- c("\\xmark{}", "\\cmark{}")[values]
+    }
+    param_perc <- paste0(round(param_perc, 1), "\\%")
+    fun_perc <- paste0(round(fun_perc, 1), "\\%")
+    paste(paste(marks, collapse = "&"), param_count, param_perc, fun_count, fun_perc, pack_count, sep = "&")
+}) %>%
+paste(collapse = "\\\\\n") %>%
+paste0("\\\\\n") %>%
+cat()
+```
+
+# Make Signatures
+
+```{r, eval = TRUE}
+str(signature_table)
+
+join_positions <- function(formal_pos, lazy) {
+    pos <- 1 + sort(formal_pos[!lazy])
+    paste("<", paste(pos, collapse = ","), ">;", sep="")
+}
+
+signatures <-
+    signature_table %>%
+    mutate(lazy = vararg | metaprogram | missing | unevaluated | effects | reflection) %>%
+    group_by(pack_name, fun_name, formal_pos) %>%
+    summarize(lazy = any(lazy)) %>%
+    ungroup() %>%
+    group_by(pack_name, fun_name) %>%
+    summarize(strict_args = join_positions(formal_pos, lazy)) %>%
+    ungroup() %>%
+    mutate(signature = paste("strict", fun_name, strict_args, sep = " ")) %>%
+    group_by(pack_name) %>%
+    summarize(content = paste(signature, collapse = "\n")) %>%
+    ungroup()
+    
+datatable(signatures)
+
+
+save_signatures <- function(pack_name, content) {
+    filepath <- path_join(c(params$sigdir, pack_name))
+    write_file(content, filepath)
+}
+
+dir_create(params$sigdir)
+pwalk(signatures, save_signatures)
+```

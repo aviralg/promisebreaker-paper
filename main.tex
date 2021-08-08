@@ -21,6 +21,7 @@
 \newcommand{\todo}[1]{\authorcomment{red}{TODO}{#1}}
 \newcommand{\xmark}{\textcolor{red}{\ding{55}}}
 \newcommand{\cmark}{\textcolor{green}{\ding{51}}}
+\newcommand{\rmark}{\textcolor{blue}{\ding{108}}}
 
 \newcommand{\always}{\emph{Always}\xspace}
 \newcommand{\sometimes}{\emph{Sometimes}\xspace}
@@ -1066,21 +1067,25 @@ rows marked R come from very few functions and packages.
   \small
   \caption{Signature Summary} \label{table:strictdist}
   \centering
-  \begin{tabular}{cccrrrrr}
+  \begin{tabular}{ccccccrrrrr}
     \toprule
-    \bf U & \bf S & \bf R & \multicolumn{2}{c}{\textbf{Parameters}} & \multicolumn{2}{c}{\textbf{Functions}}& \bf Packages\\
+    \bf ... & \bf M & \bf ? & \bf U & \bf S & \bf R & \multicolumn{2}{c}{\textbf{Parameters}} & \multicolumn{2}{c}{\textbf{Functions}}& \bf Packages\\
     \midrule
-    \xmark{}&\xmark{}&\xmark{}&128K &65.2\%&44K  &85.9\%&489\\
-    \xmark{}&\xmark{}&\cmark{}&134  &0.07\%&124  &0.2\%&47\\
-    \xmark{}&\cmark{}&\xmark{}&8K   &4\%&6K      &11.2\%&399\\
-    \xmark{}&\cmark{}&\cmark{}&408  &0.2\%&385   &0.7\%&93\\
-    \cmark{}&\xmark{}&\xmark{}&27K  &13.7\%&11K  &21.9\%&453\\
-    \cmark{}&\xmark{}&\cmark{}&13   &0.01\%&12   &0.02\%&11\\
-    \cmark{}&\cmark{}&\xmark{}&1K   &0.6\%&813   &1.5\%&199\\
-    \cmark{}&\cmark{}&\cmark{}&25   &0.01\%&24   &0.05\%&15\\
+    \xmark{}&\xmark{}&\xmark{}&\xmark{}&\xmark{}&\xmark{}&148.4K&72.8\%&49.3K&93.4\%&489\\
+    \xmark{}&\xmark{}&\xmark{}&\xmark{}&\xmark{}&\cmark{}&529&0.3\%&509&1\%&119\\
+    \xmark{}&\xmark{}&\xmark{}&\xmark{}&\cmark{}&\xmark{}&1.3K&0.7\%&950&1.8\%&207\\
+    \xmark{}&\xmark{}&\xmark{}&\xmark{}&\cmark{}&\cmark{}&76&0\%&74&0.1\%&22\\
+    \xmark{}&\xmark{}&\xmark{}&\cmark{}&\xmark{}&\xmark{}&28.5K&14\%&12.4K&23.6\%&450\\
+    \xmark{}&\xmark{}&\xmark{}&\cmark{}&\xmark{}&\cmark{}&33&0\%&32&0.1\%&24\\
+    \xmark{}&\xmark{}&\xmark{}&\cmark{}&\cmark{}&\xmark{}&314&0.1\%&226&0.4\%&98\\
+    \xmark{}&\xmark{}&\xmark{}&\cmark{}&\cmark{}&\cmark{}&9&0\%&9&0\%&5\\
+    \rmark{}&\rmark{}&\cmark{}&\rmark{}&\rmark{}&\rmark{}&3.2K&1.6\%&1.7K&3.2\%&240\\
+    \rmark{}&\cmark{}&\rmark{}&\rmark{}&\rmark{}&\rmark{}&1.3K&0.6\%&825&1.6\%&118\\
+    \cmark{}&\rmark{}&\rmark{}&\rmark{}&\rmark{}&\rmark{}&20.0K&9.8\%&20.0K&37.9\%&430\\
     \bottomrule
   \end{tabular}
 \end{table}
+
 
 The inferred strictness signatures for library functions use these marks to
 decide which arguments should be lazy and which should be strict. While any

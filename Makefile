@@ -6,6 +6,7 @@ DATADIR := $(PROJECTDIR)data
 GRAPHDIR := $(PROJECTDIR)graphs
 MACRODIR := $(PROJECTDIR)macros
 MACROFILE := $(PROJECTDIR)macros.tex
+SIGDIR := $(PROJECTDIR)signatures
 
 # Tools
 LATEXMK = latexmk
@@ -25,7 +26,7 @@ clean:
 	rm *~ *.log *.aux *.bbl *.out *.blg
 
 analysis:
-	$(R) --slave -e "rmarkdown::render('$(ANALYSIS).Rmd', 'html_document', params = list(datadir = '$(DATADIR)', graphdir = '$(GRAPHDIR)', macrodir = '$(MACRODIR)'))"
+	$(R) --slave -e "rmarkdown::render('$(ANALYSIS).Rmd', 'html_document', params = list(datadir = '$(DATADIR)', graphdir = '$(GRAPHDIR)', macrodir = '$(MACRODIR)', sigdir = '$(SIGDIR)'))"
 
 merge-macros:
 	R --slave -e "invisible(experimentr::merge_macros('$(MACRODIR)', '$(MACROFILE)'))"
@@ -38,6 +39,9 @@ unevaluated:
 
 missing:
 	make analysis ANALYSIS=missing
+
+signature:
+	make analysis ANALYSIS=signature
 
 side-effects:
 	make analysis ANALYSIS=side-effects
