@@ -27,6 +27,20 @@ MacGen <- LatexMacroGenerator$new(params$macrodir)
 # Direct
 
 ```{r echo = FALSE, warning=FALSE, message=FALSE}
+metaprogram_table <-
+    metaprogramming %>%
+    filter(native_fun %in% c("substitute", ".External(NA)", ".Call(NA)")) %>%
+    distinct(source_pack_name, source_fun_name, source_formal_pos) %>%
+    rename(pack_name = source_pack_name, fun_name = source_fun_name, formal_pos = source_formal_pos) %>%
+    mutate(metaprogram = TRUE)
+
+arg_ref <-
+   arg_ref %>%
+   left_join(metaprogram_table, by = c("pack_name", "fun_name", "formal_pos")) %>%
+   mutate(metaprogram = if_else(is.na(metaprogram), FALSE, metaprogram)) %>%
+   filter(!metaprogram) %>%
+   select(-metaprogram)
+
 arg_ref %>%
     filter(!transitive) %>%
     count(self_ref_seq, wt = count, name = "count") %>%
@@ -104,16 +118,16 @@ cat("Transitive packages: ", length(unique(transitive_arg_ref$pack_name)))
 # Backtrace
 
 ```{r echo = FALSE, warning=FALSE, message=FALSE}
-arg_ref %>%
-    filter(transitive) %>%
-    select(source_pack_name, source_fun_name, source_formal_pos, pack_name, fun_name, formal_pos, backtrace) %>%
-    pmap(function(source_pack_name, source_fun_name, source_formal_pos, pack_name, fun_name, formal_pos, backtrace) {
-        cat(source_pack_name, "\n") 
-        cat(source_fun_name, "\n")
-        cat(source_formal_pos, "\n")
-        cat(pack_name,"\n") 
-        cat(fun_name, "\n")
-        cat(formal_pos, "\n")
-        cat(backtrace, "\n")
-    })
+#arg_ref %>%
+#    filter(transitive) %>%
+#    select(source_pack_name, source_fun_name, source_formal_pos, pack_name, fun_name, formal_pos, backtrace) %>%
+#    pmap(function(source_pack_name, source_fun_name, source_formal_pos, pack_name, fun_name, formal_pos, backtrace) {
+#        cat(source_pack_name, "\n") 
+#        cat(source_fun_name, "\n")
+#        cat(source_formal_pos, "\n")
+#        cat(pack_name,"\n") 
+#        cat(fun_name, "\n")
+#        cat(formal_pos, "\n")
+#        cat(backtrace, "\n")
+#    })
 ```

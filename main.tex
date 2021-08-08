@@ -1156,11 +1156,11 @@ Table~\ref{table:metaprogramming}.
 \end{wraptable}
 
 Of the 294M total arguments in our corpus, \MissingTotalCountArguments arguments
-were missing. This excludes the \c{...} parameters which could also be missing,
-but are separately discussed above. These \MissingTotalCountArguments arguments
-correspond to \MissingTotalCountParameters parameters. Arguments to
-\MissingAlwaysCountParameters of these parameters are always missing. These
-parameters are classified as \always, in contrast to the
+were missing. This excludes the \c{...} and metaprogrammed parameters which
+could also be missing, but are separately discussed above. These
+\MissingTotalCountArguments arguments correspond to \MissingTotalCountParameters
+parameters. Arguments to \MissingAlwaysCountParameters of these parameters are
+always missing. These parameters are classified as \always, in contrast to the
 \MissingSometimesCountParameters \sometimes parameters which are sometimes
 passed an argument. The distribution of these two categories is presented in
 Table~\ref{table:missing}. The \always parameters are treated as lazy, whereas
@@ -1437,7 +1437,8 @@ promise's creation environment.
 
 Table~\ref{table:reflection} presents the number of arguments that call
 \code{as.environment(-1)} and \code{pos.to.env(-1)} directly or transitively.
-Two parameters from two functions, \code{R.oo::.getFunctionByName}, and
+This excludes the cases where the argument is also metaprogrammed. Two
+parameters from two functions, \code{R.oo::.getFunctionByName}, and
 \code{backports:::get0} call these functions directly.
 %
 The first searches for a function by name in different scopes. Its argument has

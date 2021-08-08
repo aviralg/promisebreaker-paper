@@ -90,8 +90,8 @@ read_lazy(argument_type, "argument_type.fst")
 
 arg_ref <-
     arg_ref %>%
-    filter(pack_name %in% corpus) %>%
-    filter(is.na(source_pack_name) | source_pack_name %in% corpus)
+    filter(pack_name %in% corpus)
+    #filter(is.na(source_pack_name) | source_pack_name %in% corpus)
 
 parameters <-
     parameters %>%

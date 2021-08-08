@@ -25,54 +25,20 @@ MacGen <- LatexMacroGenerator$new(params$macrodir)
 ```
 
 ```{r echo = FALSE, warning=FALSE, message=FALSE}
+metaprogram_table <-
+    metaprogramming %>%
+    filter(native_fun %in% c("substitute", ".External(NA)", ".Call(NA)")) %>%
+    distinct(source_pack_name, source_fun_name, source_formal_pos) %>%
+    rename(pack_name = source_pack_name, fun_name = source_fun_name, formal_pos = source_formal_pos) %>%
+    mutate(metaprogram = TRUE)
 
-str(parameters)
 
-parameters <-
-    parameters %>%
-    filter(pack_name %in% corpus)
-    
-functions <-
-    functions %>%
-    filter(pack_name %in% corpus)
-    
-total_param_count <- nrow(parameters)
-total_fun_count <- nrow(distinct(functions, pack_name, fun_name))
-
-laziness <-
-    parameters %>%
-    group_by(vararg_lazy, meta_lazy, force_lazy, effect_lazy, ref_lazy) %>%
-    summarize(param = n(),
-              fun = length(unique(fun_name)),
-              pack= length(unique(pack_name))) %>%
-    ungroup() %>%
-    mutate(order = 4 * force_lazy + 2 * effect_lazy + 1 * ref_lazy) %>%
-    arrange(order) %>%
-    mutate(param_perc = round(100 * param / total_param_count, 2),
-           fun_perc = round(100 * fun / total_fun_count, 2)) %>%
-    filter(!vararg_lazy & !meta_lazy) %>%
-    select(-vararg_lazy, -meta_lazy) %>%
-    mutate(param_cumperc = cumsum(param_perc))
-    
-
-datatable(laziness)
-
-laziness %>%
-pmap_chr(function(force_lazy, effect_lazy, ref_lazy, param, fun, pack, order, param_perc, fun_perc, param_cumperc) {
-    marks <- c("\\xmark{}", "\\cmark{}")[c(force_lazy + 1, effect_lazy + 1, ref_lazy + 1)]
-    param_perc <- paste0(round(param_perc, 2), "\\%")
-    fun_perc <- paste0(round(fun_perc, 2), "\\%")
-    paste(order, paste(marks, collapse = "&"), param, param_perc, fun, fun_perc, pack, sep = "&")
-}) %>%
-paste(collapse = "\\\\\n") %>%
-paste0("\\\\\n") %>%
-cat()
-```
-
-```{r echo = FALSE, warning=FALSE, message=FALSE}
 unevaluated <-
     parameters %>%
     filter(!vararg) %>%
+    left_join(metaprogram_table, by = c("pack_name", "fun_name", "formal_pos")) %>%
+    mutate(metaprogram = if_else(is.na(metaprogram), FALSE, metaprogram)) %>%
+    filter(!metaprogram) %>%
     mutate(call_count = call_count - missing) %>%
     group_by(pack_name, fun_name, formal_pos) %>%
     ## call count is 0 if call_count == missing.
@@ -95,7 +61,6 @@ never_evaluated <-
 sometimes_evaluated <- 
     unevaluated %>%
     filter(eval_kind == "Sometimes")
-    
     
 MacGen$from_args(UnevaluatedNeverCountPackages = length(unique(never_evaluated$pack_name)),
                  UnevaluatedNeverCountFunctions = label_num(length(unique(never_evaluated$full_fun))),
