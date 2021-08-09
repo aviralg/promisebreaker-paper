@@ -381,7 +381,7 @@ Extensions written in C are able to freely access and mutate the expression, as
 well as the memoized result of promises. R allows programmatic manipulation of
 parse trees, which are themselves first-class objects. They are evaluated using
 the \code{eval(e,envir)} function. In R the local scope of a closure is a
-first-class, mutable map. It is possible to access the local environment, but
+first-class, mutable map \SK{maybe remove comma before mutable map? Not sure if 'first-class mutable map' is ok either}. It is possible to access the local environment, but
 also to reflectively extract the environments of all functions currently being
 present on the call stack.
 
