@@ -199,14 +199,14 @@ number of libraries that would have to be refactored would be significant.
 A viable migration path must abide by four tenets: ({\bf T1}) minimal legacy
 code changes, ({\bf T2}) semi-automated migration, ({\bf T3}) testable outcomes,
 and ({\bf T4}) measurable benefits. We envision a migration path with the
-following characteristics. Changes to legacy code can be avoided by non-invasive
-extensions to the language's syntax and semantics. Code changes will be limited
-to library functions that need a lazy semantics. Strictness signatures can be
-inferred from the tests that are associated to every R package. For popular
-libraries, client code can be used as an oracle to check the correctness of
-inferred signatures. A benefit of migration will be improved performance and
-reduced memory footprint. This paper aims to evaluate components of this
-migration strategy.
+following characteristics. Changes to legacy code are avoided by non-invasive
+extensions to the language's syntax and semantics and limited to library
+functions that need a lazy semantics. Strictness signatures are inferred from
+the tests associated to every R package. For popular libraries, client code is
+used as an oracle to check the correctness of inferred signatures. Performance
+and memory footprint are improved by compiler optimizations that leverage the
+new semantics. This paper aims to evaluate components of this migration
+strategy.
 
 \begin{itemize}[---]
 \item {\bf StrictR:} a prototype implementation of R whose semantics are to be
@@ -220,8 +220,8 @@ migration strategy.
 
 We conduct several experiments that aim to answer the question whether such a
 semi-automated path is viable. Specifically, it should be the case that change
-to the code are small, that inference is accurate, and that there performance
-improvements to be had.
+to the code are small, that inference is accurate, and that there are
+performance improvements.
 
 The paper reports on two experiments. First, we obtain the 500 most widely used
 packages in the R ecosystem and use their tests to infer strictness signatures.
@@ -239,7 +239,9 @@ using all available clients to infer signatures rather than only the tests
 bundled with a package. The performance numbers should be viewed as a limit
 study as the baseline is a compiler that already performs aggressive
 optimizations. We have not evaluated the benefits of \strictr on the bytecode
-compiler used today.
+compiler used today. It is conceivable that the relative speedups could be more
+impressive than in our native compiler, but in the long run we expect users
+to move away from bytecode execution.
 
 \paragraph{Availability.} Our work is in open source,
   experiments are available from:\\
