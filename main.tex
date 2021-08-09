@@ -75,8 +75,6 @@
 \newcommand{\strictr}{{\sf StrictR}\xspace}
 \newcommand{\lazr}{{\sf LazR}\xspace}
 \renewcommand{\Rsh}{{\sf\v R}\xspace}
-\newcommand{\Rshstrict}{{\sf\v R-strict}\xspace}
-
 \newcommand{\eg}{\emph{e.g.},\xspace}
 \newcommand{\ie}{\emph{i.e.},\xspace}
 \newcommand{\config}[1]{configuration \#{#1}}
@@ -120,9 +118,9 @@
   To provide a migration path, it is necessary to provide tooling for developers
   to migrate libraries without introducing errors. This paper reports on a
   dynamic analysis that infers strictness signatures for functions to capture
-  both intentional and accidental laziness. To assess the robustness of the
-  inferred signatures we tested them on 2,000 R packages and found that
-  inference was wrong in only \robustnesResult of the client programs.
+  both intentional and accidental laziness. The robustness of the inferred
+  signatures is tested using client code. Inference was wrong in only
+  \robustnesResult of signatures.
 \end{abstract}
 
 \begin{CCSXML}
@@ -206,16 +204,17 @@ the tests associated to every R package. For popular libraries, client code is
 used as an oracle to check the correctness of inferred signatures. Performance
 and memory footprint are improved by compiler optimizations that leverage the
 new semantics. This paper aims to evaluate components of this migration
-strategy.
+
+\newcommand{\rshstrict}{{\sf {\v R}$_{\mathsf s}$}}
+\newcommand{\brshstrict}{{\bf {\v R}$_{\mathbf s}$}}
 
 \begin{itemize}[---]
-\item {\bf StrictR:} a prototype implementation of R whose semantics are to be
-  strict by default; only functions that demand lazy evaluation need to have
-  strictness signatures.
-\item {\bf LazR:} an infrastructure for inferring strictness signatures by
-  dynamic program analysis.
-\item {\bf \v R-strict:} an optimizing just-in-time compiler for R with a strict
-  by default semantics.
+\item {\bf StrictR:} a prototype R interpreter with strict by default
+  semantics; only functions that demand lazy evaluation need to be annotated.
+\item {\bf LazR:} a scalable infrastructure for inferring strictness annotations
+  for function arguments by dynamic program analysis.
+\item {\bf \brshstrict:} an optimizing just-in-time compiler for R modified to
+  take advantage of a strict by default semantics.
 \end{itemize}
 
 We conduct several experiments that aim to answer the question whether such a
@@ -250,7 +249,6 @@ to move away from bytecode execution.
     URL/of/artifact/goes/here
 \end{center}
 
-\newpage
 \section{Background}\label{sec:background}
 
 This section sets the stage by introducing related work and giving a brief
@@ -282,36 +280,37 @@ call-by-value $\lambda$~calculus using dynamic analysis. They introduce the
 notion of laziness potential, a predictor of the benefit obtained by making an
 expression lazy. They use this as a guide to insert laziness annotations. They
 demonstrate benefits on Racket implementations of Okasaki's purely functional
-data structures, monadic parser combinators, and an AI game. Our work is similar
-to Autobahn in that we infer annotations dynamically and we do not guarantee
-soundness. We depart from Autobahn in that we use dynamic analysis of
-execution traces to determine strictness. Furthermore, we must deal with
+data structures~\cite{oka95}, monadic parser combinators, and an AI game. Our
+work is similar to Autobahn in that we infer annotations dynamically and we do
+not guarantee soundness. We depart from Autobahn in that we use dynamic analysis
+of execution traces to determine strictness. Furthermore, we must deal with
 side-effects and reflective operations which adds extra complexity to our
 inference algorithm.
 
 \paragraph{The R language} \citet{oopsla19b} investigated the design and use of
 laziness in R. They provide a detailed account of the language's evaluation
 strategy with a small-step operational semantics and an empirical evaluation of
-laziness in 16,707 packages. Their study shows that most of the R code is written
-without reliance on, or awareness of, laziness. Out of 388K functions, 83\%
-evaluate all of their arguments in a single order across all calls. The authors
-found that programmers sometimes force evaluation of arguments at the beginning
-of a function to protect their code from non-deterministic effects. Only a
-single instance of a lazy data structure could be found. The main \emph{raison
-d'\^etre} for delayed evaluation seems to be meta-programming. In that work, a
-function was deemed to be strict if it had a single evaluation order for its
-arguments. Our approach is inspired by that work, but we do not require a single
-evaluation order for a function, instead, we choose to look at clients and
-declare a parameter lazy if some clients call the function with effectful
-arguments. \citet{oopsla20b} empirically inferred \emph{type} signatures for
-functions by observing the type of arguments and return values. The authors
-validated these signatures by inserting type checking code inside functions and
-monitoring type failures on client programs. This approach inspired our strictness
-inference, however, types are easier to check for soundness than strictness. For
-types, one simply inserts code that checks that if an argument is eventually
-evaluated, it evaluates to the expected type. For strictness, we have to worry
-about the interplay of side-effects and changes to the order of evaluation of
-arguments. This makes validation of strictness signatures hard.
+laziness in 16,707 packages. Their study shows that most of the R code is
+written without reliance on, or awareness of, laziness. Out of 388K functions,
+83\% evaluate all of their arguments in a single order across all calls. The
+authors found that programmers sometimes force evaluation of arguments at the
+beginning of a function to protect their code from non-deterministic effects,
+this is done by adding calls to \c{force} to every argument. Only a single
+instance of a lazy data structure could be found in all the programs the author
+inspected. The main \emph{raison d'\^etre} for delayed evaluation seems to be
+meta-programming which requires delayed arguments that can be manipulated
+symbolically. In that work, a function was deemed to be strict if it had a
+single evaluation order for its arguments. Our approach is inspired by that
+work, but we do not require a single evaluation order for a function, instead,
+we choose to look at clients and declare a parameter lazy if some clients call
+the function with effectful arguments. \citet{oopsla20b} empirically inferred
+{type} signatures for functions by observing the type of arguments and return
+values. These signatures were validated by inserting type checking code and
+monitoring failures on client programs. This approach inspired our strictness
+inference, however, types are easier to check than strictness. Types are checked
+by validating that if an argument is evaluated it has the expected type. For
+strictness, we have to worry about the interplay of side-effects and changes to
+the order of evaluation of arguments.
 
 \paragraph{Language migration} Changing a language with a large codebase
 is challenging. No migration has been more fraught than that of Python. Python 3
@@ -441,7 +440,6 @@ evaluate both \code a and \code b, assignment \code{x<-a} evaluates \code a, and
 strict.
 
 \newpage %% Keeps this starting at the top if possible
-%% OKAY LET ME REFORMULATE: KEEP THIS AT TOP OR I GET UPSET
 \section{StrictR: R with Strictness Signatures}\label{sec:strictr}
 
 We refer to the R language extended with strictness signatures as \strictr, to
@@ -581,6 +579,50 @@ not call sites, because at a call site we can't know which function is being
 called.\footnote{Shortly before submission, we realized that we could implement
   the same semantics as the compiler since GNU R keeps a \c{PROMARGS} list which
   stores promises in the same order as at the call site.}
+
+
+\section{A Strict-by-default compiler for R}\label{sec:rsh1}
+
+We considered several approaches to evaluate the performance of a change of
+semantics. While one could expect that \strictr would be extended to optimize
+strict functions, this was not straightforward in our proof of concept
+implementation which does source-level rewriting. To achieve performance in the
+GNU R implementation would have required changing the bytecode compiler and the
+associated bytecode interpreter. While possible, the benefits one would measure
+with such an approach would be bounded by the speed of interpreted code. It long
+run, R implementations should generate native code.
+
+The alternative was to use an experimental native compiler. There are two
+available in open source, Oracle's Truffle/R implementation~\cite{} and our own
+\Rsh~\cite{}. Both systems have their drawbacks. Truffle/R is not a complete
+implementation of the language and it is unfamiliar to the authors. \Rsh is less
+mature, in terms of optimizations, but runs all R programs. We convenience, we
+picked \Rsh as a starting point.
+
+One advantage of \Rsh is that it is based on the GNU R reference implementation
+and can always defer to GNU R when it hits codes that is not supported. It
+introduces an additional two-tiered compilation strategy. The first tier is
+realized by a bytecode interpreter, the second tier by an optimizing native
+compiler which relies on LLVM for code generation. The compiler employs, among
+many other optimizations, speculative inlining of R closures and promises
+\citep{dls19, oopsla20c}.
+
+One benefit of choosing \Rsh is that it allows us to better evaluate the impact
+of laziness. In \Rsh we can both measure the impact on an interpreter with few
+optimizations applied to the bytecode, and an optimizing compiler that already
+does its best to elide promises when the semantics of the language allows it.
+
+We build \rshstrict as a minimal adaptation of \Rsh that can let us evaluate
+performance benefits. We changed the first-tier compiler that generate the \Rsh
+bytecode (which differs from the GNU R bytecode) to eagerly evaluate arguments,
+unless the argument is marked as lazy. This eager bytecode also serves as the
+source code for the optimizing tier.  The changes in the lower tier were minimal.
+
+The benefits we show with \rshstrict are the lower bound on improvements as we
+do not factor in strictness in the analysis passes and other optimizations of
+the compiler.
+
+
 
 \newpage%% Don't mess with me.
 \section{LazR: Inferring Strictness Signatures}\label{sec:lazr}
@@ -1582,71 +1624,40 @@ this signature configuration. Next, reflective and unevaluated arguments can be
 made strict without a significant increase in failure rate. Side-effecting
 arguments result in many failures.
 
-\section{\Rsh: Compiling the Lazy Away}\label{sec:rsh}
 
-In this section we report on our experiments to evaluate the implications of
-eagerness on an implementation of R. To that end we modified \Rsh, a just-in-time
-compiler for the language. \Rsh is based on the GNU R reference implementation
-and introduces an additional two-tiered compilation strategy. The
-first tier is realized by a naive bytecode interpreter, the second tier
-by an optimizing native compiler. The compiler employs, among many other
-optimizations, speculative inlining of R closures and promises \citep{dls19,
-oopsla20c}.
-The reason for choosing \Rsh as the target for our
-experiments is that it allows us to better evaluate the impact of laziness. In
-\Rsh we can both measure the impact on an interpreter with few optimizations
-applied to the bytecode, and an optimizing compiler that already does its best
-to elide promises (as long as the default semantics allows it).
 
-We conducted limit-study experiment to assess the highest achievable performance
-by removing maximum possible promises over an aggresively optimizing compiler.
-We do this by changing the evaluation semantics of the \Rsh VM. This is an isolated
-experiment and does not involve neither \strictr nor \lazr in any ways.
 
-For our evaluation, we changed the first-tier
-compiler to eagerly evaluate all arguments at all call-sites, except for a
-manually curated list of exceptions in order to preserve appropriate semantics.
-This eager bytecode also serves as the source code for the optimizing tier. In the following
-text we refer to our implementation as \Rshstrict. Note that a realistic implementation
-would, instead, re-write externally provided function annotations and rely on already
-existing speculative monomorphization of call-sites in \Rsh.
 
-Our main hypothesis regarding performance is that eager semantics lead to faster
-execution of R programs. This hypothesis might seem unexpected to some readers,
-as call-by-need is sometimes used to avoid unnecessary computation in a program.
-On the other hand, delaying computations is more complex to implement and we
-observed it to obstruct performance in two ways. First, it leads to more
-allocations of promises used to represent the delayed computation. Second, in
-combination with effects potentially originating from promises, it obstructs
-more advanced compiler analyses and optimizations. Thus, we expect the hypothesis
-to also hold for a just-in-time compiler that uses advanced optimizations.
-In particular, we pose the following predictions:
-(1) eager semantics should improve performance of most benchmarks, for both tiers
-of \Rsh; (2) a significant portion of the speedup is due to reduced garbage
-collection pressure; (3) and there is an additional speedup due to improved compiler
-optimizations. In the following, we will present our evidence in support of (1)
-and (3), and partial evidence for (2).
+\section{Performance Experiment}\label{sec:rsh}
+
+Our hypothesis is that eager semantics lead to faster programs. This might
+surprise readers who expect that call-by-need i can avoid unnecessary
+computation. Delaying computations is complex and hinders performance in two
+ways. First, it leads to more allocations of promises. Second, it obstructs
+compiler analyses and optimizations. We expect the hypothesis to hold for a
+just-in-time compiler that uses advanced optimizations like \Rsh. In particular,
+we expect: (1) eager semantics to improve performance of most benchmarks, for
+both tiers of \Rsh; (2) a portion of the speedup to come from reduced garbage
+collection; (3) and an additional speedup due to improved compiler
+optimizations. We present our evidence in support of (1) and (3), and partial
+evidence for (2).
 
 \paragraph{Methodology}
-
-We evaluate the effects of our modifications on the \Rsh benchmark suite.
-To ease the discussion, the results are presented on a representative subset of
-the suite which includes one variant of
-each benchmark. As should be no surprise given the results presented so far,
-only a handful of functions, such as
-\lstinline{tryCatch}, had to be kept lazy for all the benchmarks to compute
-the correct results.
-All of the following experiments are run on a dedicated benchmarking machine, with
-all background tasks disabled. The system features an Intel i7-6700K CPU, stepping 3,
-microcode 0xe2 with 4 cores and 8 threads. The system has 32 GB of RAM and is
-running Ubuntu 18.04 on a 4.15.0-136 Linux kernel. For ease of use, experiments
-are built as containers, based on Ubuntu 20.04, and executed on
-the Docker runtime 20.10.5, build 55c4c88. We verified the overhead introduced by
-the containerization to be uniform. All measurements are recorded repeatedly and we
-keep a historical record to spot unstable behavior. This led us to exclude the
-\lstinline{convolution} benchmark from the suite, which appears to have a
-bi-modal performance profile, likely caused by the LLVM backend of \Rsh.
-
+We conducted limit-study experiment to assess the highest achievable performance
+by removing maximum possible promises, we do this on small benchmarks that we
+manually annotated. We picked a subset of the \Rsh benchmark suite which
+includes one variant of each benchmark. Only a handful of functions, such as
+\lstinline{tryCatch}, had to be kept lazy. Experiments are run on a dedicated
+benchmarking machine, with all background tasks disabled. The system features an
+Intel i7-6700K CPU, stepping 3, microcode 0xe2 with 4 cores and 8 threads. The
+system has 32 GB of RAM and is running Ubuntu 18.04 on a 4.15.0-136 Linux
+kernel. For ease of use, experiments are built as containers, based on Ubuntu
+20.04, and executed on the Docker runtime 20.10.5, build 55c4c88. We verified
+the overhead introduced by the containerization to be uniform. All measurements
+are recorded repeatedly and we keep a historical record to spot unstable
+behavior. This led us to exclude the \lstinline{convolution} benchmark as it
+appears to have a bi-modal performance profile, likely caused by the LLVM
+backend.
 Performance measurements are gathered by running $t_e$ invocations of \Rsh on
 each benchmark. Within each invocation we measure the execution time of $t_i$
 in-process invocations. For each invocation, the first 5 in-process iterations
@@ -1660,40 +1671,41 @@ $t_e = 1, t_i = 15$. We found a mean speedup of \speedupRsh, ranging between
 \paragraph{Speedup}
 
 \begin{figure}[h]
-  \centering
-  \input{graphs/rshStrictPerf.tex}
-  \caption{Speedup of \Rshstrict}
-  \label{fig:speedup}
+  \centering \input{graphs/rshStrictPerf.tex}
+  \caption{Speedup} \label{fig:speedup}
 \end{figure}
 
-First, we compare \Rsh against \Rshstrict. This experiment estimates the end-to-end
-improvement on performance that a change to eager semantics in the R language
-would have on \Rsh. The execution times were measured with $t_e = 4, t_i = 25$.
-\autoref{fig:speedup} shows a boxplot for the speedups of \Rshstrict along the X-axis,
-normalized with respect to \Rsh (lazy). Outliers are represented by black dots. Overall, we observe a mean speedup of
+First, we compare \Rsh against \rshstrict. This experiment estimates the
+end-to-end improvement on performance that a change to eager semantics in the R
+language would have on \Rsh. The execution times were measured with $t_e = 4,
+t_i = 25$. \autoref{fig:speedup} shows a boxplot for the speedups of \rshstrict
+along the X-axis, normalized with respect to \Rsh (lazy). Outliers are
+represented by black dots. Overall, we observe a mean speedup of
 \speedupRshStrict, ranging from \speedupRshStrictMin to \speedupRshStrictMax.
-For \speedupRshStrictSignificant out of \benchmarkSuiteSize benchmarks we measure a significant increase in performance.
+For \speedupRshStrictSignificant out of \benchmarkSuiteSize benchmarks we
+measure a significant increase in performance.
 %
 \begin{figure}[h]
   \centering
   \input{graphs/rshStrictPerfBc.tex}
-  \caption{Speedup of \Rshstrict without optimizations}
+  \caption{Speedup without optimizations}
   \label{fig:speedup-bc}
 \end{figure}
 %
 
-Then, we repeated the performance experiment, but with the second tier
-optimizer completely disabled. In other words, we compare non optimized variants of \Rshstrict vs. \Rsh.
-Since this variant executes overall \rshBCSlowdown slower, we chose to only run with $t_e = 1, t_i = 15$.
-The results are presented in \autoref{fig:speedup-bc}. We found that the bytecode
-interpreter also gains a speedup of \speedupBCRshStrict, ranging from
-\speedupBCRshStrictMin to \speedupBCRshStrictMax.
+Then, we repeated the performance experiment, but with the second tier optimizer
+completely disabled. In other words, we compare non optimized variants of
+\rshstrict vs. \Rsh. Since this variant executes overall \rshBCSlowdown slower,
+we chose to only run with $t_e = 1, t_i = 15$. The results are presented in
+\autoref{fig:speedup-bc}. We found that the bytecode interpreter also gains a
+speedup of \speedupBCRshStrict, ranging from \speedupBCRshStrictMin to
+\speedupBCRshStrictMax.
 %
-Thus, we conclude that in our benchmark suite both a naive interpreter and a speculatively
-optimizing native compiler achieve better performance on a strict dialect of R.
-Even though the speedup is very similar in numbers, the reasons seem to be
-different at times. We will get back to that point in the discussion at the end of
-this section.
+Thus, we conclude that in our benchmark suite both a naive interpreter and a
+speculatively optimizing native compiler achieve better performance on a strict
+dialect of R. Even though the speedup is very similar in numbers, the reasons
+seem to be different at times. We will get back to that point in the discussion
+at the end of this section.
 
 \paragraph{Garbage Collection}
 
@@ -1704,48 +1716,58 @@ this section.
   \label{fig:gc-pressure}
 \end{figure}
 
-We measure the number of promises allocated in the
-benchmark suite per iteration for GNU R, \Rsh, and \Rsh-strict. The results are shown in
-\autoref{fig:gc-pressure}. We report on the geometric mean of the reductions in each benchmark.
+We measure the number of promises allocated in the benchmark suite per iteration
+for GNU R, \Rsh, and \rshstrict. The results are shown in
+\autoref{fig:gc-pressure}. We report on the geometric mean of the reductions in
+each benchmark.
 
-The first jump from GNU R's bytecode interpreter to the optimizing just-in-time compiler \Rsh,
-leads to a \promiseAlocationReductionGnurRsh reduction in allocations. The number is reached by taking
-the geometric mean of light-gray bars, yielding a \promiseAllocationGnurRsh. Therefore, the reduction
-is \promiseAlocationReductionGnurRsh ({$100\%$\xspace} - \promiseAllocationGnurRsh).
-Note that for some benchmarks the light-gray bar is too small to be seen and replaced by the actual number.
+The first jump from GNU R's bytecode interpreter to the optimizing just-in-time
+compiler \Rsh, leads to a \promiseAlocationReductionGnurRsh reduction in
+allocations. The number is reached by taking the geometric mean of light-gray
+bars, yielding a \promiseAllocationGnurRsh. Therefore, the reduction is
+\promiseAlocationReductionGnurRsh ({$100\%$\xspace} -
+\promiseAllocationGnurRsh). Note that for some benchmarks the light-gray bar is
+too small to be seen and replaced by the actual number.
 
-The second step from lazy to eager semantics leads to \promiseAlocationReductionRshStrictToZero
-benchmarks not allocating any promises at all. On the remainder, we see an additional
-\promiseAlocationReductionRshStrict reduction (\Rshstrict normalized to \Rsh).
+The second step from lazy to eager semantics leads to
+\promiseAlocationReductionRshStrictToZero benchmarks not allocating any promises
+at all. On the remainder, we see an additional
+\promiseAlocationReductionRshStrict reduction (\rshstrict normalized to \Rsh).
 
 Overall, \promiseAlocationReductionRshStrictToZero benchmarks reduce to zero
-allocations, the rest reduce on average by \promiseAlocationReductionGnurRshStrict. To reach this number,
-once again we compute the geometric mean of dark bars, yielding \promiseAllocatioGnurRshStrict. Therefore, the reduction is ~\promiseAlocationReductionGnurRshStrict ({$100\%$\xspace} -  \promiseAllocatioGnurRshStrict).
+allocations, the rest reduce on average by
+\promiseAlocationReductionGnurRshStrict. To reach this number, once again we
+compute the geometric mean of dark bars, yielding
+\promiseAllocatioGnurRshStrict. Therefore, the reduction is
+~\promiseAlocationReductionGnurRshStrict ({$100\%$\xspace} -
+\promiseAllocatioGnurRshStrict).
 
-The lowest reduction observed is \promiseAlocationReductionGnurRshStrictMin. Surprisingly the number of remaining promises is
-still relatively high in some cases. As far as we were able to observe, they
-originate largely from special forms, \ie R builtins with a custom evaluation
-strategy, that are not yet natively supported in the \Rsh bytecode.
+The lowest reduction observed is \promiseAlocationReductionGnurRshStrictMin.
+Surprisingly the number of remaining promises is still relatively high in some
+cases. As far as we were able to observe, they originate largely from special
+forms, \ie R builtins with a custom evaluation strategy, that are not yet
+natively supported in the \Rsh bytecode.
 
-It turns out that even an optimizing compiler has to allocate many promises for R
-code, as oftentimes, they cannot be eliminated entirely. \Rshstrict allows for
-a larger reduction in the number of promises allocated.
-Thus, we expected a significant portion of the overall speedup to originate from
-the reduced allocation rate. We measured the differences in garbage collection
-time and it ranged from \speedupGCRshStrictMin to \speedupGCRshStrictMax, but
-found the contribution to the overall speedup to be smaller than expected.
-The GNU R garbage collector, which is reused in \Rsh, has a fairly slow allocation path, which
-includes mutating a doubly-linked list. Therefore, some portion of the speedup
-could be due to the saved time in the allocation of promises, which is not counted in the GC time.
-We therefore conducted an additional experiment, where we evaluated arguments to
-calls eagerly, but additionally allocated a promise only to be subsequently discarded.
-This configuration led to an overall speedup of
-\speedupBCRshStrictAlloc instead of \speedupBCRshStrict, suggesting that
-about \speedupDueToReducedGC of the performance improvement in the bytecode interpreter is due to the
-reduced allocation. Unfortunately, a similar experiment cannot be as easily conducted
-for the optimizing tier of \Rsh, since its compiler would just optimize away all
-unnecessary allocations. We conjecture that the contribution should be even
-smaller in that case, because it allocates much fewer promises to start with.
+It turns out that even an optimizing compiler has to allocate many promises for
+R code, as oftentimes, they cannot be eliminated entirely. \rshstrict allows for
+a larger reduction in the number of promises allocated. Thus, we expected a
+significant portion of the overall speedup to originate from the reduced
+allocation rate. We measured the differences in garbage collection time and it
+ranged from \speedupGCRshStrictMin to \speedupGCRshStrictMax, but found the
+contribution to the overall speedup to be smaller than expected. The GNU R
+garbage collector, which is reused in \Rsh, has a fairly slow allocation path,
+which includes mutating a doubly-linked list. Therefore, some portion of the
+speedup could be due to the saved time in the allocation of promises, which is
+not counted in the GC time. We therefore conducted an additional experiment,
+where we evaluated arguments to calls eagerly, but additionally allocated a
+promise only to be subsequently discarded. This configuration led to an overall
+speedup of \speedupBCRshStrictAlloc instead of \speedupBCRshStrict, suggesting
+that about \speedupDueToReducedGC of the performance improvement in the bytecode
+interpreter is due to the reduced allocation. Unfortunately, a similar
+experiment cannot be as easily conducted for the optimizing tier of \Rsh, since
+its compiler would just optimize away all unnecessary allocations. We conjecture
+that the contribution should be even smaller in that case, because it allocates
+much fewer promises to start with.
 
 \paragraph{Discussion}
 
