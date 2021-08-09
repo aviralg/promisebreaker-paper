@@ -605,8 +605,7 @@ is to increase strictness while keeping the number of observable semantic
 differences low. For new code, we expect programmers to mostly use strict
 parameters.
 
-\subsection{Tracing R scripts}
-
+\paragraph{Tracing}
 The heart of \lazr is a dynamic analysis tool built on the \rdyn package which
 extends the GNU R virtual machine version 4.0.2~\cite{oopsla19b}. When \lazr
 executes a script, it generates an \emph{execution trace} which is a sequence of
@@ -615,7 +614,113 @@ interpreter. As traces can get large, rather than recording them, the
 infrastructure exposes callbacks that are used to hook analysis-specific
 functionality to low-level events in the interpreter. The trace exposes raw R
 objects being operated on as well as control flow through the code.
+To provide a layer of abstraction, \lazr maintains \emph{model objects} to
+abstract from concrete R data structures. These objects represent function
+instances, the hierarchy of environments, and frames on the call stack. Model
+objects are help handling some of the complexities of R. For instance, they have
+unique identities, whereas R objects are identified by memory address which are
+reused over time. \lazr reclaims model objects and provides efficient indexing.
+Model functions have names heuristically reconstructed and keep track of lexical
+scopes. The model stack can deal with the use of \c{longjump} for non-local
+returns. Lastly, \lazr maintains a notion of logical time, used to record when
+some events of interest happened. For instance, model environments record the
+time of last read and last write. Similarly, code blocks record evaluation start
+and end times. Logical time is used to decide if an event happened while a
+promise was executing and to order reads and writes.
 
+\paragraph{Inference}
+\lazr monitors traces looking for signals that parameters are lazy. These
+signals are relative to how the called function uses the parameter and what the
+provided argument does:
+\begin{itemize}
+\item[{\bf M}:] A parameter provided to \c{substitute} is
+  \emph{meta-programmed}; this is a strong signal of intrinsic laziness.
+\item[{\bf U}:] A parameter that remains \emph{unevaluated}; this is a weak
+  signal of intrinsic laziness as we do not know the contract of the function
+  for that parameter.
+\item [{\bf S}:] An argument has observable \emph{side-effects}; a weak signal
+  of accidental laziness as some effects may be benign.
+\item[{\bf R}:] An arguments uses \emph{reflection} to observe the state of the
+  call stack; this is a signal of accidental laziness.
+\end{itemize}
+\noindent
+For any trace, \lazr models each argument of each function. If a function is
+invoked, the trace records all operations related to arguments and correlate
+them with parameters.
+
+\begin{itemize}[---]
+  \item {\it Unevaluated and Meta-programmed (U/M)}: If a parameter remains
+    unevaluated for some invocation of a function, then U is recorded. If a
+    parameter flows into \c{substitute}, then S is recorded.
+\item {\it Side-Effects (S)}: We record three kinds of effects: variable reads,
+  variable writes (definitions, updates, and removals) of variables, and errors.
+  The key challenge is assigning a responsible for these effect. We are
+  interested to know if an effect is caused by the execution of the promise
+  associated with an argument, if it is then S is recorded for the corresponding
+  model parameter. At first blush, a promise is the direct cause of an effect if
+  it is the first promise on the call stack, any subsequent promises are
+  transitively responsible. For performance, the name of variables are not
+  recorded, only the environment in which they are defined. This costs some
+  precision. Writes to environments that were created after their responsible
+  promise are ignored, otherwise the directly responsible promise is marked. For
+  reads, if the environment being read was modified after the responsible
+  promise was created and before it started evaluating, if so the promise is
+  marked. For errors, all transitively responsible promises are marked as
+  causes.
+\item {\it Reflective arguments (R)}: When a promise calls
+  \code{as.environment(v)} or \code{pos.to.env(v)}, and \c v is \c{-1}, then the
+  model parameter corresponding to that promise should be marked R. \lazr uses
+  the same approach as above, marking the topmost active promise as the direct
+  cause, subsequent promises are transitively responsible.
+\end{itemize}
+
+Promises that are transitively responsible for an S or R event have their
+corresponding parameter marked as S or R, respectively. This is conservative but
+slightly imprecise.
+
+
+\section{\v R$_{\mathbf s}$: A Strict-by-default compiler}\label{sec:rsh1}
+
+We considered several approaches to evaluate the performance of a change of
+semantics. While one could expect that \strictr would be extended to optimize
+strict functions, this was not straightforward in our proof of concept
+implementation which does source-level rewriting. To achieve performance in the
+GNU R implementation would have required changing the bytecode compiler and the
+associated bytecode interpreter. While possible, the benefits one would measure
+with such an approach would be bounded by the speed of interpreted code. It long
+run, R implementations should generate native code. The alternative was to use
+an experimental native compiler. There are two available in open source,
+Oracle's Truffle implementation of R~\cite{Stadler16} and our own
+\Rsh~\cite{dls19}. Both systems have their drawbacks. Truffle is not yet a
+complete implementation of the language and it is unfamiliar to the authors.
+\Rsh is less mature, in terms of optimizations, but runs all R programs. We
+convenience, we picked \Rsh as a starting point.
+
+One advantage of \Rsh is that it is based on the GNU R reference implementation
+and can always defer to GNU R when it hits codes that is not supported. It
+introduces an additional two-tiered compilation strategy. The first tier is
+realized by a bytecode interpreter, the second tier by an optimizing native
+compiler which relies on LLVM for code generation. The compiler employs, among
+many other optimizations, speculative inlining of R closures and promises
+\citep{dls19, oopsla20c}.
+One benefit of choosing \Rsh is that it allows us to better evaluate the impact
+of laziness. In \Rsh we can both measure the impact on an interpreter with few
+optimizations applied to the bytecode, and an optimizing compiler that already
+does its best to elide promises when the semantics of the language allows it.
+
+We build \rshstrict as a minimal adaptation of \Rsh that can let us evaluate
+performance benefits. We changed the first-tier compiler that generate the \Rsh
+bytecode (which differs from the GNU R bytecode) to eagerly evaluate arguments,
+unless the argument is marked as lazy. This eager bytecode also serves as the
+source code for the optimizing tier.  The changes in the lower tier were minimal.
+The benefits we show with \rshstrict are the lower bound on improvements as we
+do not factor in strictness in the analysis passes and other optimizations of
+the compiler.
+
+
+\section{Evaluating the Robustness of Signature Inference}
+
+\subsection{Scaling to collections of scripts}
 \begin{figure}[h!]
   \centering
   \scalebox{0.85}{
@@ -679,115 +784,6 @@ objects being operated on as well as control flow through the code.
   \caption{Analysis Pipeline}\label{fig:analysisPipeline}
 \end{figure}
 
-
-To provide a layer of abstraction, \lazr maintains \emph{model objects} to
-abstract from concrete R data structures. These objects represent function
-instances, the hierarchy of environments, and frames on the call stack. Model
-objects are help handling some of the complexities of R. For instance, they have
-unique identities, whereas R objects are identified by memory address which are
-reused over time. \lazr reclaims model objects and provides efficient indexing.
-Model functions have names heuristically reconstructed and keep track of lexical
-scopes. The model stack can deal with the use of \c{longjump} for non-local
-returns. Lastly, \lazr maintains a notion of logical time, used to record when
-some events of interest happened. For instance, model environments record the
-time of last read and last write. Similarly, code blocks record evaluation start
-and end times. Logical time is used to decide if an event happened while a
-promise was executing and to order reads and writes.
-
-\subsection{Inferring signatures from traces}
-
-\lazr monitors execution traces looking for signals that a certain parameter is
-lazy. These signals are relative to how the called function uses the parameter
-and what the provided argument does:
-\begin{itemize}
-\item[{\bf M}:] A parameter provided to \c{substitute} is
-  \emph{meta-programmed}; this is a strong signal of intrinsic laziness.
-\item[{\bf U}:] A parameter that remains \emph{unevaluated}; this is a weak
-  signal of intrinsic laziness as we do not know the contract of the function
-  for that parameter.
-\item [{\bf S}:] An argument has observable \emph{side-effects}; a weak signal
-  of accidental laziness as some effects may be benign.
-\item[{\bf R}:] An arguments uses \emph{reflection} to observe the state of the
-  call stack; this is a signal of accidental laziness.
-\end{itemize}
-\noindent
-For any trace, \lazr models each argument of each function. If a function is
-invoked, the trace records all operations related to arguments and correlate
-them with parameters.
-
-\paragraph{Unevaluated and Meta-programmed (U/M)}
-If a parameter remains unevaluated for some invocation of a function, then U is
-recorded. If a parameter flows into \c{substitute}, then S is recorded.
-
-\paragraph{Side-Effects (S)}
-We record three kinds of effects: variable reads, variable writes (definitions,
-updates, and removals) of variables, and errors. The key challenge is assigning
-a responsible for these effect. We are interested to know if an effect is caused
-by the execution of the promise associated with an argument, if it is then S is
-recorded for the corresponding model parameter. At first blush, a promise is the
-direct cause of an effect if it is the first promise on the call stack, any
-subsequent promises are transitively responsible. For performance, the name of
-variables are not recorded, only the environment in which they are defined. This
-costs some precision. Writes to environments that were created after their
-responsible promise are ignored, otherwise the directly responsible promise is
-marked. For reads, if the environment being read was modified after the
-responsible promise was created and before it started evaluating, if so the
-promise is marked. For errors, all transitively responsible promises are marked
-as causes.
-
-\paragraph{Reflective arguments (R)}
-When a promise calls \code{as.environment(v)} or \code{pos.to.env(v)}, and \c v
-is \c{-1}, then the model parameter corresponding to that promise should be
-marked R. \lazr uses the same approach as above, marking the topmost active
-promise as the direct cause, subsequent promises are transitively responsible.
-
-Promises that are transitively responsible for an S or R event have their
-corresponding parameter marked as S or R, respectively. This is conservative but
-slightly imprecise.
-
-
-\section{\v R$_{\mathbf s}$: A Strict-by-default compiler}\label{sec:rsh1}
-
-We considered several approaches to evaluate the performance of a change of
-semantics. While one could expect that \strictr would be extended to optimize
-strict functions, this was not straightforward in our proof of concept
-implementation which does source-level rewriting. To achieve performance in the
-GNU R implementation would have required changing the bytecode compiler and the
-associated bytecode interpreter. While possible, the benefits one would measure
-with such an approach would be bounded by the speed of interpreted code. It long
-run, R implementations should generate native code. The alternative was to use
-an experimental native compiler. There are two available in open source,
-Oracle's Truffle implementation of R~\cite{Stadler16} and our own
-\Rsh~\cite{dls19}. Both systems have their drawbacks. Truffle is not yet a
-complete implementation of the language and it is unfamiliar to the authors.
-\Rsh is less mature, in terms of optimizations, but runs all R programs. We
-convenience, we picked \Rsh as a starting point.
-
-One advantage of \Rsh is that it is based on the GNU R reference implementation
-and can always defer to GNU R when it hits codes that is not supported. It
-introduces an additional two-tiered compilation strategy. The first tier is
-realized by a bytecode interpreter, the second tier by an optimizing native
-compiler which relies on LLVM for code generation. The compiler employs, among
-many other optimizations, speculative inlining of R closures and promises
-\citep{dls19, oopsla20c}.
-One benefit of choosing \Rsh is that it allows us to better evaluate the impact
-of laziness. In \Rsh we can both measure the impact on an interpreter with few
-optimizations applied to the bytecode, and an optimizing compiler that already
-does its best to elide promises when the semantics of the language allows it.
-
-We build \rshstrict as a minimal adaptation of \Rsh that can let us evaluate
-performance benefits. We changed the first-tier compiler that generate the \Rsh
-bytecode (which differs from the GNU R bytecode) to eagerly evaluate arguments,
-unless the argument is marked as lazy. This eager bytecode also serves as the
-source code for the optimizing tier.  The changes in the lower tier were minimal.
-The benefits we show with \rshstrict are the lower bound on improvements as we
-do not factor in strictness in the analysis passes and other optimizations of
-the compiler.
-
-
-\section{Evaluating the Robustness of Signature Inference}
-
-\subsection{Scaling to collections of scripts}
 
 The final result of analyzing a single R script is a table summarizing, for each
 function and each argument, which signals were observed. Multiple scripts can be
