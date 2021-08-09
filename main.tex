@@ -267,11 +267,11 @@ thunks (suspended computations)~\cite{transformopt,stricteffective,opteval}. The
 Glasgow Haskell Compiler performs a strictness analysis pass to identify
 arguments that can be evaluated eagerly. While most programs benefit from such a
 transformation, due to its conservative nature, this pass misses some
-opportunities for optimizations. To recover performance programmers can manually
+opportunities for optimizations. To recover performance, programmers can manually
 insert strictness annotations to control evaluation; identifying where to put
 them, however, can be challenging. \citet{autobahn} proposed Autobahn, a tool
 that automatically infers strictness annotations using a genetic algorithm. The
-approach relies on dynamic analysis, as it does not approximate and cannot
+approach relies on dynamic analysis, as it does not approximate \SK{approximate?} and cannot
 guarantee termination on all inputs. As the annotations are based on a
 heuristic, developers must manually validate their soundness. The authors report
 an average 8.5\% speedup (with a maximum speedup of 89\%). \citet{lazyprof}
@@ -364,7 +364,7 @@ if it was later substituted by a default value. A vararg parameter, written
 arguments. A vararg can be materialized into a list with \code{list(...)}. Most
 frequently varargs are forwarded to a called function. This enables the
 function to expose its callee's interface to the callers without listing the
-callee's parameters and their default values.
+callee's parameters and their default values. \SK{shouldn't we say something about z here?}
 
 \paragraph{Reflection}
 R supports meta-programming. The \code{substitute(e,envir)}
