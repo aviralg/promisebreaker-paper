@@ -678,6 +678,9 @@ Promises that are transitively responsible for an S or R event have their
 corresponding parameter marked as S or R, respectively. This is conservative but
 slightly imprecise.
 
+The final result of analyzing an R script is a table summarizing, for each
+function and each argument, which signals were observed. Multiple scripts can be
+straightforwardly merged as the union of signals for each parameter.
 
 \section{\v R$_{\mathbf s}$: A Strict-by-default compiler}\label{sec:rsh1}
 
@@ -718,9 +721,26 @@ do not factor in strictness in the analysis passes and other optimizations of
 the compiler.
 
 
-\section{Evaluating the Robustness of Signature Inference}
+\section{Inference Experiment}
 
-\subsection{Scaling to collections of scripts}
+The goal of the inference experiment is to evaluate what is the actual need for
+laziness in legacy code and the robustness of our inference algorithm.
+
+\lazr is scalable, it can handle all the packages in CRAN, but the amount of
+data to process can reach multi-terabyte sizes. \lazr adopts a simple map-reduce
+style. Analysis is split in phases shown in Fig.~\ref{ap}. The reduce maps a
+function on the output of one trace to get a partial summary. The combine phase
+concatenates partial summaries. Then, the summarize phase aggregates summaries
+into a result table. Finally, the report phase creates graphs and tables for
+inclusion in the paper. The \lazr pipeline is set up with a container image that
+includes all the dependencies for installing analysis code and R packages. This
+provides a reliable reproducible setup across machines. To run it, we mirror
+repositories, install their packages, run the script to generate traces. These
+traces are analyzed to output tabular data files and strictness signatures.
+Whenever possible, we parallelize the steps. Our experiments were performed on
+two Intel Xeon 6140, 2.30GHz machines with 72 cores and 256GB of RAM each.
+
+
 \begin{figure}[h!]
   \centering
   \scalebox{0.85}{
@@ -781,44 +801,16 @@ the compiler.
       \end{scope}
     \end{tikzpicture}
   }
-  \caption{Analysis Pipeline}\label{fig:analysisPipeline}
+  \caption{Analysis Pipeline}\label{ap}
 \end{figure}
 
+\subsection{Corpus}\label{sec:corpus}
 
-The final result of analyzing a single R script is a table summarizing, for each
-function and each argument, which signals were observed. Multiple scripts can be
-straightforwardly merged as the union of signals for each parameter.
-
-The amount of data that has to be analyzed can reach multi-terabyte sizes. \lazr adopts
-a simple map-reduce style. Each analysis is split in 4 phases. The reduce maps
-a function on the output of one trace to get a partial summary. The combine
-phase concatenates partial summaries. Then, the summarize phase aggregates
-summaries into a result table. At this point, the file is less than 100MB in
-size. Finally, the report phase creates graphs and tables for inclusion in
-the paper.
-
-The \lazr pipeline is set up with a container image that includes all the
-dependencies for installing analysis code and R packages. This provides a
-reliable reproducible setup across machines. To run it, we mirror the CRAN and
-Bioconductor repositories and install their R packages. This is followed by the
-generation of execution traces. These traces are analyzed to generate tabular
-data files and strictness signatures. Our analysis pipeline is managed by a
-Makefile that has rules for every step. This makes it easy to administer the
-experiments on multiple machines. Whenever possible, we parallelize the steps
-using GNU parallel~\cite{gnuparallel}. Our experiments were performed on two Intel
-Xeon 6140, 2.30GHz machines with 72 cores and 256GB of RAM each.
-
-\subsection{Selecting a corpus}\label{sec:corpus}
-
-For this paper, a corpus of 500 packages from CRAN~\cite{ligges2017} and
-Bioconductor~\cite{bioc} was selected on 26th July 2021, 2 PM UTC, based on
-their number of clients, \emph{i.e.}, the packages which are the most widely
-used in the ecosystem. The chosen packages have a total of 15,362 clients. The
-most widely used package, \c{ggplot2}, has 2,669 clients, and the package with
-the fewest clients in our corpus, \c{spatstat.linnet}, has 5. The selected 500
-packages have 2.2M lines of R code and 2.7M lines of native code. For
-synthesizing signatures for their functions, \lazr extracts all executable
-artifacts from each package.
+A corpus of 500 packages with the largest number of clients were selected from
+CRAN~\cite{ligges2017} and Bioconductor~\cite{bioc} on the 26th of July 2021.
+The packages have a total of 15,362 clients ranging from \c{ggplot2} with 2,669
+clients all the way to \c{spatstat.linnet} with only 5. The packages have 2.2M
+lines of R code and 2.7M lines of native code.
 
 \begin{wraptable}{r}{7cm}
   \vspace{-3mm}
@@ -873,59 +865,44 @@ artifacts from each package.
   \end{tabular}\end{tabular}
 \end{wraptable}%%
 
-Table~\ref{table:corpus} summarizes the runnable code in the corpus. Each test
-file is run as a separate script. Examples and vignettes are snippets of code
-embedded in the documentation. \lazr extracts them into self-standing scripts.
-Typically, vignettes are longer examples that come with input data, while
-examples are smaller code fragments meant to illustrate the use of the package's
-functions.
-
+Table~\ref{table:corpus} summarizes the runnable code. Each test is run as a
+separate script. Examples and vignettes are snippets of code embedded in the
+documentation. \lazr extracts them into self-standing scripts. Typically,
+vignettes are longer examples with input data, while examples are smaller code
+fragments.
 
 During execution, \lazr collects information about function calls, arguments,
-side-effects, and reflective environment accesses from the model objects provided.
-This information is stored in compressed tabular format using R's \c{fst}
-library. To give an idea of the scale of the analysis,
-Table~\ref{table:allocations} presents the number of model objects for which
-\lazr recorded information.
+side-effects, and reflective environment accesses from the model objects
+provided. To give an idea of scale, Table~\ref{table:allocations} gives the
+number of model objects.
 
-The packages in the corpus have 50,435 top-level functions. We ignore anonymous
-and inner functions. Table~\ref{table:packsize} shows the distribution of these
-functions across packages. We observe that 148 packages have 25 functions or
-less. As expected, there is a steady decrease in packages with more functions.
-There are 12 packages with more than 500 functions. The \c{spatstat.geom} package
-has the maximum number of functions, 886.
+The packages have 50,435 top-level functions. Table~\ref{table:packsize} shows
+the distribution of these functions across packages. We observe that 148
+packages have 25 functions or less. As expected, there is a steady decrease in
+packages with more functions. There are 12 packages with more than 500
+functions. The \c{spatstat.geom} package has the most with 886 functions.
 
-\begin{wraptable}{r}{8cm}
-  \vspace{-3mm}
-  \small
-  \caption{Package Size} \label{table:packsize}
-  \centering
-  \begin{tabular}{lr}
-    \toprule
-    \bf Functions&\bf Packages\\
-    \midrule
+\begin{wraptable}{r}{8cm}\small
+  \caption{Package Size} \label{table:packsize}\centering
+  \begin{tabular}{lr}\toprule
+    \bf Functions&\bf Packages\\\midrule
     1--25&148\\
     26--50&98\\
     51--75&52\\
     76--100&33\\
     101--150&54\\
     151--200&34\\
-    201--250&28\\
-    \bottomrule
+    201--250&28\\\bottomrule
   \end{tabular}
-  \quad
-  \begin{tabular}{lr}
-    \toprule
-    \bf Functions&\bf Packages\\
-    \midrule
+  \quad\begin{tabular}{lr}\toprule
+    \bf Functions&\bf Packages\\\midrule
     251--300&16\\
     301--400&14\\
     401--500&7\\
     501--600&5\\
     601--700&1\\
     701--800&4\\
-    801--900&2\\
-    \bottomrule
+    801--900&2\\\bottomrule
   \end{tabular}
 \end{wraptable}
 
@@ -1517,9 +1494,6 @@ migration is the safest. The first attempt at removing laziness at scale can rel
 this signature configuration. Next, reflective and unevaluated arguments can be
 made strict without a significant increase in failure rate. Side-effecting
 arguments result in many failures.
-
-
-
 
 
 \section{Performance Experiment}\label{sec:rsh}
