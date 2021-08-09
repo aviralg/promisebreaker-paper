@@ -439,8 +439,8 @@ evaluate both \code a and \code b, assignment \code{x<-a} evaluates \code a, and
 \code{return} also triggers evaluation. In addition, many core functions are
 strict.
 
-\newpage %% Keeps this starting at the top if possible
-\section{StrictR: R with Strictness Signatures}\label{sec:strictr}
+\newpage %
+\section{StrictR: An R Interpreter with Strictness Signatures}\label{sec:strictr}
 
 We refer to the R language extended with strictness signatures as \strictr, to
 differentiate it from the GNU R reference implementation. To achieve the
@@ -581,50 +581,7 @@ called.\footnote{Shortly before submission, we realized that we could implement
   stores promises in the same order as at the call site.}
 
 
-\section{A Strict-by-default compiler for R}\label{sec:rsh1}
 
-We considered several approaches to evaluate the performance of a change of
-semantics. While one could expect that \strictr would be extended to optimize
-strict functions, this was not straightforward in our proof of concept
-implementation which does source-level rewriting. To achieve performance in the
-GNU R implementation would have required changing the bytecode compiler and the
-associated bytecode interpreter. While possible, the benefits one would measure
-with such an approach would be bounded by the speed of interpreted code. It long
-run, R implementations should generate native code.
-
-The alternative was to use an experimental native compiler. There are two
-available in open source, Oracle's Truffle/R implementation~\cite{} and our own
-\Rsh~\cite{}. Both systems have their drawbacks. Truffle/R is not a complete
-implementation of the language and it is unfamiliar to the authors. \Rsh is less
-mature, in terms of optimizations, but runs all R programs. We convenience, we
-picked \Rsh as a starting point.
-
-One advantage of \Rsh is that it is based on the GNU R reference implementation
-and can always defer to GNU R when it hits codes that is not supported. It
-introduces an additional two-tiered compilation strategy. The first tier is
-realized by a bytecode interpreter, the second tier by an optimizing native
-compiler which relies on LLVM for code generation. The compiler employs, among
-many other optimizations, speculative inlining of R closures and promises
-\citep{dls19, oopsla20c}.
-
-One benefit of choosing \Rsh is that it allows us to better evaluate the impact
-of laziness. In \Rsh we can both measure the impact on an interpreter with few
-optimizations applied to the bytecode, and an optimizing compiler that already
-does its best to elide promises when the semantics of the language allows it.
-
-We build \rshstrict as a minimal adaptation of \Rsh that can let us evaluate
-performance benefits. We changed the first-tier compiler that generate the \Rsh
-bytecode (which differs from the GNU R bytecode) to eagerly evaluate arguments,
-unless the argument is marked as lazy. This eager bytecode also serves as the
-source code for the optimizing tier.  The changes in the lower tier were minimal.
-
-The benefits we show with \rshstrict are the lower bound on improvements as we
-do not factor in strictness in the analysis passes and other optimizations of
-the compiler.
-
-
-
-\newpage%% Don't mess with me.
 \section{LazR: Inferring Strictness Signatures}\label{sec:lazr}
 
 \lazr is an analysis pipeline for inferring strictness annotations in legacy R
@@ -843,7 +800,51 @@ Promises that are transitively responsible for an S or R event have their
 corresponding parameter marked as S or R, respectively. This is conservative but
 slightly imprecise.
 
-\newpage
+
+\section{\v R$_{\mathbf s}$: A Strict-by-default compiler}\label{sec:rsh1}
+
+We considered several approaches to evaluate the performance of a change of
+semantics. While one could expect that \strictr would be extended to optimize
+strict functions, this was not straightforward in our proof of concept
+implementation which does source-level rewriting. To achieve performance in the
+GNU R implementation would have required changing the bytecode compiler and the
+associated bytecode interpreter. While possible, the benefits one would measure
+with such an approach would be bounded by the speed of interpreted code. It long
+run, R implementations should generate native code.
+
+The alternative was to use an experimental native compiler. There are two
+available in open source, Oracle's Truffle/R implementation~\cite{} and our own
+\Rsh~\cite{}. Both systems have their drawbacks. Truffle/R is not a complete
+implementation of the language and it is unfamiliar to the authors. \Rsh is less
+mature, in terms of optimizations, but runs all R programs. We convenience, we
+picked \Rsh as a starting point.
+
+One advantage of \Rsh is that it is based on the GNU R reference implementation
+and can always defer to GNU R when it hits codes that is not supported. It
+introduces an additional two-tiered compilation strategy. The first tier is
+realized by a bytecode interpreter, the second tier by an optimizing native
+compiler which relies on LLVM for code generation. The compiler employs, among
+many other optimizations, speculative inlining of R closures and promises
+\citep{dls19, oopsla20c}.
+
+One benefit of choosing \Rsh is that it allows us to better evaluate the impact
+of laziness. In \Rsh we can both measure the impact on an interpreter with few
+optimizations applied to the bytecode, and an optimizing compiler that already
+does its best to elide promises when the semantics of the language allows it.
+
+We build \rshstrict as a minimal adaptation of \Rsh that can let us evaluate
+performance benefits. We changed the first-tier compiler that generate the \Rsh
+bytecode (which differs from the GNU R bytecode) to eagerly evaluate arguments,
+unless the argument is marked as lazy. This eager bytecode also serves as the
+source code for the optimizing tier.  The changes in the lower tier were minimal.
+
+The benefits we show with \rshstrict are the lower bound on improvements as we
+do not factor in strictness in the analysis passes and other optimizations of
+the compiler.
+
+
+\section{Evaluating the Robustness of Signature Inference}
+
 \subsection{Scaling to collections of scripts}
 
 The final result of analyzing a single R script is a table summarizing, for each
@@ -941,51 +942,6 @@ Typically, vignettes are longer examples that come with input data, while
 examples are smaller code fragments meant to illustrate the use of the package's
 functions.
 
-%% \begin{table}
-%%   \vspace{-3mm}
-%%   \small
-%%   \caption{Events} \label{table:events}
-%%   \centering
-%%   \begin{tabular}{lrr}
-%%     \toprule
-%%     \bf Event&\bf Count& \bf Time\\
-%%     \midrule
-%%     Alloc&125.3B&104.9h\\
-%%     Dealloc&101.6B&37.5h\\
-%%     EvalEntry&91.5B&9.9h\\
-%%     EvalExit&90.5B&9.7h\\
-%%     VarLkp&89.4B&101h\\
-%%     FunLkp&47.0B&13.7h\\
-%%     SplEntry&29.1B&23.2h\\
-%%     \bottomrule
-%%   \end{tabular}
-%%   \begin{tabular}{lrr}
-%%     \toprule
-%%     \bf Event&\bf Count& \bf Time\\
-%%     \midrule
-%%     SplExit&28.1B&8h\\
-%%     VarDef&20.9B&33.4h\\
-%%     BtnEntry&14.5B&9.5h\\
-%%     BtnExit&14.5B&5.6h\\
-%%     PromEntry&13.2B&12.1h\\
-%%     PromExit&13.2B&5.8h\\
-%%     VarAsn&7.6B&5.6h\\
-%%     \bottomrule
-%%   \end{tabular}
-%%   \begin{tabular}{lrr}
-%%     \toprule
-%%     \bf Event&\bf Count& \bf Time\\
-%%     \midrule
-%%     ClosureEntry&6.6B&234.5h\\
-%%     ClosureExit&6.3B&3.1h\\
-%%     PromLkp&5.8B&1.8h\\
-%%     PromExpr&2.8B&1.8h\\
-%%     VarRemoval&360.7M&10.4m\\
-%%     PromSubst&101.0M&4.7m\\
-%%     Error&494.0&0.1s\\
-%%     \bottomrule
-%%   \end{tabular}
-%% \end{table}
 
 During execution, \lazr collects information about function calls, arguments,
 side-effects, and reflective environment accesses from the model objects provided.
@@ -1472,7 +1428,7 @@ a default value of \code{as.environment(-1)}.
 \end{lstlisting}
 %
 
-\section{Robustness of inferred signatures} \label{Evaluation:Robustness}
+\subsection{Robustness of inferred signatures} \label{Evaluation:Robustness}
 
 \begin{figure}[th!]
   \centering
