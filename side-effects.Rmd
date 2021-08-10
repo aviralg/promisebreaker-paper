@@ -142,15 +142,15 @@ total_effect_summary <-
 
 MacGen$from_args(EffectCountArgumentsTotal = label_num(sum(total_effect_summary$argument_count)),
                  EffectCountPackagesTotal = length(unique(total_effect_summary$pack_name)),
-                 EffectCountFunctionsTotal = length(unique(total_effect_summary$full_fun)),
-                 EffectCountParametersTotal = length(unique(total_effect_summary$full_pos)))
+                 EffectCountFunctionsTotal = label_num(length(unique(total_effect_summary$full_fun))),
+                 EffectCountParametersTotal = label_num(length(unique(total_effect_summary$full_pos))))
 ```
 
 # Functions Doing Removals
 
 ```{r echo = FALSE, warning=FALSE, message=FALSE}
 direct_effects %>%
-filter(remove_count != 0) %>%
+filter(lookup_count == 0 & define_count != 0) %>%
 distinct(pack_name, fun_name, formal_pos) %>%
 datatable()
 ```

@@ -1000,64 +1000,54 @@ by design; \c{tail} is not defined for \c{tbl_lazy} objects.
 
 \paragraph{Side-Effects}
 Few promises have side-effects and many of those are benign for our purposes as
-they happen to local variables of the promise. Table~\ref{table:effects} counts
-lookups (L), definitions (D), assignments (A), and removals (R), and the
-arguments, parameters and functions responsible for those effects. Lookups are
-the most common cause for making arguments lazy. This is followed by definitions
-and assignments. Removing bindings from environments is not a common operation.
-Comparing the number of events in this table against the total number of events,
-we narrow 89B variable lookups down to 3.7M, 20B definitions to 1.1M, and 7B
-assignments to 235K.
+they happen to local variables of the promise. Table~\ref{table:effects}
+presents the number of parameters that are made lazy due to observable
+side-effects. Only \EffectCountArgumentsTotal arguments out of \todo{add total
+  argument macro} are made lazy owing to effects. This corresponds to
+\EffectCountParametersTotal lazy parameters from \EffectCountFunctionsTotal
+functions.
 
-
-
-\begin{table}[!h]   \small
-  \caption{Effects} \label{table:effects} \centering
-  \begin{tabular}{llllll}    \toprule
-    \textbf{Effect}&\textbf{Count}&\textbf{Arguments}&\textbf{Parameters}&\textbf{Functions}&\textbf{Packages}\\    \midrule
-    L&3.7M&1.2M&5.6K&3.7K&359\\
-    D&1.1M&159.0K&3.0K&2.6K&319\\
-    A&235.8K&122.7K&511.0&487.0&109\\
-    R&2.8K&718.0&27.0&24.0&10\\    \bottomrule
+\begin{table}[h]
+  \small\centering
+  \caption{Side-Effects}\label{table:effects}
+  \begin{tabular}{rrrr}\toprule
+    \bf Arguments&\bf Parameters&\bf Functions&\bf Packages\\
+    \midrule
+    \EffectCountArgumentsTotal&\EffectCountParametersTotal&\EffectCountFunctionsTotal&\EffectCountPackagesTotal\\
+    \bottomrule
   \end{tabular}
 \end{table}
 
-A common source of observable writes is the \c{shiny} package used for building
-interactive web applications: \c{bindEvent} attaches an observer expression to
-an event. The observer performs a non-local side-effect using \c{<<-} to update
-global state.
+A typical example of this category is the \code{along} parameter of \code{abind}
+function from the \code{abind} package. Its default value is the parameter
+\code{N} which is computed internally in the body of the function before
+\code{along} is used. Clearly, the evaluation of \code{along} has to be delayed.
 
 \begin{lstlisting}
- bindEvent(trigger(), x=observe({vals <<- c(vals, val())}))
+abind <- function(..., along=N, ...) {
+    N <- max(1, sapply(arg.list, function(x) length(dim(x))))
+    if (!is.null(rev.along))
+        along <- N + 1 - rev.along
+}
 \end{lstlisting}
 
-Many side-effects occur in test cases written with the \c{testthat} library. The
-global state is modified temporarily to test its effect on the function under
-consideration. Another common pattern is when the result of an intermediate
-computation is assigned to a variable for subsequent use. In the call below, the
-intermediate result is assigned to \c{x} before being passed on to the
-\c{as.data.table} function.
+Another example is the \code{expr} parameter of \code{withPrivateSeed} function
+from the \code{shiny} package. This function evaluates \code{expr} after setting
+the global random number generator seed to its own private value. The seed is
+set back to its initial value on function exit. The \code{expr} parameter should
+not be evaluated until the seed has been changed, hence it made lazy by \lazr.
 
 \begin{lstlisting}
- as.data.table(x <- as.character(sample(letters, 5)))
+withPrivateSeed <- function(expr) {
+  origSeed <- .GlobalEnv$.Random.seed
+  GlobalEnv$.Random.seed <- .globals$ownSeed
+  on.exit({
+      .GlobalEnv$.Random.seed <- origSeed
+    httpuv::getRNGState()
+  })
+  expr
+}
 \end{lstlisting}
-
-Deleting a variable from an environment is done with the \c{rm} function.
-The following function computes the number of rows of a data frame and assigns
-it to a variable \c{.N} in the caller's environment. Eventually, it removes the
-variable.
-
-\begin{lstlisting}
- [.data.table <- function (x, i, j, ...) {
-   assign(".N", nrow(x), envir=parent.frame(), inherits=FALSE)
-   if (remove.N) rm(list=".N", envir=parent.frame())
-   ...
-\end{lstlisting}
-
-Lastly, \c{rlang} defines a function \c{env_bind} which can be used to
-create and remove bindings from an environment. When passed with the value
-\c{zap()}, it removes the corresponding symbol from the environment. It uses
-the C function \c{R_removeVarFromFrame}.
 
 \paragraph{Reflection}
 Reflective code is brittle. The following example shows that code that looks up
