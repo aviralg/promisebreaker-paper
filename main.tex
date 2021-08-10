@@ -552,7 +552,7 @@ site.}
 
 
 
-\section{LazR: Inferring Strictness Signatures}\label{sec:lazr}
+\section{LazR: A Scalable Infrastructure for Inferring Strictness}\label{sec:lazr}
 
 \lazr is a pipeline for inferring strictness signatures for legacy R libraries
 at scale. \lazr has two important components: a system for tracing the execution
@@ -722,7 +722,6 @@ the compiler.
 
 The goal of the inference experiment is to evaluate what is the actual need for
 laziness in legacy code and the robustness of our inference algorithm.
-
 \lazr is scalable, it can handle all the packages in CRAN, but the amount of
 data to process can reach multi-terabyte sizes. \lazr adopts a simple map-reduce
 style. Analysis is split in phases shown in Fig.~\ref{ap}. The reduce maps a
@@ -836,9 +835,8 @@ and 12 packages with more than 500 functions. The largest package,
 \c{spatstat.geom}, has 886 functions. We observe 137.2M calls to these
 functions, their distribution per function is in Fig.~\ref{fig:callDist}; 49\%
 of functions are called more than ten times, while 16\% are called only once.
-
 The traces record 294M arguments, of those, close to 4M are missing, 19M are
-$...$ and 271M are promises. These arguments correspond to 186K parameter
+varargs and 271M are promises. These arguments correspond to 186K parameter
 positions; 7\% of functions have no parameters, 19\% have 1, and 5\% have over
 10, and 15 functions have over 50 parameters. Function
 \c{rpart.plot::check.if.dot.arg.supported.by.rpart.rules} takes the cake with
@@ -846,14 +844,14 @@ positions; 7\% of functions have no parameters, 19\% have 1, and 5\% have over
 
 \subsection{Inferred strictness signatures}\label{sec:results}
 
-
-\lazr recorded 9,100 parameters marked M, for those we ignore other signals as
-meta-programmed parameters are always lazy. For other combinations of signals
-Table~\ref{table:strictdist} summarizes their distribution. One functions can be
-counted in multiple rows as its different parameters may have different
-combinations. Rows are interpreted as follows: the first row, for instance,
-indicates that no signals were observed for 148K parameters coming from 49K
-functions and 489 packages.
+There are three signals we consider strong, parameters marked by either one of
+them are considered lazy. \lazr recorded 1.3K parameters being meta-programmed
+(marked M), furthermore 3.2K were missing and 20K were varargs. All these remain
+lazy. For other combinations of signals Table~\ref{table:strictdist} summarizes
+their distribution. One functions can be counted in multiple rows as its
+different parameters may have different combinations. Rows are interpreted as
+follows: the first row, for instance, indicates that no signals were observed
+for 148K parameters coming from 49K functions and 489 packages.
 
 \begin{table}[!h] \small
   \caption{Signature Summary} \label{table:strictdist} \centering
@@ -881,18 +879,12 @@ for 14\% of observations, a significant source of potential laziness. Variable
 lengths arguments and missing arguments account for 9\% and 1.6\% of the data
 respectively. The remaining configurations are in the noise. It is noteworthy
 that parameters marked R come from very few functions and packages.
-
 We now discuss the different sources of laziness in more detail.
 
-\subsubsection{Metaprogramming}
-
-Table~\ref{table:metaprogramming} shows the number of arguments, parameters,
-functions, and packages using metaprogramming. Out of \AG{total number of
-  arguments} model arguments, \MetaCountArgumentsTotal were meta-programmed.
-This results in \MetaCountParametersTotal lazy parameters from
-\MetaCountFunctionsTotal functions of \MetaCountPackagesTotal packages. While
-more arguments are metaprogrammed using \c{substitute} than \c{PREXPR},
-they correspond to fewer parameters.
+\paragraph{Metaprogramming}
+Table~\ref{table:metaprogramming} counts arguments, parameters and functions
+using the metaprogramming facilities of R. Numbers are also provided for C code
+that uses \c{PREXPR}. Arguments count all of the invocations of a function.
 
 \begin{wraptable}{r}{5.5cm}\small\centering
   \caption{Metaprogramming}\label{table:metaprogramming}
@@ -901,79 +893,62 @@ they correspond to fewer parameters.
     {Arguments}&\MetaCountArgumentsR&\MetaCountArgumentsNative&\MetaCountArgumentsTotal\\
     {Parameters}&\MetaCountParametersR&\MetaCountParametersNative&\MetaCountParametersTotal\\
     {Functions}&\MetaCountFunctionsR&\MetaCountFunctionsNative&\MetaCountFunctionsTotal\\
-    {Packages}&\MetaCountPackagesR&\MetaCountPackagesNative&\MetaCountPackagesTotal\\\bottomrule
+   \bottomrule
   \end{tabular}
 \end{wraptable}
 
 For details about \c{substitute}, we refer the reader to \cite{oopsla19b}.
-We elaborate on \c{PREXPR} since it was not addressed there. This macro is
-used by many packages to extract a promise's expression for ad-hoc evaluation
-strategies. We found it in packages like \c{lazyeval} and \c{rlang}. The
-latter stands out because its own API for meta-programming. The \c{PREXPR}
-macro is also used by the builtins of the GNU R interpreter, a canonical example
-is the \c{missing} function which checks if an argument was provided. Unlike
-user packages, these uses of \c{PREXPR} don't require the corresponding
-arguments to be lazily evaluated. Hence, uses of \c{PREXPR} from GNU R
-interpreter are not made lazy.
+\c{PREXPR} was not addressed there: it is a C macro is used to extract a
+promise's expression for ad-hoc evaluation strategies. Packages such as
+\c{lazyeval} and \c{rlang} uses it. \c{PREXPR} is also used by the builtins of
+the GNU R interpreter, a canonical example is the \c{missing} function which
+checks if an argument was provided. Unlike user packages, these uses of
+\c{PREXPR} do not require the corresponding arguments to be lazily evaluated.
+Hence, uses of \c{PREXPR} from the interpreter are not signals.
 
 
-\subsubsection{Missing Arguments}
 
-\begin{wraptable}{r}{6cm}
-  \small
-  \centering
+\begin{wraptable}{r}{6cm}\small\centering
   \caption{Missing}\label{table:missing}
-  \begin{tabular}{lrrr}
-    \toprule
-    &\bf Sometimes&\bf Always&\bf Total\\
-    \midrule
+  \begin{tabular}{lrrr} \toprule
+    &\bf Sometimes&\bf Always&\bf Total\\\midrule
     {Argments}&\MissingSometimesCountArguments&\MissingAlwaysCountArguments&\MissingTotalCountArguments\\
     {Parameters}&\MissingSometimesCountParameters&\MissingAlwaysCountParameters&\MissingTotalCountParameters\\
     {Functions}&\MissingSometimesCountFunctions&\MissingAlwaysCountFunctions&\MissingTotalCountFunctions\\
-    {Packages}&\MissingSometimesCountPackages&\MissingAlwaysCountPackages&\MissingTotalCountPackages\\
-    \bottomrule
+    {Packages}&\MissingSometimesCountPackages&\MissingAlwaysCountPackages&\MissingTotalCountPackages\\   \bottomrule
   \end{tabular}
 \end{wraptable}
 
-Missing arguments do not count arguments bound to \c{...} and to metaprogrammed,
-either of which could also be missing. The \MissingTotalCountArguments arguments
-correspond to \MissingTotalCountParameters parameters. Some
-\MissingAlwaysCountParameters parameters are always missing; they are classified
-as \always. In contrast to the \MissingSometimesCountParameters \sometimes
-parameters which are sometimes passed an argument. The distribution of these two
-categories is in Table~\ref{table:missing}. The \always parameters are
-lazy, whereas the \sometimes parameters are only lazy if they are also marked U.
-
-The following example shows an \always missing parameter. The \c{names} argument
-was missing in all the calls to this function defined in the \c{rlang} package.
-This is no surprise as the function does not use this argument, it is present
-presumably for future evolution or backwards compatibility.
+\paragraph{Missing Arguments}
+Some \MissingAlwaysCountParameters parameters are always missing; they are
+classified as \always. In contrast to the \MissingSometimesCountParameters
+\sometimes parameters which are sometimes passed an argument. Numbers for these
+two categories are in Table~\ref{table:missing}. The \always parameters are a
+strong signal, whereas the \sometimes parameters are only lazy if they are also
+marked U. We show an \always parameter next; the \c{names} argument was missing
+in all the calls to this function defined in the \c{rlang} package. This is no
+surprise as the function does not use this argument, it is presumably there for
+backwards compatibility.
 
 \begin{lstlisting}
-new_environments <- function(envs, names) {
-  stopifnot(is_list(envs))
-  structure(envs,
-            names = map_chr(unname(envs), env_name),
-            class = "rlang_envs")
-}
+ new_environments <- function(envs, names) {
+   stopifnot(is_list(envs))
+   structure(envs, names = map_chr(unname(envs),env_name),class="rlang_envs")
+ }
 \end{lstlisting}
 
-The next example has a \sometimes missing parameter. The \c{linewidth} argument
-was missing in some calls to this function defined in the \c{base64enc} package.
-The function assigns a default value of \c{0L} to \c{linewidth} if it is
-missing.
+For a \sometimes parameter, consider the \c{linewidth} argument which is missing
+in some calls to this function which assigns a default value of \c{0L} to
+\c{linewidth}.
 
 \begin{lstlisting}
-base64encode <- function(what, linewidth, newline) {
-  linewidth <- if (missing(linewidth) || !is.numeric(linewidth) ||
-                  length(linewidth) < 1L) 0L
-               else as.integer(linewidth[1L])
-    ...
-}
+ base64encode <- function(what, linewidth, newline) {
+   linewidth <- if (missing(linewidth) || !is.numeric(linewidth)) 0L
+                 else as.integer(linewidth[1L])
 \end{lstlisting}
 
 
-\subsubsection{Unevaluated Arguments} \label{subsubsection:unevaluted_arguments}
+
 
 \begin{wraptable}{r}{6cm}
   \small
@@ -985,80 +960,62 @@ base64encode <- function(what, linewidth, newline) {
     \midrule
     {Parameters}&\UnevaluatedSometimesCountParameters&\UnevaluatedNeverCountParameters&\UnevaluatedTotalCountParameters\\
     {Functions}&\UnevaluatedSometimesCountFunctions&\UnevaluatedNeverCountFunctions&\UnevaluatedTotalCountFunctions\\
-    {Packages}&\UnevaluatedSometimesCountPackages&\UnevaluatedNeverCountPackages&\UnevaluatedTotalCountPackages\\
     \bottomrule
   \end{tabular}
 \end{wraptable}
 
-Unevaluated arguments correspond to \UnevaluatedTotalCountParameters parameters
-from \UnevaluatedTotalCountFunctions functions. We classify these parameters
-into two categories: parameters that are \sometimes evaluated and parameters
-that are \never evaluated. Table~\ref{table:unevaluated} presents numbers for
-both categories. There are \UnevaluatedSometimesCountParameters \sometimes
-parameters and \UnevaluatedNeverCountParameters \never parameters. These may
-correspond to code paths not exercised or to dummy parameters.
-%
-A common pattern is the following:
+\paragraph{Unevaluated Arguments}
+Some parameters are \sometimes evaluated and others are \never evaluated. The
+latter may correspond to code paths not exercised or to dummy parameters.
+Table~\ref{table:unevaluated} has numbers for both categories. A common pattern
+is to one argument only if another has a given value.
 
 \begin{lstlisting}
- lazyeval::%||% <- function(x, y) if(is.null(x)) y else x
+ %||% <- function(x,y) if(is.null(x)) y else x
 \end{lstlisting}
 
-This function evaluates \c{y} only if \c{x} is \c{NULL}, making
-\c{y} a \sometimes parameter. Another pattern is to delay the evaluation of a
-parameter.
+Another pattern is to delay evaluation: \c{expr} is delayed until \c{pkg} is
+loaded.
 
 \begin{lstlisting}
  glue::on_package_load <- function(pkg, expr) {
-   if (isNamespaceLoaded(pkg)) { expr }
-   else {
+   if (isNamespaceLoaded(pkg)) { expr } else {
      thunk <- function(...) expr
      setHook(packageEvent(pkg, "onLoad"), thunk)
-   }
- }
+ } }
 \end{lstlisting}
 
-Here, \c{expr} may be delayed until \c{pkg} is loaded. Thus, \c{expr}
-should not be evaluated strictly.
-%
-S3 generics result in many \sometimes and \never parameters. These functions
-dynamically dispatch to a specific implementation based on the argument's class.
-In the following example, the first argument is always evaluated, but \c{n}
-and \c{m} are only evaluated sometimes and \c{r} never.
-%
+S3 generic methods are functions dynamically dispatch: here, \c x is always
+evaluated in order to dispatch, the others depend on where the call dispatches
+to.
+
 \begin{lstlisting}
- abind::acorn <- function(x, n=6, m=5, r=1, ...) UseMethod('acorn')
+ abind::acorn <- function(x,n=6,m=5,r=1,...) UseMethod('acorn')
 \end{lstlisting}
 
-One source of \never parameters is when a set of functions implements a common
-interface, but not all functions need all parameters. The \c{proxy} package
-defines over a dozen methods with the interface \c{function(a,b,c,d,n)} that
-compute different proximity metrics using a subset of the arguments.
+Some functions implements a common interface, the \c{proxy} package defines over
+a dozen methods with interface \c{function(a,b,c,d,n)} to compute different
+proximity metrics with a subset of the arguments. Arguments can also be \never
+by design; \c{tail} is not defined for \c{tbl_lazy} objects.
 
-Arguments can be \never by design; \c{tail} is not defined for
-\c{tbl_lazy} objects and throws an error when called.
 \begin{lstlisting}
  dbplyr::tail.tbl_lazy <- function(x, n = 6L, ...)
    stop("tail() is not supported by sql sources", call.=FALSE)
 \end{lstlisting}
-%
-\never parameters can also represent an erroneous condition that would not
-happen in a correct program. The following function fails if its argument does
-not have the correct type. In all observed calls, \c{signal}
-went  unused because \c{e} had the right type.
-\begin{lstlisting}
- codetools::checkSymOrString <- function(e, signal = stop) {
-   type <- typeof(e)
-   if (type == "symbol" || type == "character") e
-   else signal("not a symbol or string")
- }
-\end{lstlisting}
 
-\subsubsection{Side-Effects}
 
-Of all the promises observed by \lazr, only 0.5\% perform side-effects. Many
-side-effects are benign for our purposes because they happen in environments
-that are scoped by the evaluation of the promise, and the side-effects are ignored.
+\paragraph{Side-Effects}
+Few promises have side-effects and many of those are benign for our purposes as
+they happen to local variables of the promise. Table~\ref{table:effects} counts
+lookups (L), definitions (D), assignments (A), and removals (R), and the
+arguments, parameters and functions responsible for those effects. Lookups are
+the most common cause for making arguments lazy. This is followed by definitions
+and assignments. Removing bindings from environments is not a common operation.
+Comparing the number of events in this table against the total number of events,
+we narrow 89B variable lookups down to 3.7M, 20B definitions to 1.1M, and 7B
+assignments to 235K.
+
+
 
 \begin{table}[!h]   \small
   \caption{Effects} \label{table:effects} \centering
@@ -1071,74 +1028,31 @@ that are scoped by the evaluation of the promise, and the side-effects are ignor
   \end{tabular}
 \end{table}
 
+A common source of observable writes is the \c{shiny} package used for building
+interactive web applications: \c{bindEvent} attaches an observer expression to
+an event. The observer performs a non-local side-effect using \c{<<-} to update
+global state.
 
-Table~\ref{table:effects} counts lookups (L), definitions (D), assignments (A),
-and removals (R), and the arguments, parameters, functions, and packages directly
-responsible for those effects. Lookups are the most common cause for making
-arguments lazy. This is followed by definitions and assignments. Removing
-bindings from environments is not a common operation.
-%
-Comparing the number of events in this table against the total number of events,
-we narrow 89B variable lookups down to 3.7M, 20B definitions to 1.1M, and 7B
-assignments to 235K.
-\begin{wraptable}{r}{5.5cm}
-  \small
-  \centering
-  \caption{Effects}\label{table:effects}
-  \begin{tabular}{lrrr}
-    \toprule
-    &\bf Direct&\bf Transitive&\bf Total\\
-    \midrule
-    {Arguments}&\EffectCountArgumentsDirect&\EffectCountArgumentsTransitive&\EffectCountArgumentsTotal\\
-    {Parameters}&\EffectCountParametersDirect&\EffectCountParametersTransitive&\EffectCountParametersTotal\\
-    {Functions}&\EffectCountFunctionsDirect&\EffectCountFunctionsTransitive&\EffectCountFunctionsTotal\\
-    {Packages}&\EffectCountPackagesDirect&\EffectCountPackagesTransitive&\EffectCountPackagesTotal\\
-    \bottomrule
-  \end{tabular}
-\end{wraptable}
-
-Table~\ref{table:effects} shows the arguments that are made lazy due to effects.
-
-A common source of non-local writes is the \c{shiny} package used for building
-interactive web applications. Consider the call to \c{bindEvent} which
-attaches an observer expression to an event. The observer performs a non-local
-side-effect using \c{<<-}, this is a common way to update the global state.
-%
 \begin{lstlisting}
  bindEvent(trigger(), x=observe({vals <<- c(vals, val())}))
 \end{lstlisting}
-%
 
-Another source of non-local writes occurs in the \c{withr} package. It
-provides functions to evaluate code in a temporarily modified global state. These
-code blocks assign their result in the current scope. In the following example, a
-side-effecting expression is passed to \c{with\_seed} which changes the
-random number generation seed.
-%
-\begin{lstlisting}
- with_seed(seed <- sample.int(.Machine$integer.max, 1), runif(5))
-\end{lstlisting}
-%
-
-Many side-effects occur in test cases written with the \c{testthat} library.
-The global state is modified temporarily to test its effect on the function
-under consideration.
-%
-Another common pattern is when the result of an intermediate computation is
-assigned to a variable for subsequent use. In the call below, the intermediate
-result is assigned to \c{x} before being passed on to the
+Many side-effects occur in test cases written with the \c{testthat} library. The
+global state is modified temporarily to test its effect on the function under
+consideration. Another common pattern is when the result of an intermediate
+computation is assigned to a variable for subsequent use. In the call below, the
+intermediate result is assigned to \c{x} before being passed on to the
 \c{as.data.table} function.
-%
+
 \begin{lstlisting}
  as.data.table(x <- as.character(sample(letters, 5)))
 \end{lstlisting}
-%
 
 Deleting a variable from an environment is done with the \c{rm} function.
 The following function computes the number of rows of a data frame and assigns
 it to a variable \c{.N} in the caller's environment. Eventually, it removes the
 variable.
-%
+
 \begin{lstlisting}
  [.data.table <- function (x, i, j, ...) {
    assign(".N", nrow(x), envir=parent.frame(), inherits=FALSE)
@@ -1151,23 +1065,26 @@ create and remove bindings from an environment. When passed with the value
 \c{zap()}, it removes the corresponding symbol from the environment. It uses
 the C function \c{R_removeVarFromFrame}.
 
-\subsubsection{Reflection}
+\paragraph{Reflection}
 Reflective code is brittle. The following example shows that code that looks up
 its call stack is sensitive to small implementation changes, such as the
 addition of a call to an identity function. The evaluation of \c x and \c y will
 yield different results as the latter is executing within the \c{id} function.
 %
 \begin{lstlisting}
+ f <- function(x, y) { x; y }
+ f(as.environment(-1), as.environment(-1))
  id <- function(a) a
- f <- function(x, y) { x; id(y); }
+ f <- function(x, y) { x; id(y) }
  f(as.environment(-1), as.environment(-1))
 \end{lstlisting}
 %
 
 This can transitively affect the strictness of other parameters. If \c{f} is
-called from \c{g} as shown below, we will have to make \c{g} non-strict in
-\c{u} and \c{v}. Their results depend upon how they are evaluated inside
-\c{f}.
+called from \c{g}, we must make \c{g} lazy. R provides other functions for
+reflective stack access, \c{parent.frame} and \c{sys.frame}; these are less
+brittle as they access frames relative to the promise's creation environment.
+
 
 \begin{lstlisting}
  g <- function(u, v) { f(u, v) }
@@ -1175,9 +1092,6 @@ called from \c{g} as shown below, we will have to make \c{g} non-strict in
 \end{lstlisting}
 %
 
-R provides other functions for reflective stack access, \c{parent.frame} and
-\c{sys.frame}; these are less brittle as they access frames relative to the
-promise's creation environment.
 
 \begin{wraptable}{r}{5.5cm}
   \small
@@ -1197,21 +1111,52 @@ promise's creation environment.
 
 Table~\ref{table:reflection} presents the number of arguments that call
 \c{as.environment(-1)} and \c{pos.to.env(-1)} directly or transitively.
-This excludes the cases where the argument is also metaprogrammed. Two
-parameters from two functions, \c{R.oo::.getFunctionByName}, and
-\c{backports:::get0} call these functions directly.
-%
-The first searches for a function by name in different scopes. Its argument has
-a default value of \c{as.environment(-1)}.
-%
+This excludes the cases where the argument is also metaprogrammed.
+
+Two parameters from two functions, \c{.getFunctionByName}, and
+\c{backports:::get0} call these functions directly. The first searches for a
+function by name in different scopes. Its argument has a default value of
+\c{as.environment(-1)}.
+
 \begin{lstlisting}
- R.oo:::.getFunctionByName <- function(..., callEnvir = as.environment(-1L), ...) {
+ R.oo:::.getFunctionByName <-
+ function(...,
+          callEnvir = as.environment(-1L)) {
    envirT <- callEnvir
    ...
 \end{lstlisting}
 %
 
 \subsection{Robustness of inferred signatures} \label{Evaluation:Robustness}
+
+
+\begin{wraptable}{r}{6cm}  \small  \centering
+  \caption{Client Corpus}\label{table:clientcorpus}
+  \begin{tabular}{lrrr}    \toprule
+    &\bf Tests&\bf Examples&\bf Vignettes\\
+    \midrule
+    {Scripts} &9.8K&41.1K&1.7K\\
+    \midrule
+    {LOC} &751.2K&348.8K&112.3K\\    \bottomrule
+  \end{tabular}
+\end{wraptable}%%
+
+In this section, we evaluate the robustness of strictness signatures generated
+by \lazr. This is done by running scripts extracted from 2,000 client packages
+of our corpus. These packages have 4.5M lines of R code and 4.7M lines of native
+code. Table ~\ref{table:clientcorpus} gives the number of scripts and lines of
+code exercised. Using \lazr, we extracted 52K scripts from the clients. From
+these, we filtered scripts whose output was non-deterministic, leaving us with
+42K scripts. The goal of the next step is to validate if, after applying
+strictness signatures, they produce identical outputs. Comparing the output of
+scripts is standard practice in the R community for detecting regressions. There
+may be a difference in execution that does not manifest in the output; this may
+hide some errors, so the results reported here should be considered a lower
+bound. Fig.~\ref{pipe} shows the full pipeline, it starts with extracting
+runnable code, then performs two runs with default semantics to check if the
+script is deterministic, if it is the result of a run with strict semantics is
+compared and differences a recorded.
+
 
 \begin{figure}[th!]
   \centering
@@ -1277,32 +1222,6 @@ a default value of \c{as.environment(-1)}.
   \caption{Validation Pipeline}\label{fig:validationPipeline}
 \end{figure}
 
-In this section, we evaluate the robustness of strictness signatures generated
-by \lazr. This is done by running scripts extracted from 2,000 client packages of
-our corpus. These packages have 4.5M lines of R code and 4.7M lines of native
-code. Table ~\ref{table:clientcorpus} gives the number of scripts and lines of code
-exercised.
-
-\begin{wraptable}{r}{6cm}  \small  \centering
-  \caption{Client Corpus}\label{table:clientcorpus}
-  \begin{tabular}{lrrr}    \toprule
-    &\bf Tests&\bf Examples&\bf Vignettes\\
-    \midrule
-    {Scripts} &9.8K&41.1K&1.7K\\
-    \midrule
-    {LOC} &751.2K&348.8K&112.3K\\    \bottomrule
-  \end{tabular}
-\end{wraptable}%%
-
-Using \lazr, we extracted 52K scripts from the clients. From these, we filtered
-scripts whose output was non-deterministic, leaving us with 42K scripts. The
-goal of the next step is to validate if, after applying strictness signatures,
-they produce identical outputs.
-
-Comparing the output of scripts is standard practice in the R community for
-detecting regressions. There may be a difference in execution that does not
-manifest in the output; this may hide some errors, so the results reported here
-should be considered a lower bound.
 
 \begin{wraptable}{r}{5cm}
   \small
@@ -1324,14 +1243,11 @@ should be considered a lower bound.
   \end{tabular}
 \end{wraptable}
 
-Table~\ref{table:strictfail} reports on the eight configurations we evaluated.
-For each row in the table, we ran all 42K scripts and counted the number of
-differences from expected outputs. Each row corresponds to a different set of
-strictness signatures for the corpus. The 9K parameters that were inferred to be
-meta-programmed (M) are always lazy. The 128K parameters that were not marked
-were always strict. For the 36K remaining parameters (those with a combination
-of U, S, R), each row represents a different strictness setting.
-
+We explored various degrees of strictness by choosing which of the three weak
+signal to treat as requiring lazy evaluation. Table~\ref{table:strictfail}
+reports on the eight configurations we evaluated. For each row in the table, we
+ran all 42K scripts and counted the number of differences from expected outputs.
+Each row corresponds to a different set of strictness signatures for the corpus.
 For each configuration, we report the number and percentage of failing programs.
 The \emph{+} sign indicates the corresponding parameter is lazy and \emph{-}
 means strict. For example, in the $+U+S+R$ configuration, any parameter marked
