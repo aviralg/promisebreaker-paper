@@ -907,32 +907,32 @@ Hence, uses of \c{PREXPR} from the interpreter are not signals.
 
 
 
-\begin{wraptable}{r}{6cm}\small\centering
+\paragraph{Missing Arguments}
+Some \MissingAlwaysCountParameters parameters are always missing; they are
+classifyied as \always. In contrast to the \MissingSometimesCountParameters
+\sometimes parameters which are sometimes passed an argument.
+
+\begin{wraptable}{r}{5.76cm}\small\centering
   \caption{Missing}\label{table:missing}
-  \begin{tabular}{lrrr} \toprule
+  \begin{tabular}{@{}l@{}rrr@{}} \toprule
     &\bf Sometimes&\bf Always&\bf Total\\\midrule
     {Argments}&\MissingSometimesCountArguments&\MissingAlwaysCountArguments&\MissingTotalCountArguments\\
     {Parameters}&\MissingSometimesCountParameters&\MissingAlwaysCountParameters&\MissingTotalCountParameters\\
-    {Functions}&\MissingSometimesCountFunctions&\MissingAlwaysCountFunctions&\MissingTotalCountFunctions\\
-    {Packages}&\MissingSometimesCountPackages&\MissingAlwaysCountPackages&\MissingTotalCountPackages\\   \bottomrule
+    {Functions}&\MissingSometimesCountFunctions&\MissingAlwaysCountFunctions&\MissingTotalCountFunctions\\\bottomrule
   \end{tabular}
 \end{wraptable}
 
-\paragraph{Missing Arguments}
-Some \MissingAlwaysCountParameters parameters are always missing; they are
-classified as \always. In contrast to the \MissingSometimesCountParameters
-\sometimes parameters which are sometimes passed an argument. Numbers for these
-two categories are in Table~\ref{table:missing}. The \always parameters are a
-strong signal, whereas the \sometimes parameters are only lazy if they are also
-marked U. We show an \always parameter next; the \c{names} argument was missing
-in all the calls to this function defined in the \c{rlang} package. This is no
-surprise as the function does not use this argument, it is presumably there for
-backwards compatibility.
+Table~\ref{table:missing} gives numbers of missing arguments and parameters.
+\always parameters are a strong signal, whereas \sometimes missing are only lazy
+if also marked U. In the following definition the \c{names} argument was missing
+in all calls to this function from \c{rlang}, it is thus an \always parameter.
+That fact is not surprising when inspecting the code of the function: the
+argument is not used! It is presumably only there for backwards compatibility.
 
 \begin{lstlisting}
  new_environments <- function(envs, names) {
    stopifnot(is_list(envs))
-   structure(envs, names = map_chr(unname(envs),env_name),class="rlang_envs")
+   structure(envs,names=map_chr(unname(envs),env_name),class="rlang_envs")
  }
 \end{lstlisting}
 
@@ -947,14 +947,9 @@ in some calls to this function which assigns a default value of \c{0L} to
 \end{lstlisting}
 
 
-
-
-\begin{wraptable}{r}{6cm}
-  \small
-  \centering
+\begin{wraptable}{r}{6cm}\small\centering
   \caption{Unevaluated}\label{table:unevaluated}
-  \begin{tabular}{lrrr}
-    \toprule
+  \begin{tabular}{lrrr}\toprule
     &\bf Sometimes&\bf Never&\bf Total\\
     \midrule
     {Parameters}&\UnevaluatedSometimesCountParameters&\UnevaluatedNeverCountParameters&\UnevaluatedTotalCountParameters\\
@@ -1102,9 +1097,7 @@ brittle as they access frames relative to the promise's creation environment.
     \midrule
     {Arguments}&\RefCountArgumentsDirect&\RefCountArgumentsTransitive&\RefCountArgumentsTotal\\
     {Parameters}&\RefCountParametersDirect&\RefCountParametersTransitive&\RefCountParametersTotal\\
-    {Functions}&\RefCountFunctionsDirect&\RefCountFunctionsTransitive&\RefCountFunctionsTotal\\
-    {Packages}&\RefCountPackagesDirect&\RefCountPackagesTransitive&\RefCountPackagesTotal\\
-    \bottomrule
+    {Functions}&\RefCountFunctionsDirect&\RefCountFunctionsTransitive&\RefCountFunctionsTotal\\    \bottomrule
   \end{tabular}
 \end{wraptable}
 
@@ -1294,10 +1287,10 @@ optimizations. We present our evidence in support of (1) and (3), and partial
 evidence for (2).
 
 \paragraph{Methodology}
-We conducted a limit-study experiment to assess the highest achievable performance 
-\SK{I'm not sure about 'highest achievable performance' considering we said in 
+We conducted a limit-study experiment to assess the highest achievable performance
+\SK{I'm not sure about 'highest achievable performance' considering we said in
 SECTION 5 that this is a lower bound. Or maybe I am misreading it
-and it should be read as 'on the technique of removing maximum possible promises, 
+and it should be read as 'on the technique of removing maximum possible promises,
 this is the highest achievable performance'}
 by removing maximum possible promises. We do this on small benchmarks that we
 manually annotated. We picked a subset of the \Rsh benchmark suite which
@@ -1318,11 +1311,11 @@ each benchmark. Within each invocation we measure the execution time of $t_i$
 in-process invocations. For each invocation, the first 5 in-process iterations
 are discarded to exclude warmup behavior. Aggregate numbers are reported as the
 speedup over the arithmetic mean of the execution times. Multiple speedup
-numbers are averaged using a geometric mean. 
+numbers are averaged using a geometric mean.
 
 As a baseline we use \Rsh which already has a \speedupRsh mean speedup over GNU R
  on our subsetted benchmark suite, with parameters $t_e = 1, t_i = 15$. Speedup
- ranges between \speedupRshMin and \speedupRshMax. 
+ ranges between \speedupRshMin and \speedupRshMax.
 
 \paragraph{Speedup}
 
