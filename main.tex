@@ -1131,15 +1131,11 @@ strictness signatures, they produce identical outputs. Comparing the output of
 scripts is standard practice in the R community for detecting regressions. There
 may be a difference in execution that does not manifest in the output; this may
 hide some errors, so the results reported here should be considered a lower
-bound. Fig.~\ref{pipe} shows the full pipeline, it starts with extracting
-runnable code, then performs two runs with default semantics to check if the
-script is deterministic, if it is the result of a run with strict semantics is
-compared and differences a recorded.
+bound.
 
-
-\begin{figure}[th!]
+\begin{figure}[!b]
   \centering
-  \scalebox{0.85}{
+  \scalebox{0.7}{
     \begin{tikzpicture}
 
       \definecolor{gray}{HTML}{F5F5F5}
@@ -1201,6 +1197,24 @@ compared and differences a recorded.
   \caption{Validation Pipeline}\label{fig:validationPipeline}
 \end{figure}
 
+Fig.~\ref{pipe} shows the full pipeline, it starts with extracting
+runnable code, then performs two runs with default semantics to check if the
+script is deterministic, if it is the result of a run with strict semantics is
+compared and differences a recorded.
+
+
+We explored various degrees of strictness by choosing which of the three weak
+signal to treat as requiring lazy evaluation. Table~\ref{table:strictfail}
+reports on the eight configurations we evaluated. For each row in the table, we
+ran all 42K scripts and counted the number of differences from expected outputs.
+Each row corresponds to a different set of strictness signatures for the corpus.
+For each configuration, we report the number and percentage of failing programs.
+The \emph{+} sign indicates the corresponding parameter is lazy and \emph{-}
+means strict. For example, in the $+U+S+R$ configuration, any parameter marked
+as either U, S or R, is lazy, whereas the configuration $+U+S-R$ means that any
+parameter marked U or S must be lazy, and the configuration $-U+S+R$ means that
+parameters marked S and R must be lazy.
+
 
 \begin{wraptable}{r}{5cm}
   \small
@@ -1222,87 +1236,92 @@ compared and differences a recorded.
   \end{tabular}
 \end{wraptable}
 
-We explored various degrees of strictness by choosing which of the three weak
-signal to treat as requiring lazy evaluation. Table~\ref{table:strictfail}
-reports on the eight configurations we evaluated. For each row in the table, we
-ran all 42K scripts and counted the number of differences from expected outputs.
-Each row corresponds to a different set of strictness signatures for the corpus.
-For each configuration, we report the number and percentage of failing programs.
-The \emph{+} sign indicates the corresponding parameter is lazy and \emph{-}
-means strict. For example, in the $+U+S+R$ configuration, any parameter marked
-as either U, S or R, is lazy, whereas the configuration $+U+S-R$ means that any
-parameter marked U or S must be lazy, and the configuration $-U+S+R$ means that
-parameters marked S and R must be lazy.
+\cconfig 0 is the laziest and only 239 scripts out of 42K have erroneous
+outputs. These errors come from some of the unmarked parameters. Consider, for
+instance, a library function \c f that was always called without side-effects
+during inference and for which there is a side-effecting client. \lazr would
+mark that function as strict, but the client may be able to observe the semantic
+difference. Luckily, this is quite rare.
 
-\cconfig 0 is the laziest of the configurations; only 239 scripts out of 42K
-have erroneous outputs. These errors come from some of the
-unmarked parameters. Consider, for instance, a library function \c f that was
-always called without side-effects during inference and for which there is a
-side-effecting client. \lazr would mark that function as strict, but the client
-may be able to observe the semantic difference. Luckily, this is quite rare.
+Other configurations are stricter, and thus should experience more errors.
+\config 1 is surprising, as making reflective arguments strict hides 5 errors,
+this is an outlier. At the end of the spectrum, \config 7 makes all parameters
+marked either U, S, or R strict and experiences 16\% of failures which is rather
+high. This suggests a substantial amount of accidental laziness is observed.
 
-All other configurations are strictly stricter, and thus are likely to experience
-more errors. The case of \config 1 is surprising, as making arguments reflective
-hides 5 errors. This is an outlier that should be elided.
-
-In the extreme, \config 7 makes all parameters marked either U, S, or R strict.
-This leads to 16\% of failures which is rather high. This suggests a substantial
-amount of accidental laziness which can be observed.
-
-One takeaway from this evaluation is that unevaluated parameters (U) have only a
-small impact on correctness, while S and R are the sources of most errors.
-
-From the results, we conclude that using \config 0 as the starting point for
-migration is the safest. The first attempt at removing laziness at scale can rely on
-this signature configuration. Next, reflective and unevaluated arguments can be
-made strict without a significant increase in failure rate. Side-effecting
-arguments result in many failures.
-
+One take away is that unevaluated parameters have only a small impact on errors,
+while S and R are the cause of most errors. We conclude that \config 0 is safe
+starting point for migration. Manual tightening of the signatures can start with
+the reflective argument and look at side-effecting ones on a case-by-case basis.
 
 \section{Performance Experiment}\label{sec:rsh}
 
 Our hypothesis is that eager semantics lead to faster programs. This might
-surprise readers who expect that call-by-need can avoid unnecessary
-computation. Delaying computations is complex and hinders performance in two
-ways. First, it leads to more allocations of promises. Second, it obstructs
-compiler analyses and optimizations. We expect the hypothesis to hold for a
-just-in-time compiler that uses advanced optimizations like \Rsh. In particular,
-we expect: (1) eager semantics to improve performance of most benchmarks, for
-both tiers of \Rsh; (2) a portion of the speedup to come from reduced garbage
-collection; (3) and an additional speedup due to improved compiler
-optimizations. We present our evidence in support of (1) and (3), and partial
-evidence for (2).
+surprise readers who expect call-by-need avoids unnecessary computation.
+Delaying computations is complex and hinders performance in two ways. First, it
+leads to more allocation. Second, it obstructs compiler analyses and
+optimizations. We expect the hypothesis to hold for a just-in-time compiler that
+uses advanced optimizations like \Rsh. In particular, we expect: (1) eager
+semantics to improve performance of most benchmarks, for both tiers of \Rsh; (2)
+a portion of the speedup to come from reduced garbage collection; (3) and an
+additional speedup due to improved compiler optimizations. We present our
+evidence in support of (1) and (3), and partial evidence for (2).
 
 \paragraph{Methodology}
-We conducted a limit-study experiment to assess the highest achievable performance
-\SK{I'm not sure about 'highest achievable performance' considering we said in
-SECTION 5 that this is a lower bound. Or maybe I am misreading it
-and it should be read as 'on the technique of removing maximum possible promises,
-this is the highest achievable performance'}
-by removing maximum possible promises. We do this on small benchmarks that we
-manually annotated. We picked a subset of the \Rsh benchmark suite which
-includes one variant of each benchmark. Only a handful of functions, such as
-\lstinline{tryCatch}, had to be kept lazy. Experiments are run on a dedicated
-benchmarking machine, with all background tasks disabled. The system features an
-Intel i7-6700K CPU, stepping 3, microcode 0xe2 with 4 cores and 8 threads. The
-system has 32 GB of RAM and is running Ubuntu 18.04 on a 4.15.0-136 Linux
-kernel. For ease of use, experiments are built as containers, based on Ubuntu
-20.04, and executed on the Docker runtime 20.10.5, build 55c4c88. We verified
-the overhead introduced by the containerization to be uniform. All measurements
-are recorded repeatedly and we keep a historical record to spot unstable
-behavior. This led us to exclude the \lstinline{convolution} benchmark as it
-appears to have a bi-modal performance profile, likely caused by the LLVM
-backend.
-Performance measurements are gathered by running $t_e$ invocations of \Rsh on
-each benchmark. Within each invocation we measure the execution time of $t_i$
-in-process invocations. For each invocation, the first 5 in-process iterations
-are discarded to exclude warmup behavior. Aggregate numbers are reported as the
-speedup over the arithmetic mean of the execution times. Multiple speedup
-numbers are averaged using a geometric mean.
+We conducted a limit-study experiment to assess the highest achievable
+performance given the current state of the compiler. We manually picked the
+strictest, semantically-correct, signatures for our programs. Only a handful of
+functions, such as \lstinline{tryCatch}, had to be kept lazy.
+Table~\ref{table:bms} gives our benchmarks. We picked a subset of the \Rsh
+benchmark suite which includes one variant of each benchmark. We acquired one
+real-world program, \c{flx}, and ported three programs from the \emph{Are we
+fast} suite to R. All of these are available with our artifact.
 
-As a baseline we use \Rsh which already has a \speedupRsh mean speedup over GNU R
- on our subsetted benchmark suite, with parameters $t_e = 1, t_i = 15$. Speedup
- ranges between \speedupRshMin and \speedupRshMax.
+\begin{wrapfigure}{r}{6cm}
+  \small
+  \caption{Benchmarks}\label{table:bms}
+  \begin{tabular}{lll}
+    \toprule
+    \bf Id&\bf Benchmark&\bf Suite\\
+    \midrule
+    bnc&Bounce&Are we fast\\
+    mnd&Mandelbrot&Are we fast\\
+    sto&Storage&Are we fast\\
+    flx&Flexclust&Real thing\\
+    bin&Binarytrees&Shootout\\
+    fst&Fasta&Shootout\\
+    far&Fastaredux&Shootout\\
+    fnk&Fannkuchredux&Shootout\\
+    knu&Knucleotide&Shootout\\
+    nbo&Nbody&Shootout\\
+    pdg&Pidigits&Shootout\\
+    rgx&Regexdna&Shootout\\
+    rev&Reversecomplement&Shootout\\
+    spn&Spectralnorm&Shootout\\
+    \bottomrule
+  \end{tabular}
+\end{wrapfigure}
+
+
+Experiments are run on a dedicated benchmarking machine, with all background
+tasks disabled. The system features an Intel i7-6700K CPU, stepping 3, microcode
+0xe2 with 4 cores and 8 threads. The system has 32 GB of RAM and is running
+Ubuntu 18.04 on a 4.15.0-136 Linux kernel. For ease of use, experiments are
+built as containers, based on Ubuntu 20.04, and executed on the Docker runtime
+20.10.5, build 55c4c88. We verified the overhead introduced by the
+containerization to be uniform. All measurements are recorded repeatedly and we
+keep a historical record to spot unstable behavior. This led us to exclude the
+\lstinline{convolution} benchmark as it appears to have a bi-modal performance
+profile, likely caused by the LLVM backend. Performance measurements are
+gathered by running $t_e$ invocations of \Rsh on each benchmark. Within each
+invocation we measure the execution time of $t_i$ in-process invocations. For
+each invocation, the first 5 in-process iterations are discarded to exclude
+warmup behavior. Aggregate numbers are reported as the speedup over the
+arithmetic mean of the execution times. Multiple speedup numbers are averaged
+using a geometric mean. As a baseline we use \Rsh which already has a
+\speedupRsh mean speedup over GNU R on our subsetted benchmark suite, with
+parameters $t_e = 1, t_i = 15$. Speedup ranges between \speedupRshMin and
+\speedupRshMax.
 
 \paragraph{Speedup}
 
@@ -1343,7 +1362,6 @@ dialect of R. Even though the speedup is very similar in numbers, the reasons
 seem to be different at times. We will get back to that point in the discussion
 at the end of this section.
 
-\paragraph{Garbage Collection}
 
 \begin{figure}[h]
   \centering
@@ -1352,23 +1370,21 @@ at the end of this section.
   \label{fig:gc-pressure}
 \end{figure}
 
-We measure the number of promises allocated in the benchmark suite per iteration
-for GNU R, \Rsh, and \rshstrict. The results are shown in
-\autoref{fig:gc-pressure}. We report on the geometric mean of the reductions in
-each benchmark.
-
-The first jump from GNU R's bytecode interpreter to the optimizing just-in-time
-compiler \Rsh, leads to a \promiseAlocationReductionGnurRsh reduction in
-allocations. The number is reached by taking the geometric mean of light-gray
-bars, yielding a \promiseAllocationGnurRsh. Therefore, the reduction is
+\paragraph{Garbage Collection}
+We measure the number of promises allocated per iteration for GNU R, \Rsh, and
+\rshstrict. The results are shown in \autoref{fig:gc-pressure}. We report on the
+geometric mean of the reductions in each benchmark. The first jump from GNU R's
+bytecode interpreter to the optimizing just-in-time compiler \Rsh, leads to a
+\promiseAlocationReductionGnurRsh reduction in allocations. The number is
+reached by taking the geometric mean of light-gray bars, yielding a
+\promiseAllocationGnurRsh. Therefore, the reduction is
 \promiseAlocationReductionGnurRsh ({$100\%$\xspace} -
 \promiseAllocationGnurRsh). Note that for some benchmarks the light-gray bar is
-too small to be seen and replaced by the actual number.
-
-The second step from lazy to eager semantics leads to
-\promiseAlocationReductionRshStrictToZero benchmarks not allocating any promises
-at all. On the remainder, we see an additional
-\promiseAlocationReductionRshStrict reduction (\rshstrict normalized to \Rsh).
+too small to be seen and replaced by the actual number. The second step from
+lazy to eager semantics leads to \promiseAlocationReductionRshStrictToZero
+benchmarks not allocating any promises at all. On the remainder, we see an
+additional \promiseAlocationReductionRshStrict reduction (\rshstrict normalized
+to \Rsh).
 
 Overall, \promiseAlocationReductionRshStrictToZero benchmarks reduce to zero
 allocations, the rest reduce on average by
@@ -1377,7 +1393,6 @@ compute the geometric mean of dark bars, yielding
 \promiseAllocatioGnurRshStrict. Therefore, the reduction is
 ~\promiseAlocationReductionGnurRshStrict ({$100\%$\xspace} -
 \promiseAllocatioGnurRshStrict).
-
 The lowest reduction observed is \promiseAlocationReductionGnurRshStrictMin.
 Surprisingly the number of remaining promises is still relatively high in some
 cases. As far as we were able to observe, they originate largely from special
@@ -1461,40 +1476,5 @@ gradually typed function signatures and efficient just-in-time optimizations are
 difficult to apply to R because of laziness.
 
 \bibliography{bib/jv,bib/aviral,bib/ml,bib/bib}
-
-\appendix
-
-\section{Benchmark Selection}
-
-Table~\ref{table:bms} presents our benchmark selection. We use all the benchmarks
-from the \emph{language shootout} suite. We have acquired one real-world program,
-\c{flx}, and we have ported three programs from the \emph{Are we fast} suite to
-R. All of these are available with our artifact.
-
-\begin{table}[!h]
-  \small
-  \caption{Benchmarks}\label{table:bms}
-  \begin{tabular}{lll}
-    \toprule
-    \bf Id&\bf Benchmark&\bf Suite\\
-    \midrule
-    bnc&Bounce&Are we fast\\
-    mnd&Mandelbrot&Are we fast\\
-    sto&Storage&Are we fast\\
-    flx&Flexclust&Real thing\\
-    bin&Binarytrees&Shootout\\
-    fst&Fasta&Shootout\\
-    far&Fastaredux&Shootout\\
-    fnk&Fannkuchredux&Shootout\\
-    knu&Knucleotide&Shootout\\
-    nbo&Nbody&Shootout\\
-    pdg&Pidigits&Shootout\\
-    rgx&Regexdna&Shootout\\
-    rev&Reversecomplement&Shootout\\
-    spn&Spectralnorm&Shootout\\
-    \bottomrule
-  \end{tabular}
-\end{table}
-
 
 \end{document}
