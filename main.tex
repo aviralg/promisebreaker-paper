@@ -352,8 +352,6 @@ materialized into a list with \c{list(...)}. Most frequently varargs are
 forwarded to a called function. This enables the function to expose its callee's
 interface to the callers without listing the callee's parameters and their
 default values.
-%%% \SK{shouldn't we sayz something about z here?}
-%%% TODO -- I am not sure what (Says Jan)
 
 \paragraph{Reflection}
 R supports meta-programming. The \c{substitute(exp,env)} function yields the
@@ -1404,10 +1402,11 @@ each benchmark. Within each invocation we measure the execution time of $t_i$
 in-process invocations. For each invocation, the first 5 in-process iterations
 are discarded to exclude warmup behavior. Aggregate numbers are reported as the
 speedup over the arithmetic mean of the execution times. Multiple speedup
-numbers are averaged using a geometric mean. To establish a baseline we measured
-the speedup of \Rsh over GNU R, on our subsetted benchmark suite with parameters
-$t_e = 1, t_i = 15$. We found a mean speedup of \speedupRsh, ranging between
-\speedupRshMin and \speedupRshMax.
+numbers are averaged using a geometric mean. 
+
+As a baseline we use \Rsh which already has a \speedupRsh mean speedup over GNU R
+ on our subsetted benchmark suite, with parameters $t_e = 1, t_i = 15$. Speedup
+ ranges between \speedupRshMin and \speedupRshMax. 
 
 \paragraph{Speedup}
 
