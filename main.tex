@@ -189,7 +189,7 @@ correctness of inferred signatures. Performance and memory footprint are
 improved by compiler optimizations that leverage the new semantics. This paper
 aims to evaluate components of this migration
 
-\newcommand{\rshstrict}{{\sf {\v R}$_{\mathsf s}$}}
+\newcommand{\rshstrict}{{\sf {\v R}$_{\mathsf s}$ }} %% SK added extra space at the end
 \newcommand{\brshstrict}{{\bf {\v R}$_{\mathbf s}$}}
 
 \begin{itemize}[---]
@@ -693,7 +693,7 @@ an experimental native compiler. There are two available in open source,
 Oracle's Truffle implementation of R~\cite{Stadler16} and our own
 \Rsh~\cite{dls19}. Both systems have their drawbacks. Truffle is not yet a
 complete implementation of the language and it is unfamiliar to the authors.
-\Rsh is less mature, in terms of optimizations, but runs all R programs. We
+\Rsh is less mature, in terms of optimizations, but runs all R programs. For
 convenience, we picked \Rsh as a starting point.
 
 One advantage of \Rsh is that it is based on the GNU R reference implementation
@@ -715,7 +715,8 @@ unless the argument is marked as lazy. This eager bytecode also serves as the
 source code for the optimizing tier.  The changes in the lower tier were minimal.
 The benefits we show with \rshstrict are the lower bound on improvements as we
 do not factor in strictness in the analysis passes and other optimizations of
-the compiler.
+the compiler. \SK{is it fair to say that this is the lower bound? Considering also
+that we almost blindly turned everything eager}
 
 
 \section{Inference Experiment}
@@ -1373,7 +1374,7 @@ arguments result in many failures.
 \section{Performance Experiment}\label{sec:rsh}
 
 Our hypothesis is that eager semantics lead to faster programs. This might
-surprise readers who expect that call-by-need i can avoid unnecessary
+surprise readers who expect that call-by-need can avoid unnecessary
 computation. Delaying computations is complex and hinders performance in two
 ways. First, it leads to more allocations of promises. Second, it obstructs
 compiler analyses and optimizations. We expect the hypothesis to hold for a
@@ -1385,8 +1386,12 @@ optimizations. We present our evidence in support of (1) and (3), and partial
 evidence for (2).
 
 \paragraph{Methodology}
-We conducted limit-study experiment to assess the highest achievable performance
-by removing maximum possible promises, we do this on small benchmarks that we
+We conducted a limit-study experiment to assess the highest achievable performance 
+\SK{I'm not sure about 'highest achievable performance' considering we said in 
+SECTION 5 that this is a lower bound. Or maybe I am misreading it
+and it should be read as 'on the technique of removing maximum possible promises, 
+this is the highest achievable performance'}
+by removing maximum possible promises. We do this on small benchmarks that we
 manually annotated. We picked a subset of the \Rsh benchmark suite which
 includes one variant of each benchmark. Only a handful of functions, such as
 \lstinline{tryCatch}, had to be kept lazy. Experiments are run on a dedicated
