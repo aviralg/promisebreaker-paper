@@ -11,12 +11,9 @@
 %%\newcommand{\authorcomment}[3]{}
 % For author notes:
 \newcommand{\AG}[1]{\authorcomment{orange}{AG}{#1}}
-\newcommand{\JV}[1]{\authorcomment{red}{JV}{#1}}
 \newcommand{\JJ}[1]{\authorcomment{green}{JJ}{#1}}
 \newcommand{\SK}[1]{\authorcomment{yellow}{SK}{#1}}
 \newcommand{\OF}[1]{\authorcomment{magenta}{OF}{#1}}
-
-% For meta comments:
 \newcommand{\isit}[1]{\authorcomment{cyan}{Check}{#1}}
 \newcommand{\todo}[1]{\authorcomment{red}{TODO}{#1}}
 \newcommand{\xmark}{\textcolor{red}{\ding{55}}}
@@ -34,11 +31,7 @@
 \definecolor{LightGray}{RGB}{247, 247, 247}
 \definecolor{Gray}{rgb}{.3,.3,.3}
 \definecolor{DarkGray}{rgb}{.5,.5,.5}
-
-%% https://www.davehofmann.de/defining-custom-language-templates-for-latex-listings/
-% Define Language
 \lstdefinelanguage{smalleR} {
-  % list of keywords
   morekeywords={
     for,
     if,
@@ -49,15 +42,12 @@
   morecomment=[l]{\#}, % l is for line comment
   morestring=[b]{"} % defines that strings are enclosed in double quotes
 }
-
 \lstset{
   language={smalleR},
   columns=flexible,
   captionpos=b,
   frame=single,
   framerule=0pt,
-  framexleftmargin=1mm,
-  framexrightmargin=1mm,
   tabsize=2,
   belowskip=0pt,
   basicstyle=\small\ttfamily,
@@ -67,8 +57,7 @@
   commentstyle=\color{Gray}\em,
   stringstyle=\color{Gray},
   alsoletter={., _, $},
-  breaklines=true
-}
+  breaklines=true}
 
 \newcommand{\code}[1]{\lstinline |#1|\xspace}
 \renewcommand{\c}[1]{\lstinline |#1|\xspace}
@@ -79,26 +68,21 @@
 \newcommand{\ie}{\emph{i.e.},\xspace}
 \newcommand{\config}[1]{configuration \#{#1}}
 \newcommand{\cconfig}[1]{Configuration \#{#1}}
-
 \input{macros.tex}
-
 \include{results}
-
 \setcopyright{rightsretained}
 \acmPrice{}
 \acmDOI{10.1145/3360579}
-\acmYear{2019}
-\copyrightyear{2019}
+\acmYear{2021}
+\copyrightyear{2021}
 \acmJournal{PACMPL}
 \acmVolume{3}
 \acmNumber{OOPSLA}
 \acmArticle{153}
 \acmMonth{10}
-
 \begin{document}
 \title{Promises Are Made To Be Broken}
-\subtitle{Migrating R to Strict
-  Semantics}
+\subtitle{Migrating R to Strict Semantics}
 
 \author{Aviral Goel}\affiliation{\institution{Northeastern University}\country{USA}}
 \author{Jan Ječmen}\affiliation{\institution{Czech Technical University}\country{Czechia}}
@@ -109,18 +93,18 @@
 \renewcommand{\shortauthors}{Goel, et al.}
 
 \begin{abstract}
-  Function calls in the R language do not evaluate their arguments; these are
-  passed to the callee as suspended computations and only evaluated if needed.
-  After 25 years of experience with the language, there are very few cases where
-  programmers leverage delayed evaluation intentionally. Being lazy comes at a
+  Function calls in the R language do not evaluate their arguments, these are
+  passed to the callee as suspended computations and evaluated if needed. After
+  25 years of experience with the language, there are very few cases where
+  programmers leverage delayed evaluation intentionally and laziness comes at a
   price in performance and complexity. This paper explores how to evolve the
-  semantics of a language towards strictness by default and laziness on demand.
-  To provide a migration path, it is necessary to provide tooling for developers
-  to migrate libraries without introducing errors. This paper reports on a
-  dynamic analysis that infers strictness signatures for functions to capture
-  both intentional and accidental laziness. The robustness of the inferred
-  signatures is tested using client code. Inference was wrong in only
-  \robustnesResult of signatures.
+  semantics of a lazy language towards strictness by default and laziness on
+  demand. To provide a migration path, it is necessary to provide tooling for
+  developers to migrate libraries without introducing errors. This paper reports
+  on a dynamic analysis that infers strictness signatures for functions to
+  capture both intentional and accidental laziness. The robustness of the
+  inferred signatures is tested using client code: only \robustnesResult of
+  signatures we incorrect.
 \end{abstract}
 
 \begin{CCSXML}
@@ -194,16 +178,16 @@ domain-specific languages. While one could imagine using macros instead, the
 number of libraries that would have to be refactored would be significant.
 
 \paragraph{A pragmatic path forward.} How does on migrate an entire ecosystem?
-A viable migration path must abide by four tenets: ({\bf T1}) minimal legacy
-code changes, ({\bf T2}) semi-automated migration, ({\bf T3}) testable outcomes,
-and ({\bf T4}) measurable benefits. We envision a migration path with the
-following characteristics. Changes to legacy code are avoided by non-invasive
-extensions to the language's syntax and semantics and limited to library
-functions that need a lazy semantics. Strictness signatures are inferred from
-the tests associated to every R package. For popular libraries, client code is
-used as an oracle to check the correctness of inferred signatures. Performance
-and memory footprint are improved by compiler optimizations that leverage the
-new semantics. This paper aims to evaluate components of this migration
+A viable migration path must abide by four tenets: (1) minimal legacy code
+changes, (2) semi-automated migration, (3) testable outcomes, and (4) measurable
+benefits. We envision a migration path with the following characteristics.
+Changes to legacy code are avoided by non-invasive extensions to the language's
+syntax and semantics and limited to library functions that need a lazy
+semantics. Strictness signatures are inferred from the tests associated to every
+R package. For popular libraries, client code is used as an oracle to check the
+correctness of inferred signatures. Performance and memory footprint are
+improved by compiler optimizations that leverage the new semantics. This paper
+aims to evaluate components of this migration
 
 \newcommand{\rshstrict}{{\sf {\v R}$_{\mathsf s}$}}
 \newcommand{\brshstrict}{{\bf {\v R}$_{\mathbf s}$}}
@@ -222,14 +206,17 @@ semi-automated path is viable. Specifically, it should be the case that change
 to the code are small, that inference is accurate, and that there are
 performance improvements.
 
-The paper reports on two experiments. First, we obtain the 500 most widely used
-packages in the R ecosystem and use their tests to infer strictness signatures.
-Since \strictr can load signatures from external files, no changes to code are
-required. We then use XXX clients of these 500 packages to check the accuracy of
-the inference. Only \robustnesResult of the signatures cause \strictr programs
-to exhibit observable differences from the reference semantics. Our second
-experiment takes computational tasks and runs them in both strict and lazy
-modes, we speedups ranging from \speedupRshStrictMin to \speedupRshStrictMax.
+The paper reports on two experiments. First, we obtain the most widely used
+packages in the R ecosystem and, with \lazr, leverage their regression tests to
+infer strictness signatures. Since \strictr can load signatures from external
+files, no changes to code are required. We then use clients of those packages to
+test the accuracy of the inference results. Only \robustnesResult of the
+signatures cause \strictr programs to exhibit observable differences from the
+reference semantics. Our second experiment is independent from the first. We
+take a suite of small computational tasks, manually annotate them for maximal
+strictness, and run the benchmarks in strict and lazy modes using \rshstrict. We
+observe speedups ranging from \speedupRshStrictMin to \speedupRshStrictMax for
+the strict version.
 
 Our conclusions are that the approach is viable as user-visible changes are
 small and the inference gives promising results. For community review we intend
@@ -243,11 +230,8 @@ impressive than in our native compiler, but in the long run we expect users
 to move away from bytecode execution.
 
 \paragraph{Availability.} Our work is in open source,
-  experiments are available from:\\
-
-  \begin{center}
+  experiments are available from:
     URL/of/artifact/goes/here
-\end{center}
 
 \section{Background}\label{sec:background}
 
@@ -267,25 +251,26 @@ thunks (suspended computations)~\cite{transformopt,stricteffective,opteval}. The
 Glasgow Haskell Compiler performs a strictness analysis pass to identify
 arguments that can be evaluated eagerly. While most programs benefit from such a
 transformation, due to its conservative nature, this pass misses some
-opportunities for optimizations. To recover performance, programmers can manually
-insert strictness annotations to control evaluation; identifying where to put
-them, however, can be challenging. \citet{autobahn} proposed Autobahn, a tool
-that automatically infers strictness annotations using a genetic algorithm. The
-approach relies on dynamic analysis, as it does not approximate \SK{approximate?} and cannot
-guarantee termination on all inputs. As the annotations are based on a
-heuristic, developers must manually validate their soundness. The authors report
-an average 8.5\% speedup (with a maximum speedup of 89\%). \citet{lazyprof}
-solve the complementary problem of suggesting laziness annotations for
-call-by-value $\lambda$~calculus using dynamic analysis. They introduce the
-notion of laziness potential, a predictor of the benefit obtained by making an
-expression lazy. They use this as a guide to insert laziness annotations. They
-demonstrate benefits on Racket implementations of Okasaki's purely functional
-data structures~\cite{oka95}, monadic parser combinators, and an AI game. Our
-work is similar to Autobahn in that we infer annotations dynamically and we do
-not guarantee soundness. We depart from Autobahn in that we use dynamic analysis
-of execution traces to determine strictness. Furthermore, we must deal with
-side-effects and reflective operations which adds extra complexity to our
-inference algorithm.
+opportunities for optimizations. To recover performance, programmers can
+manually insert strictness annotations to control evaluation; identifying where
+to put them, however, can be challenging. \citet{autobahn} proposed Autobahn, a
+tool that automatically infers strictness annotations using a genetic algorithm.
+The approach relies on dynamic analysis, which can be more precise than static
+analysis but does not guarantee termination on all inputs. As the annotations
+%%% TODO CHECK IF THE ABOVE IS RIGHT (says Jan)
+are based on a heuristic, developers must manually validate their soundness. The
+authors report an average 8.5\% speedup (with a maximum speedup of 89\%).
+\citet{lazyprof} solve the complementary problem of suggesting laziness
+annotations for call-by-value $\lambda$~calculus using dynamic analysis. They
+introduce the notion of laziness potential, a predictor of the benefit obtained
+by making an expression lazy. They use this as a guide to insert laziness
+annotations. They demonstrate benefits on Racket implementations of Okasaki's
+purely functional data structures~\cite{oka95}, monadic parser combinators, and
+an AI game. Our work is similar to Autobahn in that we infer annotations
+dynamically and we do not guarantee soundness. We depart from Autobahn in that
+we use dynamic analysis of execution traces to determine strictness.
+Furthermore, we must deal with side-effects and reflective operations which adds
+extra complexity to our inference algorithm.
 
 \paragraph{The R language} \citet{oopsla19b} investigated the design and use of
 laziness in R. They provide a detailed account of the language's evaluation
@@ -330,7 +315,6 @@ is the migratory typing of \citet{matthias06} where a gradual type system is
 added to a variant of the Scheme programming language to enable gradual
 migration from untyped to typed code.
 
-
 \subsection{Laziness and the R Language}
 
 The R language is widely used in data science. R is a vectorized, dynamic, lazy,
@@ -347,63 +331,70 @@ definition can include default expressions for parameters, these can refer to
 other parameters. R functions are higher-order. The following snippet declares a
 function \code f which takes a variable number of arguments, whose parameters
 \code x and \code y, if missing, have default expressions \code y and
-\code{3*x}, and which are only evaluated when needed. The function returns a closure.
+\code{3*x}, and which are only evaluated when needed. The function returns a
+closure.
+
 \begin{lstlisting}
- > f <- function(x=y, ..., y=3*x) { function(z) x+y+z }
+ f <- function(x=y,...,y=3*x) { function(z) x+y+z }
 \end{lstlisting}\vspace{1mm}
+
 \noindent
-The \code f function can be called with a single argument matching \code x, as in
+This function can be called with a single argument matching \code x, as in
 \code{f(3)}, with named arguments, as in \code{f(y=4,x=2)}, with a variable
 number of arguments, for example \code{f(1,2,3,4,y=5)}, multiple arguments
 captured by \code{...}, or with no arguments at all, \code{f()}, which creates a
-cyclic dependency. Some functions are written to behave differently in the
-presence of missing arguments. To this end the \c{missing(x)} built-in can be
-used to check if parameter \code{x} was provided at the call site or not, even
-if it was later substituted by a default value. A vararg parameter, written
-\code{...}, accepts an arbitrary number of arguments, including missing
-arguments. A vararg can be materialized into a list with \code{list(...)}. Most
-frequently varargs are forwarded to a called function. This enables the
-function to expose its callee's interface to the callers without listing the
-callee's parameters and their default values. \SK{shouldn't we say something about z here?}
+cyclic dependency and errors out when the returned function is used. Some
+functions are written to behave differently in the presence of missing
+arguments. To this end the \c{missing(x)} built-in can be used to check if
+parameter \code{x} was provided at the call site or not, even if it was later
+substituted by a default value. A vararg parameter, written \code{...}, accepts
+an arbitrary number of arguments, including missing arguments. A vararg can be
+materialized into a list with \code{list(...)}. Most frequently varargs are
+forwarded to a called function. This enables the function to expose its callee's
+interface to the callers without listing the callee's parameters and their
+default values.
+%%% \SK{shouldn't we sayz something about z here?}
+%%% TODO -- I am not sure what (Says Jan)
 
 \paragraph{Reflection}
-R supports meta-programming. The \code{substitute(e,envir)}
-function yields the parse tree of the expression \code{e} after performing
-substitutions defined by the bindings in \code{envir}.
-\vspace{-1mm}
+R supports meta-programming. The \code{substitute(exp,env)} function yields the
+parse tree of the expression \code{exp} after performing substitutions defined
+by the bindings in \code{env}. Consider the following call that substitutes 1
+for \c a and returns a value of type \c{expression}.
+
 \begin{lstlisting}
  > substitute(expression(a + b), list(a = 1))
  expression(1 + b)
 \end{lstlisting}
-\noindent
-Extensions written in C are able to freely access and mutate the expression, as
-well as the memoized result of promises. R allows programmatic manipulation of
-parse trees, which are themselves first-class objects. They are evaluated using
-the \code{eval(e,envir)} function. In R the local scope of a closure is a
-first-class, mutable map \SK{maybe remove comma before mutable map? Not sure if 'first-class mutable map' is ok either}. It is possible to access the local environment, but
-also to reflectively extract the environments of all functions currently being
-present on the call stack.
 
-\paragraph{Effects} While R strives to be functional, it has many imperative
-features such as assignment to local variables \code{<-}, assignment to
-variables in an enclosing scope \code{<<-}, and assignment in a programmatically
-chosen scope \code{assign()}. R supports non-local returns either through
-exceptions or by delayed evaluation of a \code{return} statement. Of course,
-there are all sorts of external effects and no monads.
+R allows programmatic manipulation of parse trees, which are themselves
+first-class objects. They are evaluated using the \code{eval(exp,env)} function.
+In R, the local scope of a closure is a first-class mutable map. Code can always
+access its local environment, but it is also possible to reflectively extract
+the environments of any function currently on the call stack.
+
+\paragraph{Effects} Logically function arguments are passed by copy to
+facilitate equational reasoning, the implementation optimizes this with a simple
+copy-on-write of aliased values. While R strives to be functional, it has
+imperative features such as assignment to local variables \code{<-}, assignment
+to variables in an enclosing scope \code{<<-}, and assignment in a
+programmatically chosen scope \code{assign()}. R supports non-local returns
+either through exceptions or by delayed evaluation of a \code{return} statement.
+Of course, there are all sorts of external effects and no monads.
 
 \paragraph{Delayed Evaluation}
-
 The combination of side effects, frequent interaction with C, and absence of
 types has pushed R to be more eager than other lazy languages. Strictly
-speaking, R is not lazy as it evaluates arguments that it does not need to. Let
-us review its design. Arguments to a function are bundled into a thunk called a
-\emph{promise}. Logically, a promise combines an expression's code, its
+speaking, R is not lazy as it evaluates some arguments that it does not need to.
+Let us review its design. Arguments to a function are bundled into a thunk
+called a \emph{promise}. Logically, a promise combines an expression's code, its
 environment, and its value. To access the value of a promise, one must
 \emph{force} it. Forcing a promise triggers evaluation and the computed value is
-captured for future reference. The following snippet defines a function \code{f}
-that takes an argument \code x and returns \code{x+x}. When called with an argument
+captured for future reference. The following snippet defines a function that
+takes an argument \code x and returns \code{x+x}. When called with an argument
 that has the side effect of printing to the console, the side effect is
-performed once as the second access to the promise is cached.
+performed only once, the second access to the promise uses the cached result.
+
 \begin{lstlisting}
  > f <- function(x) x+x
  > f( {print("Hi!");2} )
@@ -412,34 +403,38 @@ performed once as the second access to the promise is cached.
 \end{lstlisting}
 
 \noindent
-Promises associated to parameters' default values have access to all variables
-in scope, including other parameters. Promises cannot be forced recursively,
-that is an error. Promises are mostly encapsulated and hidden from user code. R
-only provides a small interface for operating on promises:
+A promise associated to the default value of a parameter has access to all
+variables in scope, including other parameters. Promises cannot be forced
+recursively, if this were to happen the R interpreter terminates execution of
+the expression. Promises are mostly encapsulated and hidden from user code. R
+only provides a small interface for operating on them:
 \begin{itemize}
 \item[] {\hskip -1em \bf\small\code{delayedAssign(x,exp,env,aenv)}}: creates a
-  promise with body \code{exp} and binds it to variable \code x (where \code x
-  is a symbol). Environment \code{env} is used for evaluation and \code{aenv} to
-  perform the assignment.
+  promise with body \code{exp} and binds it to variable \code x (here \code x is
+  a symbol) in the environment \c{aenv}, evaluation of the promise will take
+  place in environment \c{env}.
 \item[] {\hskip -1em \bf\small\code{substitute(e,env)}}: substitutes variables
-  in \code e with their values found in environment \code{env}, returns an
-  \code{expression} (a parse tree).
-\item[] {\hskip -1em \bf\small\code{force(x)}}: forces the promise \code x. This
-  replaces a common programming idiom, \code{x<-x}, which forces \code x by
-  assigning it to itself.
+  in \c e with their values found in environment \c{env}, returns an
+  \c{expression}.
+\item[] {\hskip -1em \bf\small\code{force(x)}}: forces evaluation of its
+  argument. This replaces a common programming idiom, \code{x<-x}, which forces
+  \code x by assigning it to itself.
 \item[] {\hskip -1em \bf\small\code{forceAndCall(n,f,...)}}: calls \code{f} with
   the arguments specified in the varargs, of which the first \code{n} are forced
   before the call.
 \end{itemize}
 
 \noindent
-While R does not provide built-in lazy data structures, they can be encoded. R
-evaluates promises aggressively. The sequencing operator \code{a:b} will
-evaluate both \code a and \code b, assignment \code{x<-a} evaluates \code a, and
-\code{return} also triggers evaluation. In addition, many core functions are
-strict.
+There are implicit \c{force} call on values returned by a function and on the
+right hand side of assignment. In addition, many core functions are strict. R
+code can include extensions written in C, these are able to freely access and
+mutate the expression stored in a promise, as well as the memoized result of
+promises. Legacy C code, such as mathematical functions, typically expects
+unwrapped values and not promises. While R does not provide built-in lazy data
+structures, they can be encoded. For instance, the 'trick' to return an
+unevaluated promise from a function is to wrap that promise in a newly created
+environment.
 
-\newpage %
 \section{StrictR: An R Interpreter with Strictness Signatures}\label{sec:strictr}
 
 \strictr is a prototype implementation of GNU R with a strict-by-default
