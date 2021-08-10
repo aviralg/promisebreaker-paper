@@ -810,11 +810,15 @@ two Intel Xeon 6140, 2.30GHz machines with 72 cores and 256GB of RAM each.
 
 \subsection{Corpus}\label{sec:corpus}
 
-A corpus of 500 packages with the largest number of clients were selected from
+A corpus of 500 packages with the most clients were selected from
 CRAN~\cite{ligges2017} and Bioconductor~\cite{bioc} on the 26th of July 2021.
 The packages have a total of 15,362 clients ranging from \c{ggplot2} with 2,669
 clients all the way to \c{spatstat.linnet} with only 5. The packages have 2.2M
-lines of R code and 2.7M lines of native code.
+lines of R code and 2.7M lines of native code. Table~\ref{table:corpus}
+summarizes the runnable code. Each test is run as a separate script. Examples
+and vignettes are snippets of code embedded in the documentation. \lazr extracts
+them into self-standing scripts. Typically, vignettes are longer examples with
+input data, while examples are smaller code fragments.
 
 \begin{wraptable}{r}{7cm}
   \vspace{-3mm}
@@ -831,62 +835,16 @@ lines of R code and 2.7M lines of native code.
     {LOC}&406.4K&207.0K&48.7K\\
     \bottomrule
   \end{tabular}
-
-  \medskip\medskip
-  \medskip
-  \caption{Allocations} \label{table:allocations}
-  \centering
-\begin{tabular}{ll}
-  \begin{tabular}{lr}
-    \toprule
-    \bf Object&\bf Count\\
-    \midrule
-    Promise&16.0B\\
-    Environment&6.8B\\
-    Logical&6.1B\\
-    Character&5.5B\\
-    Language&2.9B\\
-    Integer&2.5B\\
-    List&849.7M\\
-    Real&639.0M\\
-    Closure&585.6M\\
-    \bottomrule
-  \end{tabular}&
-  \begin{tabular}{lr}
-    \toprule
-    \bf Object&\bf Count\\
-    \midrule
-    Char&326.4M\\
-    Raw&288.7M\\
-    Symbol&204.7M\\
-    Dot&157.9M\\
-    Externalptr&66.6M\\
-    S4&30.3M\\
-    Complex&2.2M\\
-    Expression&1.6M\\
-    Weakref&25.2K\\
-    \bottomrule
-  \end{tabular}\end{tabular}
 \end{wraptable}%%
 
-Table~\ref{table:corpus} summarizes the runnable code. Each test is run as a
-separate script. Examples and vignettes are snippets of code embedded in the
-documentation. \lazr extracts them into self-standing scripts. Typically,
-vignettes are longer examples with input data, while examples are smaller code
-fragments.
+There are 50,435 top-level functions, their distribution per packages is given
+in Table~\ref{table:packsize}; 148 packages have 25 functions or less, and 12
+packages with more than 500 functions. The largest package, \c{spatstat.geom},
+has 886 functions. We observe 137.2M calls to these functions, their
+distribution per function is in Fig.~\ref{fig:callDist}; 49\% of functions are
+called more than ten times, while 16\% are called only once.
 
-During execution, \lazr collects information about function calls, arguments,
-side-effects, and reflective environment accesses from the model objects
-provided. To give an idea of scale, Table~\ref{table:allocations} gives the
-number of model objects.
-
-The packages have 50,435 top-level functions. Table~\ref{table:packsize} shows
-the distribution of these functions across packages. We observe that 148
-packages have 25 functions or less. As expected, there is a steady decrease in
-packages with more functions. There are 12 packages with more than 500
-functions. The \c{spatstat.geom} package has the most with 886 functions.
-
-\begin{wraptable}{r}{8cm}\small
+\begin{table}[!h]\small
   \caption{Package Size} \label{table:packsize}\centering
   \begin{tabular}{lr}\toprule
     \bf Functions&\bf Packages\\\midrule
@@ -908,30 +866,19 @@ functions. The \c{spatstat.geom} package has the most with 886 functions.
     701--800&4\\
     801--900&2\\\bottomrule
   \end{tabular}
-\end{wraptable}
+\end{table}
 
-
-We observe 137.2M calls to these functions. Figure ~\ref{fig:callDist} shows the
-distribution of calls across functions called in the synthesis
-phase. 49.5\% of functions are called more than ten times. 16.4\% of functions are
-called only once, leading to low coverage. These functions are spread across 414
-packages.
-We observe 294.45M arguments created in our execution traces. Of those, 3.9M are
-missing, 18.9M are $...$ arguments, and 271.6M are promises. These arguments
-correspond to 185.9K parameter positions of the 50,435 functions for which we
-generate signatures.
-7.3\% of functions have 0 parameters, 19.6\% have 1, and 5.0\% have over 10. There
-are 15 functions with over 50 parameters that come from 10 packages. Of those,
-\c{rpart.plot::check.if.dot.arg.supported.by.rpart.rules} has the highest number,
+The trace record 294M arguments, of those, close to 4M are missing, 19M are
+$...$ and 271M are promises. These arguments correspond to 186K parameter
+positions; 7\% of functions have no parameters, 19\% have 1, and 5\% have over
+10, and 15 functions have over 50 parameters. Function
+\c{rpart.plot::check.if.dot.arg.supported.by.rpart.rules} takes the cake with
 122 parameters.
-%
-\begin{figure}[!h]
-  \centering
+
+\begin{figure}[!h]  \centering
   \input{graphs/call_dist.tex}
-  \caption{Call Distribution}
-  \label{fig:callDist}
+  \caption{Call Distribution}\label{fig:callDist}
 \end{figure}
-%
 
 \subsection{Inferred strictness signatures}\label{sec:results}
 
