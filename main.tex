@@ -137,7 +137,7 @@
 \ccsdesc[500]{Software and its engineering~Scripting languages}
 \ccsdesc[300]{Software and its engineering~Semantics}
 
-%\keywords{R language, delayed or lazy evaluation}
+\keywords{R language, delayed or lazy evaluation}
 
 \maketitle
 \section{Introduction}
@@ -229,8 +229,7 @@ compiler used today. It is conceivable that the relative speedups could be more
 impressive than in our native compiler, but in the long run we expect users
 to move away from bytecode execution.
 
-\paragraph{Availability.} Our work is in open source,
-  experiments are available from:
+\paragraph{Availability.} Our work is available from:
     URL/of/artifact/goes/here
 
 \section{Background}\label{sec:background}
@@ -329,27 +328,27 @@ flow statements, assignments, and bracketing. Furthermore, all functions can be
 redefined. This makes R both flexible and challenging to compile. A function
 definition can include default expressions for parameters, these can refer to
 other parameters. R functions are higher-order. The following snippet declares a
-function \code f which takes a variable number of arguments, whose parameters
-\code x and \code y, if missing, have default expressions \code y and
-\code{3*x}, and which are only evaluated when needed. The function returns a
+function \c f which takes a variable number of arguments, whose parameters
+\c x and \c y, if missing, have default expressions \c y and
+\c{3*x}, and which are only evaluated when needed. The function returns a
 closure.
 
 \begin{lstlisting}
  f <- function(x=y,...,y=3*x) { function(z) x+y+z }
-\end{lstlisting}\vspace{1mm}
+\end{lstlisting}
 
-\noindent
-This function can be called with a single argument matching \code x, as in
-\code{f(3)}, with named arguments, as in \code{f(y=4,x=2)}, with a variable
-number of arguments, for example \code{f(1,2,3,4,y=5)}, multiple arguments
-captured by \code{...}, or with no arguments at all, \code{f()}, which creates a
+
+This function can be called with a single argument matching \c x, as in
+\c{f(3)}, with named arguments, as in \c{f(y=4,x=2)}, with a variable
+number of arguments, for example \c{f(1,2,3,4,y=5)}, multiple arguments
+captured by \c{...}, or with no arguments at all, \c{f()}, which creates a
 cyclic dependency and errors out when the returned function is used. Some
 functions are written to behave differently in the presence of missing
 arguments. To this end the \c{missing(x)} built-in can be used to check if
-parameter \code{x} was provided at the call site or not, even if it was later
-substituted by a default value. A vararg parameter, written \code{...}, accepts
+parameter \c{x} was provided at the call site or not, even if it was later
+substituted by a default value. A vararg parameter, written \c{...}, accepts
 an arbitrary number of arguments, including missing arguments. A vararg can be
-materialized into a list with \code{list(...)}. Most frequently varargs are
+materialized into a list with \c{list(...)}. Most frequently varargs are
 forwarded to a called function. This enables the function to expose its callee's
 interface to the callers without listing the callee's parameters and their
 default values.
@@ -357,9 +356,9 @@ default values.
 %%% TODO -- I am not sure what (Says Jan)
 
 \paragraph{Reflection}
-R supports meta-programming. The \code{substitute(exp,env)} function yields the
-parse tree of the expression \code{exp} after performing substitutions defined
-by the bindings in \code{env}. Consider the following call that substitutes 1
+R supports meta-programming. The \c{substitute(exp,env)} function yields the
+parse tree of the expression \c{exp} after performing substitutions defined
+by the bindings in \c{env}. Consider the following call that substitutes 1
 for \c a and returns a value of type \c{expression}.
 
 \begin{lstlisting}
@@ -368,7 +367,7 @@ for \c a and returns a value of type \c{expression}.
 \end{lstlisting}
 
 R allows programmatic manipulation of parse trees, which are themselves
-first-class objects. They are evaluated using the \code{eval(exp,env)} function.
+first-class objects. They are evaluated using the \c{eval(exp,env)} function.
 In R, the local scope of a closure is a first-class mutable map. Code can always
 access its local environment, but it is also possible to reflectively extract
 the environments of any function currently on the call stack.
@@ -376,10 +375,10 @@ the environments of any function currently on the call stack.
 \paragraph{Effects} Logically function arguments are passed by copy to
 facilitate equational reasoning, the implementation optimizes this with a simple
 copy-on-write of aliased values. While R strives to be functional, it has
-imperative features such as assignment to local variables \code{<-}, assignment
-to variables in an enclosing scope \code{<<-}, and assignment in a
-programmatically chosen scope \code{assign()}. R supports non-local returns
-either through exceptions or by delayed evaluation of a \code{return} statement.
+imperative features such as assignment to local variables \c{<-}, assignment
+to variables in an enclosing scope \c{<<-}, and assignment in a
+programmatically chosen scope \c{assign()}. R supports non-local returns
+either through exceptions or by delayed evaluation of a \c{return} statement.
 Of course, there are all sorts of external effects and no monads.
 
 \paragraph{Delayed Evaluation}
@@ -391,7 +390,7 @@ called a \emph{promise}. Logically, a promise combines an expression's code, its
 environment, and its value. To access the value of a promise, one must
 \emph{force} it. Forcing a promise triggers evaluation and the computed value is
 captured for future reference. The following snippet defines a function that
-takes an argument \code x and returns \code{x+x}. When called with an argument
+takes an argument \c x and returns \c{x+x}. When called with an argument
 that has the side effect of printing to the console, the side effect is
 performed only once, the second access to the promise uses the cached result.
 
@@ -402,29 +401,29 @@ performed only once, the second access to the promise uses the cached result.
  4
 \end{lstlisting}
 
-\noindent
+
 A promise associated to the default value of a parameter has access to all
 variables in scope, including other parameters. Promises cannot be forced
 recursively, if this were to happen the R interpreter terminates execution of
 the expression. Promises are mostly encapsulated and hidden from user code. R
 only provides a small interface for operating on them:
 \begin{itemize}
-\item[] {\hskip -1em \bf\small\code{delayedAssign(x,exp,env,aenv)}}: creates a
-  promise with body \code{exp} and binds it to variable \code x (here \code x is
+\item[] {\hskip -1em \bf\small\c{delayedAssign(x,exp,env,aenv)}}: creates a
+  promise with body \c{exp} and binds it to variable \c x (here \c x is
   a symbol) in the environment \c{aenv}, evaluation of the promise will take
   place in environment \c{env}.
-\item[] {\hskip -1em \bf\small\code{substitute(e,env)}}: substitutes variables
+\item[] {\hskip -1em \bf\small\c{substitute(e,env)}}: substitutes variables
   in \c e with their values found in environment \c{env}, returns an
   \c{expression}.
-\item[] {\hskip -1em \bf\small\code{force(x)}}: forces evaluation of its
-  argument. This replaces a common programming idiom, \code{x<-x}, which forces
-  \code x by assigning it to itself.
-\item[] {\hskip -1em \bf\small\code{forceAndCall(n,f,...)}}: calls \code{f} with
-  the arguments specified in the varargs, of which the first \code{n} are forced
+\item[] {\hskip -1em \bf\small\c{force(x)}}: forces evaluation of its
+  argument. This replaces a common programming idiom, \c{x<-x}, which forces
+  \c x by assigning it to itself.
+\item[] {\hskip -1em \bf\small\c{forceAndCall(n,f,...)}}: calls \c{f} with
+  the arguments specified in the varargs, of which the first \c{n} are forced
   before the call.
 \end{itemize}
 
-\noindent
+
 There are implicit \c{force} call on values returned by a function and on the
 right hand side of assignment. In addition, many core functions are strict. R
 code can include extensions written in C, these are able to freely access and
@@ -477,10 +476,10 @@ callback that reads the signature file in the current directory or on the load
 path. Then, as functions are defined, \strictr injects code in the function in
 accordance with the signature. An earlier implementation mutated function
 bodies. This resulted in failures as the same function object can occur with
-different names and different signatures. For instance, in the \code{rlang}
-package, \code{is_same_body <<- is_reference} aliases \code{is_reference}.
-Mutating \code{is_reference} to make arguments strict inadvertently also makes
-the function \code{is_same_body} strict. Further discussion will clarify why
+different names and different signatures. For instance, in the \c{rlang}
+package, \c{is_same_body <<- is_reference} aliases \c{is_reference}.
+Mutating \c{is_reference} to make arguments strict inadvertently also makes
+the function \c{is_same_body} strict. Further discussion will clarify why
 this is undesirable. To avoid this, \strictr copies functions as it rewrites
 them.
 
@@ -498,14 +497,14 @@ meta-programming. Consider the following:
 \end{lstlisting}
 
 \medskip
-\noindent
+
 A call of \c{f(1+2,3+4)} creates two promises. The first is accessed by
 \c{substitute}, turned into a string by \c{deparse} and printed. The code of the
 second is accessed by \c{substitute} and evaluated by \c{eval}. Then expression
 \c{x+a} forces the first promise; the second is never forced. Both arguments are
 intrinsically lazy. Intrinsic laziness is transitive as arguments are passed
 from one function to the next. If C code accesses a promise through the
-\code{PREXPR} macro, the argument has to stay lazy for similar reasons. Lastly,
+\c{PREXPR} macro, the argument has to stay lazy for similar reasons. Lastly,
 an argument that is not always evaluated may be marked as lazy. Though, this
 is rarely necessary.
 
@@ -520,8 +519,8 @@ R has a call-by-value semantics for vectors and lists. These are the most
 frequently used data types, so many updates will be locally contained. Errors
 and exceptions are another source of effects inside promises. Some reflective
 functions can make evaluation of a promise sensitive to its position on the call
-stack, and strict evaluation would be observable: \code{as.environment} and
-\code{pos.to.env} use integers to access specific frames on the stack. It is
+stack, and strict evaluation would be observable: \c{as.environment} and
+\c{pos.to.env} use integers to access specific frames on the stack. It is
 worth noting, again, that such code is brittle as any change in the the target
 function can change the frame returned by the reflective calls.
 
@@ -588,14 +587,14 @@ analyses that scale to thousands of packages.
 The goal of this analysis is not to infer maximally strict signatures but rather
 minimize the impact of semantic change on clients by considering both intrinsic
 and accidental laziness. We elucidates this point with fig.~\ref{iss} which
-shows a \c{popular} function that takes six arguments, \code{a} is always
-evaluated, \code{b} is conditionally evaluated, \code{c} is forwarded to
-\c{substitute} for meta-programming, \code{d} and \code{e} are forwarded to a
-strict function, and \code{f} is evaluated if it is not missing. The client code
-has three invocations. In all them, \code{f} is missing. This makes \code{f}
+shows a \c{popular} function that takes six arguments, \c{a} is always
+evaluated, \c{b} is conditionally evaluated, \c{c} is forwarded to
+\c{substitute} for meta-programming, \c{d} and \c{e} are forwarded to a
+strict function, and \c{f} is evaluated if it is not missing. The client code
+has three invocations. In all them, \c{f} is missing. This makes \c{f}
 lazy because there is no information available about its evaluation. For \c{r1},
 variable \c b should not be evaluated, evaluating it strictly will change the
-output of the program; for \c{r2}, evaluating \code{c} will immediately
+output of the program; for \c{r2}, evaluating \c{c} will immediately
 terminate execution, departing from the original program behavior; and for
 \c{r3}, if \c{d} is evaluated before \c{e} a different result can be observed.
 To summarize, the expected output of the analysis of legacy code is to increase
@@ -634,15 +633,16 @@ provided argument does, we summarize them here:
   for that parameter.
 \item[{\bf ?}:] A parameter that did not receives an argument; this is a weak
   signal for laziness owing to a lack of information.
-\item[{\bf \texttt{...}}:] A variable length parameters; this is a strong signal
-  of intrinsic laziness. % TODO discuss
+\item[$\dots$:] A vararg parameter; we consider this to be a strong
+  signal of intrinsic laziness. The reason for this particular choice is that it
+  is unclear how to treat individual elements of the varag.
 \item [{\bf S}:] An argument with \emph{side-effects}; a weak signal of
   accidental laziness as some effects may be benign. We monitor three kinds of
   effects: variable reads, variable writes (definitions, updates, and removals)
   of variables, and errors.  % TODO what about IO
 \item[{\bf R}:] An argument that uses \emph{reflection} to observe the state of
   the call stack; this is a strong signal of accidental laziness. This
-  corresponds to calls \code{as.environment(v)} or \code{pos.to.env(v)} where \c
+  corresponds to calls \c{as.environment(v)} or \c{pos.to.env(v)} where \c
   v is \c{-1}. %% TODO only -1?????
 
 \end{itemize}
@@ -661,15 +661,15 @@ was modified after the responsible promise was created or modified after is
 started executing, then the read is ignored. For performance but at the cost of
 precision, variable names are not recorded.
 
-The result of analyzing an R script is a table summarizing, for each function
-and each parameter, which signals were observed. Multiple scripts can be
-straightforwardly merged as the union of signals for each parameter. Finally,
-from this table, the strictness signatures are generated.
+The result of analyzing an R script is a summary for each function and each
+parameter of the signals that were observed during tracing. Multiple scripts can
+be straightforwardly merged as the union of signals for each parameter. Finally,
+from this summary, strictness signatures are generated.
 
 Consider Fig.~\ref{iss}, for \c{a} no signal is observed, for \c{b} signal U
 come from \c{r1}, for \c{c} signal M comes from all invocations, for \c{d}
 signal S comes from \c{r3} since its argument mutates \c{r1} after it is read by
-\c{e}, we have no signal for \c{e}, and for \code{f} it gets \textbf{?} since \c
+\c{e}, we have no signal for \c{e}, and for \c{f} it gets \textbf{?} since \c
 e is missing in all invocations. \lazr combines this information to synthesize
 the signature, \texttt{strict popular<1,5>}, i.e., parameters \c{a} and \c{e}
 are strict, and the rest are lazy.
@@ -807,9 +807,8 @@ A corpus of 500 packages with the most clients were selected from
 CRAN~\cite{ligges2017} and Bioconductor~\cite{bioc} on the 26th of July 2021.
 
 \begin{wraptable}{r}{7cm}
-  \vspace{-3mm}\small\centering
+\small\centering
   \caption{Corpus}\label{table:corpus}
-  \vspace{-3mm}
   \begin{tabular}{lrrr}\toprule
     &\bf Tests&\bf Examples&\bf Vignettes\\\midrule
     {Scripts}&5.8K&20.2K&631\\\midrule
@@ -892,12 +891,11 @@ functions, and packages using metaprogramming. Out of \AG{total number of
   arguments} model arguments, \MetaCountArgumentsTotal were meta-programmed.
 This results in \MetaCountParametersTotal lazy parameters from
 \MetaCountFunctionsTotal functions of \MetaCountPackagesTotal packages. While
-more arguments are metaprogrammed using \code{substitute} than \code{PREXPR},
+more arguments are metaprogrammed using \c{substitute} than \c{PREXPR},
 they correspond to fewer parameters.
 
 \begin{wraptable}{r}{5.5cm}\small\centering
   \caption{Metaprogramming}\label{table:metaprogramming}
-  \vspace{-3mm}
   \begin{tabular}{lrrr}\toprule
     &\bf R&\bf Native&\bf Total\\\midrule
     {Arguments}&\MetaCountArgumentsR&\MetaCountArgumentsNative&\MetaCountArgumentsTotal\\
@@ -907,15 +905,15 @@ they correspond to fewer parameters.
   \end{tabular}
 \end{wraptable}
 
-For details about \code{substitute}, we refer the reader to \cite{oopsla19b}.
-We elaborate on \code{PREXPR} since it was not addressed there. This macro is
+For details about \c{substitute}, we refer the reader to \cite{oopsla19b}.
+We elaborate on \c{PREXPR} since it was not addressed there. This macro is
 used by many packages to extract a promise's expression for ad-hoc evaluation
-strategies. We found it in packages like \code{lazyeval} and \code{rlang}. The
-latter stands out because its own API for meta-programming. The \code{PREXPR}
+strategies. We found it in packages like \c{lazyeval} and \c{rlang}. The
+latter stands out because its own API for meta-programming. The \c{PREXPR}
 macro is also used by the builtins of the GNU R interpreter, a canonical example
-is the \code{missing} function which checks if an argument was provided. Unlike
-user packages, these uses of \code{PREXPR} don't require the corresponding
-arguments to be lazily evaluated. Hence, uses of \code{PREXPR} from GNU R
+is the \c{missing} function which checks if an argument was provided. Unlike
+user packages, these uses of \c{PREXPR} don't require the corresponding
+arguments to be lazily evaluated. Hence, uses of \c{PREXPR} from GNU R
 interpreter are not made lazy.
 
 
@@ -925,7 +923,6 @@ interpreter are not made lazy.
   \small
   \centering
   \caption{Missing}\label{table:missing}
-  \vspace{-3mm}
   \begin{tabular}{lrrr}
     \toprule
     &\bf Sometimes&\bf Always&\bf Total\\
@@ -982,7 +979,6 @@ base64encode <- function(what, linewidth, newline) {
   \small
   \centering
   \caption{Unevaluated}\label{table:unevaluated}
-  \vspace{-3mm}
   \begin{tabular}{lrrr}
     \toprule
     &\bf Sometimes&\bf Never&\bf Total\\
@@ -1008,8 +1004,8 @@ A common pattern is the following:
  lazyeval::%||% <- function(x, y) if(is.null(x)) y else x
 \end{lstlisting}
 
-This function evaluates \code{y} only if \code{x} is \code{NULL}, making
-\code{y} a \sometimes parameter. Another pattern is to delay the evaluation of a
+This function evaluates \c{y} only if \c{x} is \c{NULL}, making
+\c{y} a \sometimes parameter. Another pattern is to delay the evaluation of a
 parameter.
 
 \begin{lstlisting}
@@ -1022,25 +1018,25 @@ parameter.
  }
 \end{lstlisting}
 
-Here, \code{expr} may be delayed until \code{pkg} is loaded. Thus, \code{expr}
+Here, \c{expr} may be delayed until \c{pkg} is loaded. Thus, \c{expr}
 should not be evaluated strictly.
 %
 S3 generics result in many \sometimes and \never parameters. These functions
 dynamically dispatch to a specific implementation based on the argument's class.
-In the following example, the first argument is always evaluated, but \code{n}
-and \code{m} are only evaluated sometimes and \code{r} never.
+In the following example, the first argument is always evaluated, but \c{n}
+and \c{m} are only evaluated sometimes and \c{r} never.
 %
 \begin{lstlisting}
  abind::acorn <- function(x, n=6, m=5, r=1, ...) UseMethod('acorn')
 \end{lstlisting}
-\noindent
+
 One source of \never parameters is when a set of functions implements a common
-interface, but not all functions need all parameters. The \code{proxy} package
-defines over a dozen methods with the interface \code{function(a,b,c,d,n)} that
+interface, but not all functions need all parameters. The \c{proxy} package
+defines over a dozen methods with the interface \c{function(a,b,c,d,n)} that
 compute different proximity metrics using a subset of the arguments.
 
-Arguments can be \never by design; \code{tail} is not defined for
-\code{tbl_lazy} objects and throws an error when called.
+Arguments can be \never by design; \c{tail} is not defined for
+\c{tbl_lazy} objects and throws an error when called.
 \begin{lstlisting}
  dbplyr::tail.tbl_lazy <- function(x, n = 6L, ...)
    stop("tail() is not supported by sql sources", call.=FALSE)
@@ -1048,8 +1044,8 @@ Arguments can be \never by design; \code{tail} is not defined for
 %
 \never parameters can also represent an erroneous condition that would not
 happen in a correct program. The following function fails if its argument does
-not have the correct type. In all observed calls, \code{signal}
-went  unused because \code{e} had the right type.
+not have the correct type. In all observed calls, \c{signal}
+went  unused because \c{e} had the right type.
 \begin{lstlisting}
  codetools::checkSymOrString <- function(e, signal = stop) {
    type <- typeof(e)
@@ -1064,7 +1060,7 @@ Of all the promises observed by \lazr, only 0.5\% perform side-effects. Many
 side-effects are benign for our purposes because they happen in environments
 that are scoped by the evaluation of the promise, and the side-effects are ignored.
 
-\begin{table}[!h]  \vspace{-3mm}  \small
+\begin{table}[!h]   \small
   \caption{Effects} \label{table:effects} \centering
   \begin{tabular}{llllll}    \toprule
     \textbf{Effect}&\textbf{Count}&\textbf{Arguments}&\textbf{Parameters}&\textbf{Functions}&\textbf{Packages}\\    \midrule
@@ -1075,7 +1071,7 @@ that are scoped by the evaluation of the promise, and the side-effects are ignor
   \end{tabular}
 \end{table}
 
-\noindent
+
 Table~\ref{table:effects} counts lookups (L), definitions (D), assignments (A),
 and removals (R), and the arguments, parameters, functions, and packages directly
 responsible for those effects. Lookups are the most common cause for making
@@ -1089,7 +1085,6 @@ assignments to 235K.
   \small
   \centering
   \caption{Effects}\label{table:effects}
-  \vspace{-3mm}
   \begin{tabular}{lrrr}
     \toprule
     &\bf Direct&\bf Transitive&\bf Total\\
@@ -1105,43 +1100,43 @@ assignments to 235K.
 Table~\ref{table:effects} shows the arguments that are made lazy due to effects.
 
 A common source of non-local writes is the \c{shiny} package used for building
-interactive web applications. Consider the call to \code{bindEvent} which
+interactive web applications. Consider the call to \c{bindEvent} which
 attaches an observer expression to an event. The observer performs a non-local
-side-effect using \code{<<-}, this is a common way to update the global state.
+side-effect using \c{<<-}, this is a common way to update the global state.
 %
 \begin{lstlisting}
  bindEvent(trigger(), x=observe({vals <<- c(vals, val())}))
 \end{lstlisting}
 %
-\noindent
-Another source of non-local writes occurs in the \code{withr} package. It
+
+Another source of non-local writes occurs in the \c{withr} package. It
 provides functions to evaluate code in a temporarily modified global state. These
 code blocks assign their result in the current scope. In the following example, a
-side-effecting expression is passed to \code{with\_seed} which changes the
+side-effecting expression is passed to \c{with\_seed} which changes the
 random number generation seed.
 %
 \begin{lstlisting}
  with_seed(seed <- sample.int(.Machine$integer.max, 1), runif(5))
 \end{lstlisting}
 %
-\noindent
-Many side-effects occur in test cases written with the \code{testthat} library.
+
+Many side-effects occur in test cases written with the \c{testthat} library.
 The global state is modified temporarily to test its effect on the function
 under consideration.
 %
 Another common pattern is when the result of an intermediate computation is
 assigned to a variable for subsequent use. In the call below, the intermediate
-result is assigned to \code{x} before being passed on to the
-\code{as.data.table} function.
+result is assigned to \c{x} before being passed on to the
+\c{as.data.table} function.
 %
 \begin{lstlisting}
  as.data.table(x <- as.character(sample(letters, 5)))
 \end{lstlisting}
 %
-\noindent
-Deleting a variable from an environment is done with the \code{rm} function.
+
+Deleting a variable from an environment is done with the \c{rm} function.
 The following function computes the number of rows of a data frame and assigns
-it to a variable \code{.N} in the caller's environment. Eventually, it removes the
+it to a variable \c{.N} in the caller's environment. Eventually, it removes the
 variable.
 %
 \begin{lstlisting}
@@ -1150,11 +1145,11 @@ variable.
    if (remove.N) rm(list=".N", envir=parent.frame())
    ...
 \end{lstlisting}
-\noindent
-Lastly, \code{rlang} defines a function \code{env_bind} which can be used to
+
+Lastly, \c{rlang} defines a function \c{env_bind} which can be used to
 create and remove bindings from an environment. When passed with the value
-\code{zap()}, it removes the corresponding symbol from the environment. It uses
-the C function \code{R_removeVarFromFrame}.
+\c{zap()}, it removes the corresponding symbol from the environment. It uses
+the C function \c{R_removeVarFromFrame}.
 
 \subsubsection{Reflection}
 Reflective code is brittle. The following example shows that code that looks up
@@ -1168,27 +1163,26 @@ yield different results as the latter is executing within the \c{id} function.
  f(as.environment(-1), as.environment(-1))
 \end{lstlisting}
 %
-\noindent
-This can transitively affect the strictness of other parameters. If \code{f} is
-called from \code{g} as shown below, we will have to make \code{g} non-strict in
-\code{u} and \code{v}. Their results depend upon how they are evaluated inside
-\code{f}.
+
+This can transitively affect the strictness of other parameters. If \c{f} is
+called from \c{g} as shown below, we will have to make \c{g} non-strict in
+\c{u} and \c{v}. Their results depend upon how they are evaluated inside
+\c{f}.
 
 \begin{lstlisting}
  g <- function(u, v) { f(u, v) }
  g(as.environment(-1), as.environment(-1))
 \end{lstlisting}
 %
-\noindent
-R provides other functions for reflective stack access, \code{parent.frame} and
-\code{sys.frame}; these are less brittle as they access frames relative to the
+
+R provides other functions for reflective stack access, \c{parent.frame} and
+\c{sys.frame}; these are less brittle as they access frames relative to the
 promise's creation environment.
 
 \begin{wraptable}{r}{5.5cm}
   \small
   \centering
   \caption{Reflection}\label{table:reflection}
-  \vspace{-3mm}
   \begin{tabular}{lrrr}
     \toprule
     &\bf Direct&\bf Transitive&\bf Total\\
@@ -1202,13 +1196,13 @@ promise's creation environment.
 \end{wraptable}
 
 Table~\ref{table:reflection} presents the number of arguments that call
-\code{as.environment(-1)} and \code{pos.to.env(-1)} directly or transitively.
+\c{as.environment(-1)} and \c{pos.to.env(-1)} directly or transitively.
 This excludes the cases where the argument is also metaprogrammed. Two
-parameters from two functions, \code{R.oo::.getFunctionByName}, and
-\code{backports:::get0} call these functions directly.
+parameters from two functions, \c{R.oo::.getFunctionByName}, and
+\c{backports:::get0} call these functions directly.
 %
 The first searches for a function by name in different scopes. Its argument has
-a default value of \code{as.environment(-1)}.
+a default value of \c{as.environment(-1)}.
 %
 \begin{lstlisting}
  R.oo:::.getFunctionByName <- function(..., callEnvir = as.environment(-1L), ...) {
@@ -1289,8 +1283,8 @@ our corpus. These packages have 4.5M lines of R code and 4.7M lines of native
 code. Table ~\ref{table:clientcorpus} gives the number of scripts and lines of code
 exercised.
 
-\begin{wraptable}{r}{6cm}  \vspace{-3mm}  \small  \centering
-  \caption{Client Corpus}\label{table:clientcorpus}  \vspace{-3mm}
+\begin{wraptable}{r}{6cm}  \small  \centering
+  \caption{Client Corpus}\label{table:clientcorpus}
   \begin{tabular}{lrrr}    \toprule
     &\bf Tests&\bf Examples&\bf Vignettes\\
     \midrule
@@ -1578,10 +1572,8 @@ from the \emph{language shootout} suite. We have acquired one real-world program
 R. All of these are available with our artifact.
 
 \begin{table}[!h]
-  \vspace{-3mm}
   \small
   \caption{Benchmarks}\label{table:bms}
-  \vspace{-3mm}
   \begin{tabular}{lll}
     \toprule
     \bf Id&\bf Benchmark&\bf Suite\\
