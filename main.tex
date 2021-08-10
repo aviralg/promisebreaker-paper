@@ -1041,10 +1041,7 @@ not be evaluated until the seed has been changed, hence it made lazy by \lazr.
 withPrivateSeed <- function(expr) {
   origSeed <- .GlobalEnv$.Random.seed
   GlobalEnv$.Random.seed <- .globals$ownSeed
-  on.exit({
-      .GlobalEnv$.Random.seed <- origSeed
-    httpuv::getRNGState()
-  })
+  on.exit({.GlobalEnv$.Random.seed <- origSeed})
   expr
 }
 \end{lstlisting}
