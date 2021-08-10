@@ -16,6 +16,7 @@ params:
     datadir: "./data"
     graphdir: "./graphs"
     macrodir: "./macros"
+    sigdir: "./signatures"
 ---
 
 ```{r echo = FALSE, warning=FALSE, message=FALSE}
@@ -28,9 +29,20 @@ MacGen <- LatexMacroGenerator$new(params$macrodir)
 
 str(parameters)
 
+metaprogram_table <-
+    metaprogramming %>%
+    filter(native_fun %in% c("substitute", ".External(NA)", ".Call(NA)")) %>%
+    distinct(source_pack_name, source_fun_name, source_formal_pos) %>%
+    rename(pack_name = source_pack_name, fun_name = source_fun_name, formal_pos = source_formal_pos) %>%
+    mutate(metaprogram = TRUE)
+
+
 missing_summary <-
     parameters %>%
     filter(!vararg) %>%
+    left_join(metaprogram_table, by = c("pack_name", "fun_name", "formal_pos")) %>%
+    mutate(metaprogram = if_else(is.na(metaprogram), FALSE, metaprogram)) %>%
+    filter(!metaprogram) %>%
     filter(missing != 0) %>%
     group_by(pack_name, fun_name, formal_pos) %>%
     summarize(missing_count = sum(missing),
