@@ -812,6 +812,19 @@ two Intel Xeon 6140, 2.30GHz machines with 72 cores and 256GB of RAM each.
 
 A corpus of 500 packages with the most clients were selected from
 CRAN~\cite{ligges2017} and Bioconductor~\cite{bioc} on the 26th of July 2021.
+
+\begin{wraptable}{r}{7cm}
+  \vspace{-3mm}\small\centering
+  \caption{Corpus}\label{table:corpus}
+  \vspace{-3mm}
+  \begin{tabular}{lrrr}\toprule
+    &\bf Tests&\bf Examples&\bf Vignettes\\\midrule
+    {Scripts}&5.8K&20.2K&631\\\midrule
+    {LOC}&406.4K&207.0K&48.7K\\\bottomrule
+  \end{tabular}
+\end{wraptable}%%
+
+
 The packages have a total of 15,362 clients ranging from \c{ggplot2} with 2,669
 clients all the way to \c{spatstat.linnet} with only 5. The packages have 2.2M
 lines of R code and 2.7M lines of native code. Table~\ref{table:corpus}
@@ -820,95 +833,39 @@ and vignettes are snippets of code embedded in the documentation. \lazr extracts
 them into self-standing scripts. Typically, vignettes are longer examples with
 input data, while examples are smaller code fragments.
 
-\begin{wraptable}{r}{7cm}
-  \vspace{-3mm}
-  \small
-  \centering
-  \caption{Corpus}\label{table:corpus}
-  \vspace{-3mm}
-  \begin{tabular}{lrrr}
-    \toprule
-    &\bf Tests&\bf Examples&\bf Vignettes\\
-    \midrule
-    {Scripts}&5.8K&20.2K&631\\
-    \midrule
-    {LOC}&406.4K&207.0K&48.7K\\
-    \bottomrule
-  \end{tabular}
-\end{wraptable}%%
-
-There are 50,435 top-level functions, their distribution per packages is given
-in Table~\ref{table:packsize}; 148 packages have 25 functions or less, and 12
-packages with more than 500 functions. The largest package, \c{spatstat.geom},
-has 886 functions. We observe 137.2M calls to these functions, their
-distribution per function is in Fig.~\ref{fig:callDist}; 49\% of functions are
-called more than ten times, while 16\% are called only once.
-
-\begin{table}[!h]\small
-  \caption{Package Size} \label{table:packsize}\centering
-  \begin{tabular}{lr}\toprule
-    \bf Functions&\bf Packages\\\midrule
-    1--25&148\\
-    26--50&98\\
-    51--75&52\\
-    76--100&33\\
-    101--150&54\\
-    151--200&34\\
-    201--250&28\\\bottomrule
-  \end{tabular}
-  \quad\begin{tabular}{lr}\toprule
-    \bf Functions&\bf Packages\\\midrule
-    251--300&16\\
-    301--400&14\\
-    401--500&7\\
-    501--600&5\\
-    601--700&1\\
-    701--800&4\\
-    801--900&2\\\bottomrule
-  \end{tabular}
-\end{table}
-
-The trace record 294M arguments, of those, close to 4M are missing, 19M are
-$...$ and 271M are promises. These arguments correspond to 186K parameter
-positions; 7\% of functions have no parameters, 19\% have 1, and 5\% have over
-10, and 15 functions have over 50 parameters. Function
-\c{rpart.plot::check.if.dot.arg.supported.by.rpart.rules} takes the cake with
-122 parameters.
 
 \begin{figure}[!h]  \centering
   \input{graphs/call_dist.tex}
   \caption{Call Distribution}\label{fig:callDist}
 \end{figure}
 
+There are 50,435 top-level functions; 148 packages have 25 functions or less,
+and 12 packages with more than 500 functions. The largest package,
+\c{spatstat.geom}, has 886 functions. We observe 137.2M calls to these
+functions, their distribution per function is in Fig.~\ref{fig:callDist}; 49\%
+of functions are called more than ten times, while 16\% are called only once.
+
+The traces record 294M arguments, of those, close to 4M are missing, 19M are
+$...$ and 271M are promises. These arguments correspond to 186K parameter
+positions; 7\% of functions have no parameters, 19\% have 1, and 5\% have over
+10, and 15 functions have over 50 parameters. Function
+\c{rpart.plot::check.if.dot.arg.supported.by.rpart.rules} takes the cake with
+122 parameters.
+
 \subsection{Inferred strictness signatures}\label{sec:results}
 
-\lazr obtained data for 50,435 functions and 186K parameters. The results are
-signals (M, U, S, R) for individual parameters. There were 9,100 parameters that
-were marked M for meta-programmed. Table~\ref{table:strictdist} summarizes the
-distribution of the combination of the other signals; note that functions and
-packages can be counted in multiple rows as different parameters fall in
-multiple categories. Rows can be interpreted as follows: the first row, for
-instance, shows that 128K parameters coming from 44K functions and 489 packages
-were not marked in any way. The second row shows that only 134 parameters
-were marked R only for their use of reflective operations.
+\lazr recorded 9,100 parameters marked M, for those we ignore other signals as
+meta-programmed parameters are always lazy. For other combinations of signals
+Table~\ref{table:strictdist} summarizes their distribution. One functions can be
+counted in multiple rows as its different parameters may have different
+combinations. Rows are interpreted as follows: the first row, for instance,
+indicates that no signals were observed for 148K parameters coming from 49K
+functions and 489 packages.
 
-The data yields the following insights. First, the majority of parameters, 65\%,
-are always evaluated, and the corresponding arguments do not perform
-side-effects or reflective operations. They can become strict. Of the remaining,
-there are 13\% of unevaluated parameters, the most significant potential source of
-laziness. This is followed by 4\% of parameters whose arguments are marked S
-only. The rest of the configurations are quite low. Another observation is that
-rows marked R come from very few functions and packages.
-
-\begin{table}
-  \vspace{-3mm}
-  \small
-  \caption{Signature Summary} \label{table:strictdist}
-  \centering
-  \begin{tabular}{ccccccrrrrr}
-    \toprule
-    \bf ... & \bf M & \bf ? & \bf U & \bf S & \bf R & \multicolumn{2}{c}{\textbf{Parameters}} & \multicolumn{2}{c}{\textbf{Functions}}& \bf Packages\\
-    \midrule
+\begin{table}[!h] \small
+  \caption{Signature Summary} \label{table:strictdist} \centering
+  \begin{tabular}{ccccccrrrrr}\toprule
+\bf ...&\bf M&\bf ?&\bf U&\bf S&\bf R&\multicolumn{2}{c}{\textbf{Parameters}} &\multicolumn{2}{c}{\textbf{Functions}}&\bf Packages\\\midrule
     \xmark{}&\xmark{}&\xmark{}&\xmark{}&\xmark{}&\xmark{}&148.4K&72.8\%&49.3K&93.4\%&489\\
     \xmark{}&\xmark{}&\xmark{}&\xmark{}&\xmark{}&\cmark{}&529&0.3\%&509&1\%&119\\
     \xmark{}&\xmark{}&\xmark{}&\xmark{}&\cmark{}&\xmark{}&1.3K&0.7\%&950&1.8\%&207\\
@@ -919,64 +876,52 @@ rows marked R come from very few functions and packages.
     \xmark{}&\xmark{}&\xmark{}&\cmark{}&\cmark{}&\cmark{}&9&0\%&9&0\%&5\\
     \rmark{}&\rmark{}&\cmark{}&\rmark{}&\rmark{}&\rmark{}&3.2K&1.6\%&1.7K&3.2\%&240\\
     \rmark{}&\cmark{}&\rmark{}&\rmark{}&\rmark{}&\rmark{}&1.3K&0.6\%&825&1.6\%&118\\
-    \cmark{}&\rmark{}&\rmark{}&\rmark{}&\rmark{}&\rmark{}&20.0K&9.8\%&20.0K&37.9\%&430\\
-    \bottomrule
+    \cmark{}&\rmark{}&\rmark{}&\rmark{}&\rmark{}&\rmark{}&20.0K&9.8\%&20.0K&37.9\%&430\\\bottomrule
   \end{tabular}
 \end{table}
 
-
-The inferred strictness signatures for library functions use these marks to
-decide which arguments should be lazy and which should be strict. While any
-parameter marked M \emph{must} be lazy, there is some freedom to decide for the
-other combinations. Our evaluation will probe the different configurations and
-show the error rates they may have.
-
-\medskip
+We observe that the majority of parameters (72\%) are always evaluated, and the
+corresponding arguments do not perform side-effects or reflective operations.
+These parameters can safely be evaluated eagerly. Unevaluated parameters account
+for 14\% of observations, a significant source of potential laziness. Variable
+lengths arguments and missing arguments account for 9\% and 1.6\% of the data
+respectively. The remaining configurations are in the noise. It is noteworthy
+that parameters marked R come from very few functions and packages.
 
 We now discuss the different sources of laziness in more detail.
 
-
 \subsubsection{Metaprogramming}
 
-\begin{wraptable}{r}{5.5cm}
-  \small
-  \centering
-  \caption{Metaprogramming}\label{table:metaprogramming}
-  \vspace{-3mm}
-  \begin{tabular}{lrrr}
-    \toprule
-    &\bf R&\bf Native&\bf Total\\
-    \midrule
-    {Arguments}&\MetaCountArgumentsR&\MetaCountArgumentsNative&\MetaCountArgumentsTotal\\
-    {Parameters}&\MetaCountParametersR&\MetaCountParametersNative&\MetaCountParametersTotal\\
-    {Functions}&\MetaCountFunctionsR&\MetaCountFunctionsNative&\MetaCountFunctionsTotal\\
-    {Packages}&\MetaCountPackagesR&\MetaCountPackagesNative&\MetaCountPackagesTotal\\
-    \bottomrule
-  \end{tabular}
-\end{wraptable}
-
-
-Meta-programming tracks calls to \code{substitute} (from R) and \code{PREXPR}
-(from native code). Table~\ref{table:metaprogramming} shows the number of
-arguments, parameters, functions, and packages using metaprogramming. Out of
-\AG{total number of arguments} model arguments, \MetaCountArgumentsTotal were
-meta-programmed. This results in \MetaCountParametersTotal lazy parameters from
+Table~\ref{table:metaprogramming} shows the number of arguments, parameters,
+functions, and packages using metaprogramming. Out of \AG{total number of
+  arguments} model arguments, \MetaCountArgumentsTotal were meta-programmed.
+This results in \MetaCountParametersTotal lazy parameters from
 \MetaCountFunctionsTotal functions of \MetaCountPackagesTotal packages. While
 more arguments are metaprogrammed using \code{substitute} than \code{PREXPR},
 they correspond to fewer parameters.
 
-For a discussion of the use of \code{substitute} we refer the reader to
-\citet{oopsla19b}. We elaborate on \code{PREXPR} since it was not addressed
-there. This macro is used by many packages to extract a promise's expression for
-ad-hoc evaluation strategies. We found its uses in packages like \code{lazyeval}
-and \code{rlang}. The \code{rlang} package particularly stands out because it
-provides its own API for meta-programming. The \code{PREXPR} macro is also used
-by the builtin functions of the GNU R interpreter, a canonical example is the
-\code{missing} function to check if an argument was provided. Unlike user
-packages, these uses of \code{PREXPR} don't require the corresponding arguments
-to be lazily evaluated. Hence, parameters metaprogrammed using \code{PREXPR}
-from GNU R interpreter are not made lazy. They are also not included in
-Table~\ref{table:metaprogramming}.
+\begin{wraptable}{r}{5.5cm}\small\centering
+  \caption{Metaprogramming}\label{table:metaprogramming}
+  \vspace{-3mm}
+  \begin{tabular}{lrrr}\toprule
+    &\bf R&\bf Native&\bf Total\\\midrule
+    {Arguments}&\MetaCountArgumentsR&\MetaCountArgumentsNative&\MetaCountArgumentsTotal\\
+    {Parameters}&\MetaCountParametersR&\MetaCountParametersNative&\MetaCountParametersTotal\\
+    {Functions}&\MetaCountFunctionsR&\MetaCountFunctionsNative&\MetaCountFunctionsTotal\\
+    {Packages}&\MetaCountPackagesR&\MetaCountPackagesNative&\MetaCountPackagesTotal\\\bottomrule
+  \end{tabular}
+\end{wraptable}
+
+For details about \code{substitute}, we refer the reader to \cite{oopsla19b}.
+We elaborate on \code{PREXPR} since it was not addressed there. This macro is
+used by many packages to extract a promise's expression for ad-hoc evaluation
+strategies. We found it in packages like \code{lazyeval} and \code{rlang}. The
+latter stands out because its own API for meta-programming. The \code{PREXPR}
+macro is also used by the builtins of the GNU R interpreter, a canonical example
+is the \code{missing} function which checks if an argument was provided. Unlike
+user packages, these uses of \code{PREXPR} don't require the corresponding
+arguments to be lazily evaluated. Hence, uses of \code{PREXPR} from GNU R
+interpreter are not made lazy.
 
 
 \subsubsection{Missing Arguments}
@@ -998,23 +943,19 @@ Table~\ref{table:metaprogramming}.
   \end{tabular}
 \end{wraptable}
 
-Of the 294M total arguments in our corpus, \MissingTotalCountArguments arguments
-were missing. This excludes the \c{...} and metaprogrammed parameters which
-could also be missing, but are separately discussed above. These
-\MissingTotalCountArguments arguments correspond to \MissingTotalCountParameters
-parameters. Arguments to \MissingAlwaysCountParameters of these parameters are
-always missing. These parameters are classified as \always, in contrast to the
-\MissingSometimesCountParameters \sometimes parameters which are sometimes
-passed an argument. The distribution of these two categories is presented in
-Table~\ref{table:missing}. The \always parameters are treated as lazy, whereas
-the \sometimes parameters are treated as lazy if they don't evaluate the
-arguments passed to them at least once. These parameters are dealt like other
-parameters in Section~\ref{subsubsection:unevaluted_arguments} discussed below.
+Missing arguments do not count arguments bound to \c{...} and to metaprogrammed,
+either of which could also be missing. The \MissingTotalCountArguments arguments
+correspond to \MissingTotalCountParameters parameters. Some
+\MissingAlwaysCountParameters parameters are always missing; they are classified
+as \always. In contrast to the \MissingSometimesCountParameters \sometimes
+parameters which are sometimes passed an argument. The distribution of these two
+categories is in Table~\ref{table:missing}. The \always parameters are
+lazy, whereas the \sometimes parameters are only lazy if they are also marked U.
 
-The example below shows an example of \always missing parameter. The \c{names}
-argument was missing in all the calls to this function defined in the \c{rlang}
-package. Since the function does not use this argument, it is present presumably
-for future evolution or backwards compatibility.
+The following example shows an \always missing parameter. The \c{names} argument
+was missing in all the calls to this function defined in the \c{rlang} package.
+This is no surprise as the function does not use this argument, it is present
+presumably for future evolution or backwards compatibility.
 
 \begin{lstlisting}
 new_environments <- function(envs, names) {
@@ -1025,10 +966,10 @@ new_environments <- function(envs, names) {
 }
 \end{lstlisting}
 
-The example below shows an example of \sometimes missing parameter. The
-\c{linewidth} argument was missing in some calls to this function defined in the
-\c{base64enc} package. The function assigns a default value of \c{0L} to
-\c{linewidth} if it is missing.
+The next example has a \sometimes missing parameter. The \c{linewidth} argument
+was missing in some calls to this function defined in the \c{base64enc} package.
+The function assigns a default value of \c{0L} to \c{linewidth} if it is
+missing.
 
 \begin{lstlisting}
 base64encode <- function(what, linewidth, newline) {
@@ -1037,7 +978,6 @@ base64encode <- function(what, linewidth, newline) {
                else as.integer(linewidth[1L])
     ...
 }
-
 \end{lstlisting}
 
 
@@ -1059,27 +999,23 @@ base64encode <- function(what, linewidth, newline) {
   \end{tabular}
 \end{wraptable}
 
-Of the 294M total arguments in our corpus, \UnevaluatedTotalCountArguments of
-promises were not evaluated. They correspond to \UnevaluatedTotalCountParameters
-parameters from \UnevaluatedTotalCountFunctions functions of
-\UnevaluatedTotalCountPackages packages. We can classify these parameters into
-two categories: parameters that are \sometimes evaluated and parameters that are
-\never evaluated. Table~\ref{table:unevaluated} presents the number of
-parameters, functions, and packages in these two categories. There are
-\UnevaluatedSometimesCountParameters \sometimes parameters and
-\UnevaluatedNeverCountParameters \never parameters. These may correspond to code
-paths not exercised or to dummy parameters.
+Unevaluated arguments correspond to \UnevaluatedTotalCountParameters parameters
+from \UnevaluatedTotalCountFunctions functions. We classify these parameters
+into two categories: parameters that are \sometimes evaluated and parameters
+that are \never evaluated. Table~\ref{table:unevaluated} presents numbers for
+both categories. There are \UnevaluatedSometimesCountParameters \sometimes
+parameters and \UnevaluatedNeverCountParameters \never parameters. These may
+correspond to code paths not exercised or to dummy parameters.
 %
 A common pattern is the following:
-%
+
 \begin{lstlisting}
  lazyeval::%||% <- function(x, y) if(is.null(x)) y else x
 \end{lstlisting}
-%
+
 This function evaluates \code{y} only if \code{x} is \code{NULL}, making
-\code{y} a \sometimes parameter.
-\noindent
-Another pattern is to delay the evaluation of a parameter.
+\code{y} a \sometimes parameter. Another pattern is to delay the evaluation of a
+parameter.
 
 \begin{lstlisting}
  glue::on_package_load <- function(pkg, expr) {
@@ -1090,7 +1026,7 @@ Another pattern is to delay the evaluation of a parameter.
    }
  }
 \end{lstlisting}
-%
+
 Here, \code{expr} may be delayed until \code{pkg} is loaded. Thus, \code{expr}
 should not be evaluated strictly.
 %
