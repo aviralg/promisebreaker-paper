@@ -29,8 +29,7 @@ MacGen <- LatexMacroGenerator$new(params$macrodir)
 
 str(parameters)
 
-total_param_count <- nrow(parameters)
-total_fun_count <- nrow(distinct(functions, pack_name, fun_name))
+print(sort(unique(parameters$pack_names)))
 
 metaprogram_table <-
     metaprogramming %>%
@@ -96,6 +95,9 @@ other_summary <-
 signature_table <-
     bind_rows(vararg_summary, metaprogram_summary, missing_summary, other_summary)
 
+total_param_count <- nrow(distinct(signature_table, pack_name, fun_name, formal_pos))
+total_fun_count <- nrow(distinct(signature_table, pack_name, fun_name))
+
 signature_summary <-
     signature_table %>%
     mutate(fun_name = paste0(pack_name, fun_name),
@@ -107,8 +109,8 @@ signature_summary <-
     ungroup() %>%
     mutate(order = 32 * vararg + 16 * metaprogram + 8 * missing + 4 * unevaluated + 2 * effects + 1 * reflection) %>%
     arrange(order) %>%
-    mutate(param_perc = round(100 * param_count / total_param_count, 2),
-           fun_perc = round(100 * fun_count / total_fun_count, 2)) %>%
+    mutate(param_perc = round(100 * param_count / total_param_count, 1),
+           fun_perc = round(100 * fun_count / total_fun_count, 1)) %>%
     mutate(param_cumperc = cumsum(param_perc)) %>%
     mutate(param_count = label_num(param_count),
            fun_count = label_num(fun_count))

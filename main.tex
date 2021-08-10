@@ -569,11 +569,9 @@ analyses that scale to thousands of packages.
   \begin{tabular}{lll}
     \begin{minipage}{6cm}
 \begin{lstlisting}
-
  r1<-popular(FALSE,print('Hi'),3,4,5)
  r2<-popular(TRUE,1+2,stop(),0,9)
  r3<-popular(TRUE,1+2,3,r1<-4,r1+1)
-
 \end{lstlisting}
     \end{minipage}
     &&
@@ -854,6 +852,7 @@ positions; 7\% of functions have no parameters, 19\% have 1, and 5\% have over
 
 \subsection{Inferred strictness signatures}\label{sec:results}
 
+
 \lazr recorded 9,100 parameters marked M, for those we ignore other signals as
 meta-programmed parameters are always lazy. For other combinations of signals
 Table~\ref{table:strictdist} summarizes their distribution. One functions can be
@@ -865,18 +864,19 @@ functions and 489 packages.
 \begin{table}[!h] \small
   \caption{Signature Summary} \label{table:strictdist} \centering
   \begin{tabular}{ccccccrrrrr}\toprule
-\bf ...&\bf M&\bf ?&\bf U&\bf S&\bf R&\multicolumn{2}{c}{\textbf{Parameters}} &\multicolumn{2}{c}{\textbf{Functions}}&\bf Packages\\\midrule
+    \bf ...&\bf M&\bf ?&\bf U&\bf S&\bf R&\multicolumn{2}{c}{\textbf{Parameters}} &\multicolumn{2}{c}{\textbf{Functions}}&\bf Packages\\\midrule
     \xmark{}&\xmark{}&\xmark{}&\xmark{}&\xmark{}&\xmark{}&148.4K&72.8\%&49.3K&93.4\%&489\\
     \xmark{}&\xmark{}&\xmark{}&\xmark{}&\xmark{}&\cmark{}&529&0.3\%&509&1\%&119\\
-    \xmark{}&\xmark{}&\xmark{}&\xmark{}&\cmark{}&\xmark{}&1.3K&0.7\%&950&1.8\%&207\\
+    \xmark{}&\xmark{}&\xmark{}&\xmark{}&\cmark{}&\xmark{}&1.3K&0.6\%&950&1.8\%&207\\
     \xmark{}&\xmark{}&\xmark{}&\xmark{}&\cmark{}&\cmark{}&76&0\%&74&0.1\%&22\\
-    \xmark{}&\xmark{}&\xmark{}&\cmark{}&\xmark{}&\xmark{}&28.5K&14\%&12.4K&23.6\%&450\\
+    \xmark{}&\xmark{}&\xmark{}&\cmark{}&\xmark{}&\xmark{}&28.5K&14\%&12.4K&24.1\%&450\\
     \xmark{}&\xmark{}&\xmark{}&\cmark{}&\xmark{}&\cmark{}&33&0\%&32&0.1\%&24\\
-    \xmark{}&\xmark{}&\xmark{}&\cmark{}&\cmark{}&\xmark{}&314&0.1\%&226&0.4\%&98\\
+    \xmark{}&\xmark{}&\xmark{}&\cmark{}&\cmark{}&\xmark{}&314&0.2\%&226&0.4\%&98\\
     \xmark{}&\xmark{}&\xmark{}&\cmark{}&\cmark{}&\cmark{}&9&0\%&9&0\%&5\\
     \rmark{}&\rmark{}&\cmark{}&\rmark{}&\rmark{}&\rmark{}&3.2K&1.6\%&1.7K&3.2\%&240\\
     \rmark{}&\cmark{}&\rmark{}&\rmark{}&\rmark{}&\rmark{}&1.3K&0.6\%&825&1.6\%&118\\
-    \cmark{}&\rmark{}&\rmark{}&\rmark{}&\rmark{}&\rmark{}&20.0K&9.8\%&20.0K&37.9\%&430\\\bottomrule
+    \cmark{}&\rmark{}&\rmark{}&\rmark{}&\rmark{}&\rmark{}&20.0K&9.8\%&20.0K&38.8\%&430\\
+    \bottomrule
   \end{tabular}
 \end{table}
 
@@ -1090,32 +1090,24 @@ bindings from environments is not a common operation.
 Comparing the number of events in this table against the total number of events,
 we narrow 89B variable lookups down to 3.7M, 20B definitions to 1.1M, and 7B
 assignments to 235K.
-
-\begin{wraptable}{r}{5cm}
-  \vspace{-3mm}
+\begin{wraptable}{r}{5.5cm}
   \small
-  \caption{Effect Sequence} \label{table:effectseq}
   \centering
-  \begin{tabular}{lll}
+  \caption{Effects}\label{table:effects}
+  \vspace{-3mm}
+  \begin{tabular}{lrrr}
     \toprule
-    \textbf{Sequence}&\textbf{Arguments}\\
+    &\bf Direct&\bf Transitive&\bf Total\\
     \midrule
-    -&99.5\%\\
-    L+&0.41\%\\
-    D+&0.04\%\\
-    A+&0.03\%\\
-    (L+D+)+&0.01\%\\
+    {Arguments}&\EffectCountArgumentsDirect&\EffectCountArgumentsTransitive&\EffectCountArgumentsTotal\\
+    {Parameters}&\EffectCountParametersDirect&\EffectCountParametersTransitive&\EffectCountParametersTotal\\
+    {Functions}&\EffectCountFunctionsDirect&\EffectCountFunctionsTransitive&\EffectCountFunctionsTotal\\
+    {Packages}&\EffectCountPackagesDirect&\EffectCountPackagesTransitive&\EffectCountPackagesTotal\\
     \bottomrule
   \end{tabular}
 \end{wraptable}
 
-An argument can perform a combination of effects during evaluation.
-Table~\ref{table:effectseq} shows the sequence of operations performed by the
-arguments in our corpus. The majority of arguments, 99.5\% to be precise, do not
-perform any relevant effect. 0.41\% only perform a sequence of lookups, 0.04\%
-perform a sequence of definitions, 0.03\% perform assignments, and 0.01\%
-perform a sequence of lookups and definitions. From this, we conclude that
-the majority of arguments have a simple pattern of events.
+Table~\ref{table:effects} shows the arguments that are made lazy due to effects.
 
 A common source of non-local writes is the \c{shiny} package used for building
 interactive web applications. Consider the call to \code{bindEvent} which

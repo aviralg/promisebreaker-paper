@@ -16,6 +16,7 @@ params:
     datadir: "./data"
     graphdir: "./graphs"
     macrodir: "./macros"
+    sigdir: "./signatures"
 ---
 
 ```{r echo = FALSE, warning=FALSE, message=FALSE}
@@ -28,6 +29,10 @@ source("analysis.R", local = knitr::knit_global())
 
 ```{r echo = FALSE, warning=FALSE, message=FALSE}
 str(direct_effects)
+
+str(indirect_effects)
+
+MacGen <- LatexMacroGenerator$new(params$macrodir)
 ```
 
 # Argument Types
@@ -68,7 +73,6 @@ argument_dist <-
 
 datatable(argument_dist)
 
-
 argument_dist %>%
 pmap_chr(function(expr_type, all_perc, se_perc) {
     paste(expr_type, as_perc(all_perc), as_perc(se_perc), sep = "&")
@@ -77,6 +81,79 @@ paste(collapse = "\\\\\n") %>%
 cat()
 ```
 
+# Table
+
+```{r echo = FALSE, warning=FALSE, message=FALSE}
+metaprogram_table <-
+    metaprogramming %>%
+    filter(native_fun %in% c("substitute", ".External(NA)", ".Call(NA)")) %>%
+    distinct(source_pack_name, source_fun_name, source_formal_pos) %>%
+    rename(pack_name = source_pack_name, fun_name = source_fun_name, formal_pos = source_formal_pos) %>%
+    mutate(metaprogram = TRUE)
+    
+indirect_effects <-
+   indirect_effects %>%
+   left_join(metaprogram_table, by = c("pack_name", "fun_name", "formal_pos")) %>%
+   mutate(metaprogram = if_else(is.na(metaprogram), FALSE, metaprogram)) %>%
+   filter(!metaprogram) %>%
+   select(-metaprogram)
+   
+direct_effects <-
+   direct_effects %>%
+   left_join(metaprogram_table, by = c("pack_name", "fun_name", "formal_pos")) %>%
+   mutate(metaprogram = if_else(is.na(metaprogram), FALSE, metaprogram)) %>%
+   filter(!metaprogram) %>%
+   select(-metaprogram)
+
+direct_effect_summary <-
+   direct_effects %>%
+   mutate(full_fun = paste0(pack_name, fun_name),
+          full_pos = paste0(pack_name, fun_name, formal_pos)) %>%
+   group_by(pack_name, full_fun, full_pos) %>%
+   summarize(argument_count = sum(argument_count)) %>%
+   ungroup()
+
+MacGen$from_args(EffectCountArgumentsDirect = label_num(sum(direct_effect_summary$argument_count)),
+                 EffectCountPackagesDirect = length(unique(direct_effect_summary$pack_name)),
+                 EffectCountFunctionsDirect = length(unique(direct_effect_summary$full_fun)),
+                 EffectCountParametersDirect = length(unique(direct_effect_summary$full_pos)))
+                 
+transitive_effect_summary <-
+   indirect_effects %>%
+   mutate(full_fun = paste0(pack_name, fun_name),
+          full_pos = paste0(pack_name, fun_name, formal_pos)) %>%
+   group_by(pack_name, full_fun, full_pos) %>%
+   summarize(argument_count = sum(argument_count)) %>%
+   ungroup()
+
+MacGen$from_args(EffectCountArgumentsTransitive = label_num(sum(transitive_effect_summary$argument_count)),
+                 EffectCountPackagesTransitive = length(unique(transitive_effect_summary$pack_name)),
+                 EffectCountFunctionsTransitive = length(unique(transitive_effect_summary$full_fun)),
+                 EffectCountParametersTransitive = length(unique(transitive_effect_summary$full_pos)))
+
+total_effect_summary <-
+   direct_effects %>%
+   bind_rows(indirect_effects) %>%
+   mutate(full_fun = paste0(pack_name, fun_name),
+          full_pos = paste0(pack_name, fun_name, formal_pos)) %>%
+   group_by(pack_name, full_fun, full_pos) %>%
+   summarize(argument_count = sum(argument_count)) %>%
+   ungroup()
+
+MacGen$from_args(EffectCountArgumentsTotal = label_num(sum(total_effect_summary$argument_count)),
+                 EffectCountPackagesTotal = length(unique(total_effect_summary$pack_name)),
+                 EffectCountFunctionsTotal = length(unique(total_effect_summary$full_fun)),
+                 EffectCountParametersTotal = length(unique(total_effect_summary$full_pos)))
+```
+
+# Functions Doing Removals
+
+```{r echo = FALSE, warning=FALSE, message=FALSE}
+direct_effects %>%
+filter(remove_count != 0) %>%
+distinct(pack_name, fun_name, formal_pos) %>%
+datatable()
+```
 
 # Simplified Effect Sequence
 
