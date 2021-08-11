@@ -808,19 +808,20 @@ CRAN~\cite{ligges2017} on the 26th of July 2021.
   \caption{Corpus}\label{table:corpus}
   \begin{tabular}{lrrr}\toprule
     &\bf Tests&\bf Examples&\bf Vignettes\\\midrule
-    {Scripts}&5.8K&20.2K&631\\\midrule
-    {LOC}&406.4K&207.0K&48.7K\\\bottomrule
+    {Scripts}&\CorpusTestCount&\CorpusExampleCount&\CorpusVignetteCount\\\midrule
+    {LOC}&\CorpusTestCode&\CorpusExampleCode&\CorpusVignetteCode\\\bottomrule
   \end{tabular}
 \end{wraptable}%%
 
 
 The packages have a total of 15,362 clients ranging from \c{ggplot2} with 2,669
-clients all the way to \c{spatstat.linnet} with only 5. The packages have 2.2M
-lines of R code and 2.7M lines of native code. Table~\ref{table:corpus}
-summarizes the runnable code. Each test is run as a separate script. Examples
-and vignettes are snippets of code embedded in the documentation. \lazr extracts
-them into self-standing scripts. Typically, vignettes are longer examples with
-input data, while examples are smaller code fragments.
+clients all the way to \c{spatstat.linnet} with only 5. The packages have
+\CorpusRCode lines of R code and \CorpusNativeCode lines of native code.
+Table~\ref{table:corpus} summarizes the runnable code. Each test is run as a
+separate script. Examples and vignettes are snippets of code embedded in the
+documentation. \lazr extracts them into self-standing scripts. Typically,
+vignettes are longer examples with input data, while examples are smaller code
+fragments.
 
 
 \begin{figure}[!h]  \centering
@@ -1113,24 +1114,23 @@ function by name in different scopes. Its argument has a default value of
   \begin{tabular}{lrrr}    \toprule
     &\bf Tests&\bf Examples&\bf Vignettes\\
     \midrule
-    {Scripts} &9.8K&41.1K&1.7K\\
-    \midrule
-    {LOC} &751.2K&348.8K&112.3K\\    \bottomrule
+    {Scripts}&\ClientTestCount&\ClientExampleCount&\ClientVignetteCount\\\midrule
+    {LOC}&\ClientTestCode&\ClientExampleCode&\ClientVignetteCode\\\bottomrule
   \end{tabular}
 \end{wraptable}%%
 
 In this section, we evaluate the robustness of strictness signatures generated
 by \lazr. This is done by running scripts extracted from 2,000 client packages
-of our corpus. These packages have 4.5M lines of R code and 4.7M lines of native
-code. Table ~\ref{table:clientcorpus} gives the number of scripts and lines of
-code exercised. Using \lazr, we extracted 52K scripts from the clients. From
-these, we filtered scripts whose output was non-deterministic, leaving us with
-42K scripts. The goal of the next step is to validate if, after applying
-strictness signatures, they produce identical outputs. Comparing the output of
-scripts is standard practice in the R community for detecting regressions. There
-may be a difference in execution that does not manifest in the output; this may
-hide some errors, so the results reported here should be considered a lower
-bound.
+of our corpus. These packages have \ClientRCode lines of R code and
+\ClientNativeCode lines of native code. Table ~\ref{table:clientcorpus} gives
+the number of scripts and lines of code exercised. Using \lazr, we extracted 52K
+scripts from the clients. From these, we filtered scripts whose output was
+non-deterministic, leaving us with 42K scripts. The goal of the next step is to
+validate if, after applying strictness signatures, they produce identical
+outputs. Comparing the output of scripts is standard practice in the R community
+for detecting regressions. There may be a difference in execution that does not
+manifest in the output; this may hide some errors, so the results reported here
+should be considered a lower bound.
 
 \begin{figure}[!b]
   \centering

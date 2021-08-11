@@ -16,11 +16,13 @@ params:
     datadir: "./data"
     graphdir: "./graphs"
     macrodir: "./macros"
+    sigdir: "./signatures"
 ---
 
 ```{r echo = FALSE, warning=FALSE, message=FALSE}
 ## https://bookdown.org/yihui/rmarkdown-cookbook/source-script.html
 source("analysis.R", local = knitr::knit_global())
+MacGen <- LatexMacroGenerator$new(params$macrodir)
 ```
 
 ```{r echo=FALSE, warning=FALSE, message=FALSE, eval=TRUE}
@@ -33,6 +35,8 @@ summarize_programs_sloc <- function(df, packages, types = c("test", "example", "
         filter(type %in% types) %>%
         filter(language %in% c("R", "C/C++ Header", "C", "C++", "Fortran 77")) %>%
         mutate(language = case_when(language == "R" ~ "R", TRUE ~ "Native")) %>%
+        mutate(type = case_when(type == "testthat" ~ "test", TRUE ~ type)) %>%
+        mutate(type = str_to_title(type)) %>%
         group_by(language, type) %>%
         summarize(count = n(), code = sum(code)) %>%
         ungroup()
@@ -42,21 +46,55 @@ summarize_programs_sloc <- function(df, packages, types = c("test", "example", "
 # Runnable Code
 
 ```{r echo=FALSE, warning=FALSE, message=FALSE, eval=TRUE}
+str(sloc_script)
+
+get_relative_program_names <- function(program_names) {
+	split_and_join <- function(splits) { 
+	    n <- length(splits); 
+	    program <- splits[[n - 1]]
+	    package <- splits[[n - 2]]
+	    type <- splits[[n - 3]]
+	    path(type, package, program, ext = "R")
+	}
+	
+	map_chr(path_split(program_names), split_and_join)
+}
+
+corpus_programs <- get_relative_program_names(corpus_programs)
+client_programs <- get_relative_program_names(client_programs)
+
+all_programs = c(corpus_programs, client_programs)
+
+sloc_script %>%
+    mutate(program = path(type, package, filename, ext = "R")) %>%
+    filter(program %in% all_programs)
+
 runnable_code <-
-   add_column(summarize_programs_sloc(sloc_script, corpus), kind = "corpus", .before = 1) %>%
-   bind_rows(add_column(summarize_programs_sloc(sloc_script, client), kind = "client", .before = 1))
+   add_column(summarize_programs_sloc(sloc_script, corpus), kind = "Corpus", .before = 1) %>%
+   bind_rows(add_column(summarize_programs_sloc(sloc_script, client), kind = "Client", .before = 1)) %>%
+   mutate(CountName = paste0(kind, type, "Count"),
+          CodeName = paste0(kind, type, "Code"))
    
 runnable_code %>% show_table()
+
+MacGen$from_vectors(runnable_code$CountName, label_num(runnable_code$count))
+MacGen$from_vectors(runnable_code$CodeName, label_num(runnable_code$code))
 ```
 
 # Package Code
 
 ```{r echo=FALSE, warning=FALSE, message=FALSE, eval=TRUE}
 package_code <-
-   add_column(summarize_programs_sloc(sloc_package, corpus, c("R", "src")), kind = "corpus", .before = 1) %>%
-   bind_rows(add_column(summarize_programs_sloc(sloc_package, client, c("R", "src")), kind = "client", .before = 1))
+   add_column(summarize_programs_sloc(sloc_package, corpus, c("R", "src")), kind = "Corpus", .before = 1) %>%
+   bind_rows(add_column(summarize_programs_sloc(sloc_package, client, c("R", "src")), kind = "Client", .before = 1)) %>%
+   group_by(kind, language) %>%
+   summarize(count = sum(count), code = sum(code)) %>%
+   ungroup() %>%
+   mutate(CodeName = paste0(kind, language, "Code"))
 
 package_code %>% show_table()
+
+MacGen$from_vectors(package_code$CodeName, label_num(package_code$code))
 ```
 
 # Package Functions
@@ -95,7 +133,7 @@ cat(latex)
 ```
 # Calls
 
-```{r echo=FALSE, warning=FALSE, message=FALSE, eval=TRUE}
+```{r echo=FALSE, warning=FALSE, message=FALSE, eval=FALSE}
 
 call_dist <-
     parameters %>%
@@ -148,7 +186,7 @@ save_graph(call_dist_plot, "call_dist")
 
 # Parameters
 
-```{r echo=FALSE, warning=FALSE, message=FALSE, eval=TRUE}
+```{r echo=FALSE, warning=FALSE, message=FALSE, eval=FALSE}
 
 corpus_argument_type <-
     argument_type %>%

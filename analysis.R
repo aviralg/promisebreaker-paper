@@ -87,6 +87,8 @@ read_lazy(stdout_raw, "stdout_raw.csv")
 read_lazy(allocation, "allocation.fst")
 read_lazy(execution, "execution.fst")
 read_lazy(argument_type, "argument_type.fst")
+corpus_programs <- read_lines(path_join(c(params$datadir, "corpus-programs")))
+client_programs <- read_lines(path_join(c(params$datadir, "client-programs")))
 
 arg_ref <-
     arg_ref %>%
