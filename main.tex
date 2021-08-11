@@ -637,7 +637,11 @@ provided argument does, we summarize them here:
 \item [{\bf S}:] An argument with \emph{side-effects}; a weak signal of
   accidental laziness as some effects may be benign. We monitor three kinds of
   effects: variable reads, variable writes (definitions, updates, and removals)
-  of variables, and errors.  % TODO what about IO
+  of variables, and errors. \lazr does not handle IO. The R ecosystem has a rich
+  collection of libraries for handling data, resulting in a vast API for reading
+  and writing files to disk. These functions call arbitrary C/C++ libraries for
+  IO. Tracking these calls would require tracing \emph{syscalls} which is
+  currently not supported by our dynamic analysis infrastructure.
 \item[{\bf R}:] An argument that uses \emph{reflection} to observe the state of
   the call stack; this is a strong signal of accidental laziness. This
   corresponds to calls \c{as.environment(v)} or \c{pos.to.env(v)} where \c
@@ -677,13 +681,6 @@ Given a set of signals there are choices as how to merge them, especially if no
 strong signal is observed. Conservatively one may choose to make a parameters
 lazy at the first signal even if it is a weak one. Our design for \strictr
 allows us to easily explore different merging strategies.
-
-\lazr only handles reads and writes to R environments from R and native code; it
-does not handle IO. The R ecosystem has a rich collection of libraries for
-handling data, resulting in a vast API for reading and writing files to disk.
-These functions call arbitrary C/C++ libraries for IO. Tracking these calls
-would require tracing \emph{syscalls} which is currently not supported by our
-dynamic analysis infrastructure.
 
 \section{\v R$_{\mathbf s}$: A Strict-by-default compiler}\label{sec:rsh1}
 
