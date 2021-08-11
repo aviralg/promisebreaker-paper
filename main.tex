@@ -814,14 +814,15 @@ CRAN~\cite{ligges2017} on the 26th of July 2021.
 \end{wraptable}%%
 
 
-The packages have a total of 15,362 clients ranging from \c{ggplot2} with 2,669
-clients all the way to \c{spatstat.linnet} with only 5. The packages have
-\CorpusRCode lines of R code and \CorpusNativeCode lines of native code.
-Table~\ref{table:corpus} summarizes the runnable code. Each test is run as a
-separate script. Examples and vignettes are snippets of code embedded in the
-documentation. \lazr extracts them into self-standing scripts. Typically,
-vignettes are longer examples with input data, while examples are smaller code
-fragments.
+The packages have a total of \CorpusDependencyCount clients ranging from
+\texttt{\CorpusMaximumDependencyPackage} with \CorpusMaximumDependencyCount clients
+all the way to \texttt{\CorpusMinimumDependencyPackage} with only
+\CorpusMinimumDependencyCount. The packages have \CorpusRCode lines of R code
+and \CorpusNativeCode lines of native code. Table~\ref{table:corpus} summarizes
+the runnable code. Each test is run as a separate script. Examples and vignettes
+are snippets of code embedded in the documentation. \lazr extracts them into
+self-standing scripts. Typically, vignettes are longer examples with input data,
+while examples are smaller code fragments.
 
 
 \begin{figure}[!h]  \centering
@@ -829,9 +830,10 @@ fragments.
   \caption{Call Distribution}\label{fig:callDist}
 \end{figure}
 
-There are 50,435 top-level functions; 148 packages have 25 functions or less,
-and 12 packages with more than 500 functions. The largest package,
-\c{spatstat.geom}, has 886 functions. We observe 137.2M calls to these
+There are 50,435 top-level functions; \CorpusTwentyFivePackageCount packages
+have 25 functions or less, and \CorpusFiveHundredPackageCount packages with more
+than 500 functions. The largest package, \texttt{\CorpusMaximumFunctionPackage},
+has \CorpusMaximumFunctionCount functions. We observe 137.2M calls to these
 functions, their distribution per function is in Fig.~\ref{fig:callDist}; 49\%
 of functions are called more than ten times, while 16\% are called only once.
 The traces record 294M arguments, of those, close to 4M are missing, 19M are

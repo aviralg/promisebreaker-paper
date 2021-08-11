@@ -97,6 +97,37 @@ package_code %>% show_table()
 MacGen$from_vectors(package_code$CodeName, label_num(package_code$code))
 ```
 
+# General Corpus Info
+
+```{r echo=FALSE, warning=FALSE, message=FALSE, eval=TRUE}
+str(package_dependency)
+
+CorpusDependencyCount <- 
+    package_dependency %>% 
+    filter(package %in% corpus) %>%
+    pull(client) %>%
+    unique() %>%
+    length()
+
+MacGen$from_args(CorpusDependencyCount = label_comma()(CorpusDependencyCount))
+
+package_by_dependency <- 
+    package_dependency %>%
+    filter(package %in% corpus) %>%
+    count(package, name = "n") %>%
+    arrange(desc(n))
+
+maximum_dependency <- slice(package_by_dependency, 1)
+
+MacGen$from_args(CorpusMaximumDependencyPackage = maximum_dependency$package,
+                 CorpusMaximumDependencyCount = label_comma()(maximum_dependency$n))
+
+minimum_dependency <- slice_tail(package_by_dependency)
+
+MacGen$from_args(CorpusMinimumDependencyPackage = minimum_dependency$package,
+                 CorpusMinimumDependencyCount = label_comma()(minimum_dependency$n))
+```
+
 # Package Functions
 ```{r echo=FALSE, warning=FALSE, message=FALSE, eval=TRUE}
 fun_dist <-
@@ -104,13 +135,38 @@ fun_dist <-
     distinct(pack_name, fun_name) %>%
     filter(pack_name %in% corpus)
 
-cat("Total functions: ", nrow(fun_dist))
-
-
-fun_dist %>%
+pack_fun_count <-
+    fun_dist %>%
     count(pack_name, name = "function_count") %>%
-    arrange(desc(function_count)) %>%
-    datatable()
+    arrange(desc(function_count))
+    
+    
+datatable(pack_fun_count)
+
+maximum_fun <- slice(pack_fun_count, 1)
+
+MacGen$from_args(CorpusMaximumFunctionPackage = maximum_fun$pack_name,
+                 CorpusMaximumFunctionCount = label_comma()(maximum_fun$function_count))
+
+CorpusTwentyFivePackageCount <- 
+    pack_fun_count %>% 
+    filter(function_count <= 25) %>% 
+    pull(pack_name) %>% 
+    unique() %>% 
+    length()
+
+CorpusFiftyPackageCount <- 
+    pack_fun_count %>%
+    filter(function_count > 500) %>% 
+    pull(pack_name) %>% 
+    unique() %>% 
+    length()
+
+MacGen$from_args(CorpusTwentyFivePackageCount = label_comma()(CorpusTwentyFivePackageCount),
+                 CorpusFiveHundredPackageCount = label_comma()(CorpusFiftyPackageCount))
+                 
+
+cat("Total functions: ", nrow(fun_dist))
 
 fun_dist <-
     fun_dist %>%
@@ -131,6 +187,7 @@ fun_dist %>% datatable()
 
 cat(latex)
 ```
+
 # Calls
 
 ```{r echo=FALSE, warning=FALSE, message=FALSE, eval=FALSE}
