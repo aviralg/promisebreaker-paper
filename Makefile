@@ -60,7 +60,7 @@ metaprogramming:
 
 performance:
 	make analysis ANALYSIS=performance
-	sed -i 's/Ř/\\v\{R\}/g' graphs/rshPromNorm.tex
+	#sed -i 's/Ř/\\v\{R\}/g' graphs/rshPromNorm.tex
 
 watch: pdf
 	evince main.pdf&
