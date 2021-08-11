@@ -624,16 +624,16 @@ record evaluation start and end.
 signals are relative to how the called function uses the parameter and what the
 provided argument does, we summarize them here:
 \begin{itemize}
+\item[{\bf V}:] A vararg parameter; we consider this to be a strong
+  signal of intrinsic laziness. The reason for this particular choice is that it
+  is unclear how to treat individual elements of the varag.
 \item[{\bf M}:] A parameter provided to \c{substitute} or \c{PREXPR} is
   \emph{meta-programmed}; this is a strong signal of intrinsic laziness.
+\item[{\bf G}:] A parameter that did not receives an argument; this is a weak
+  signal for laziness owing to a lack of information.  
 \item[{\bf U}:] A parameter that remains \emph{unevaluated}; this is a weak
   signal of intrinsic laziness as we do not know the contract of the function
   for that parameter.
-\item[{\bf ?}:] A parameter that did not receives an argument; this is a weak
-  signal for laziness owing to a lack of information.
-\item[$\dots$:] A vararg parameter; we consider this to be a strong
-  signal of intrinsic laziness. The reason for this particular choice is that it
-  is unclear how to treat individual elements of the varag.
 \item [{\bf S}:] An argument with \emph{side-effects}; a weak signal of
   accidental laziness as some effects may be benign. We monitor three kinds of
   effects: variable reads, variable writes (definitions, updates, and removals)
@@ -867,7 +867,10 @@ for 148K parameters coming from 49K functions and 489 packages.
 \begin{table}[!h] \small
   \caption{Signature Summary} \label{table:strictdist} \centering
   \begin{tabular}{ccccccrrrrr}\toprule
-    \bf ...&\bf M&\bf ?&\bf U&\bf S&\bf R&\multicolumn{2}{c}{\textbf{Parameters}} &\multicolumn{2}{c}{\textbf{Functions}}&\bf Packages\\\midrule
+    \bf V&\bf M&\bf G&\bf U&\bf S&\bf R&\multicolumn{2}{c}{\textbf{Parameters}} &\multicolumn{2}{c}{\textbf{Functions}}&\bf Packages\\\midrule
+    \cmark{}&\xmark{}&\xmark{}&\xmark{}&\xmark{}&\xmark{}&20.0K&9.8\%&20.0K&38.8\%&430\\
+    \xmark{}&\cmark{}&\xmark{}&\xmark{}&\xmark{}&\xmark{}&1.3K&0.6\%&825&1.6\%&118\\
+    \xmark{}&\xmark{}&\cmark{}&\xmark{}&\xmark{}&\xmark{}&3.2K&1.6\%&1.7K&3.2\%&240\\
     \xmark{}&\xmark{}&\xmark{}&\xmark{}&\xmark{}&\xmark{}&148.4K&72.9\%&49.3K&95.7\%&489\\
     \xmark{}&\xmark{}&\xmark{}&\xmark{}&\xmark{}&\cmark{}&529&0.3\%&509&1\%&119\\
     \xmark{}&\xmark{}&\xmark{}&\xmark{}&\cmark{}&\xmark{}&1.3K&0.6\%&950&1.8\%&207\\
@@ -876,9 +879,6 @@ for 148K parameters coming from 49K functions and 489 packages.
     \xmark{}&\xmark{}&\xmark{}&\cmark{}&\xmark{}&\cmark{}&33&0\%&32&0.1\%&24\\
     \xmark{}&\xmark{}&\xmark{}&\cmark{}&\cmark{}&\xmark{}&314&0.2\%&226&0.4\%&98\\
     \xmark{}&\xmark{}&\xmark{}&\cmark{}&\cmark{}&\cmark{}&9&0\%&9&0\%&5\\
-    \rmark{}&\rmark{}&\cmark{}&\rmark{}&\rmark{}&\rmark{}&3.2K&1.6\%&1.7K&3.2\%&240\\
-    \rmark{}&\cmark{}&\rmark{}&\rmark{}&\rmark{}&\rmark{}&1.3K&0.6\%&825&1.6\%&118\\
-    \cmark{}&\rmark{}&\rmark{}&\rmark{}&\rmark{}&\rmark{}&20.0K&9.8\%&20.0K&38.8\%&430\\
     \bottomrule
   \end{tabular}
 \end{table}
@@ -892,7 +892,11 @@ respectively. The remaining configurations are in the noise. It is noteworthy
 that parameters marked R come from very few functions and packages.
 We now discuss the different sources of laziness in more detail.
 
-\paragraph{Metaprogramming}
+\paragraph{{\normalfont \textbf{[V]}} Varargs}
+Some \VarargParameterCount parameters from \VarargFunctionCount functions are
+marked \textbf{V} for \emph{vararg}.
+
+\paragraph{{\normalfont \textbf{[M]}} Metaprogramming}
 Table~\ref{table:metaprogramming} counts arguments, parameters and functions
 using the metaprogramming facilities of R. Numbers are also provided for C code
 that uses \c{PREXPR}. Arguments count all of the invocations of a function.
@@ -918,11 +922,11 @@ checks if an argument was provided. Unlike user packages, these uses of
 Hence, uses of \c{PREXPR} from the interpreter are not signals.
 
 
-
-\paragraph{Missing Arguments}
+\paragraph{{\normalfont \textbf{[G]}} Missing Arguments}
 Some \MissingAlwaysCountParameters parameters are always missing; they are
-classifyied as \always. In contrast to the \MissingSometimesCountParameters
-\sometimes parameters which are sometimes passed an argument.
+classified as \always. This is in contrast to the
+\MissingSometimesCountParameters \sometimes parameters which are sometimes
+passed an argument.
 
 \begin{wraptable}{r}{5.76cm}\small\centering
   \caption{Missing}\label{table:missing}
@@ -970,7 +974,7 @@ in some calls to this function which assigns a default value of \c{0L} to
   \end{tabular}
 \end{wraptable}
 
-\paragraph{Unevaluated Arguments}
+\paragraph{{\normalfont \textbf{[U]}} Unevaluated Arguments}
 Some parameters are \sometimes evaluated and others are \never evaluated. The
 latter may correspond to code paths not exercised or to dummy parameters.
 Table~\ref{table:unevaluated} has numbers for both categories. A common pattern
@@ -1010,7 +1014,7 @@ by design; \c{tail} is not defined for \c{tbl_lazy} objects.
 \end{lstlisting}
 
 
-\paragraph{Side-Effects}
+\paragraph{{\normalfont \textbf{[S]}} Side-Effects}
 Few promises have side-effects and many of those are benign for our purposes as
 they happen to local variables of the promise. Table~\ref{table:effects}
 presents the number of parameters that are made lazy due to observable
@@ -1058,7 +1062,7 @@ withPrivateSeed <- function(expr) {
 }
 \end{lstlisting}
 
-\paragraph{Reflection}
+\paragraph{{\normalfont \textbf{[R]}} Reflection}
 Reflective code is brittle. The following example shows that code that looks up
 its call stack is sensitive to small implementation changes, such as the
 addition of a call to an identity function. The evaluation of \c x and \c y will
