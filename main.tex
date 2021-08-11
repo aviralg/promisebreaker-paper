@@ -584,7 +584,7 @@ analyses that scale to thousands of packages.
 
 The goal of this analysis is not to infer maximally strict signatures but rather
 minimize the impact of semantic change on clients by considering both intrinsic
-and accidental laziness. We elucidates this point with fig.~\ref{iss} which
+and accidental laziness. We elucidate this point with fig.~\ref{iss} which
 shows a \c{popular} function that takes six arguments, \c{a} is always
 evaluated, \c{b} is conditionally evaluated, \c{c} is forwarded to
 \c{substitute} for meta-programming, \c{d} and \c{e} are forwarded to a
@@ -846,7 +846,7 @@ There are three signals we consider strong, parameters marked by either one of
 them are considered lazy. \lazr recorded 1.3K parameters being meta-programmed
 (marked M), furthermore 3.2K were missing and 20K were varargs. All these remain
 lazy. For other combinations of signals Table~\ref{table:strictdist} summarizes
-their distribution. One functions can be counted in multiple rows as its
+their distribution. One function can be counted in multiple rows as its
 different parameters may have different combinations. Rows are interpreted as
 follows: the first row, for instance, indicates that no signals were observed
 for 148K parameters coming from 49K functions and 489 packages.
@@ -898,7 +898,7 @@ that uses \c{PREXPR}. Arguments count all of the invocations of a function.
 For details about \c{substitute}, we refer the reader to \cite{oopsla19b}.
 \c{PREXPR} was not addressed there: it is a C macro is used to extract a
 promise's expression for ad-hoc evaluation strategies. Packages such as
-\c{lazyeval} and \c{rlang} uses it. \c{PREXPR} is also used by the builtins of
+\c{lazyeval} and \c{rlang} use it. \c{PREXPR} is also used by the builtins of
 the GNU R interpreter, a canonical example is the \c{missing} function which
 checks if an argument was provided. Unlike user packages, these uses of
 \c{PREXPR} do not require the corresponding arguments to be lazily evaluated.
@@ -961,7 +961,7 @@ in some calls to this function which assigns a default value of \c{0L} to
 Some parameters are \sometimes evaluated and others are \never evaluated. The
 latter may correspond to code paths not exercised or to dummy parameters.
 Table~\ref{table:unevaluated} has numbers for both categories. A common pattern
-is to one argument only if another has a given value.
+is to evaluate one argument only if another has a given value.
 
 \begin{lstlisting}
  %||% <- function(x,y) if(is.null(x)) y else x
@@ -978,7 +978,7 @@ loaded.
  } }
 \end{lstlisting}
 
-S3 generic methods are functions dynamically dispatch: here, \c x is always
+S3 generic methods are functions dynamically dispatched: here, \c x is always
 evaluated in order to dispatch, the others depend on where the call dispatches
 to.
 
@@ -986,7 +986,7 @@ to.
  abind::acorn <- function(x,n=6,m=5,r=1,...) UseMethod('acorn')
 \end{lstlisting}
 
-Some functions implements a common interface, the \c{proxy} package defines over
+Some functions implement a common interface, the \c{proxy} package defines over
 a dozen methods with interface \c{function(a,b,c,d,n)} to compute different
 proximity metrics with a subset of the arguments. Arguments can also be \never
 by design; \c{tail} is not defined for \c{tbl_lazy} objects.
