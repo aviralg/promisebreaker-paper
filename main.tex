@@ -837,12 +837,14 @@ largest package, \texttt{\CorpusMaximumFunctionPackage}, has
 \CorpusMaximumFunctionCount functions. We observe \TotalCallCount calls to these
 functions, their distribution per function is in Fig.~\ref{fig:callDist};
 \CalledTenFunctionPerc of functions are called more than ten times, while
-\CalledOneFunctionPerc are called only once. The traces record 294M arguments,
-of those, close to 4M are missing, 19M are varargs and 271M are promises. These
-arguments correspond to 186K parameter positions; 7\% of functions have no
-parameters, 19\% have 1, and 5\% have over 10, and 15 functions have over 50
-parameters. Function \c{rpart.plot::check.if.dot.arg.supported.by.rpart.rules}
-takes the cake with 122 parameters.
+\CalledOneFunctionPerc are called only once. The traces record
+\TotalArgumentCount arguments, of those, \MissingTotalCountArguments are missing,
+\VarargParameterCount are varargs, and the remaining are promises. These
+arguments correspond to \TotalParameterCount parameter positions; 7\% of
+functions have no parameters, 19\% have 1, and 5\% have over 10, and 15
+functions have over 50 parameters. Function
+\c{rpart.plot::check.if.dot.arg.supported.by.rpart.rules} takes the cake with
+122 parameters.
 
 \subsection{Inferred strictness signatures}\label{sec:results}
 

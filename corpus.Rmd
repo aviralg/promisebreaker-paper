@@ -248,24 +248,35 @@ call_dist_plot <-
 
 
 save_graph(call_dist_plot, "call_dist")
+
+str(parameters)
 ```
 
 # Parameters
 
-```{r echo=FALSE, warning=FALSE, message=FALSE, eval=FALSE}
+```{r echo=FALSE, warning=FALSE, message=FALSE, eval=TRUE}
 
+TotalArgumentCount <- sum(parameters$call_count)
+
+MacGen$from_args(TotalArgumentCount = label_num(TotalArgumentCount, 1))
+
+corpus_params <-
+    parameters %>%
+    filter(pack_name %in% corpus)
+    
+TotalParameterCount <- nrow(distinct(parameters, pack_name, fun_name, formal_pos))
+
+MacGen$from_args(TotalParameterCount = label_num(TotalParameterCount, 1))
+
+```
+
+```
 corpus_argument_type <-
     argument_type %>%
     filter(pack_name %in% corpus) %>%
     count(vararg, missing, arg_type, wt = argument_count, name = "argument_count")
 
 datatable(corpus_argument_type)
-
-cat("Total arguments: ", sum(corpus_argument_type$argument_count), "\n")
-
-corpus_params <-
-    parameters %>%
-    filter(pack_name %in% corpus)
 
 package_info <- 
     package_info %>%
@@ -283,6 +294,8 @@ param_dist <-
 datatable(param_dist %>% select(!fun_def))
 
 ## TODO: not all functions with NA param_count are 0 argument functions
+
+
 param_dist <-
     param_dist %>%
     mutate(param_count = if_else(is.na(param_count), 0L, param_count))
