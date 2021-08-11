@@ -165,9 +165,10 @@ CorpusFiftyPackageCount <-
 MacGen$from_args(CorpusTwentyFivePackageCount = label_comma()(CorpusTwentyFivePackageCount),
                  CorpusFiveHundredPackageCount = label_comma()(CorpusFiftyPackageCount))
                  
+TotalFunctionCount <- nrow(fun_dist)
 
-cat("Total functions: ", nrow(fun_dist))
-
+MacGen$from_args(TotalFunctionCount = label_num(TotalFunctionCount))
+                 
 fun_dist <-
     fun_dist %>%
     count(pack_name, name = "count") %>%
@@ -190,7 +191,7 @@ cat(latex)
 
 # Calls
 
-```{r echo=FALSE, warning=FALSE, message=FALSE, eval=FALSE}
+```{r echo=FALSE, warning=FALSE, message=FALSE, eval=TRUE}
 
 call_dist <-
     parameters %>%
@@ -205,9 +206,16 @@ called_once_packs <-
     pull(pack_name) %>%
     unique() %>%
     length()
-    
-cat("Total number of calls:", sum(call_dist$call_count))
-cat("Packages whose functions are called only once:", called_once_packs)
+
+TotalCallCount <- sum(call_dist$call_count)
+
+CalledOneFunctionPerc <- label_percent()(nrow(filter(call_dist, call_count == 1)) / TotalFunctionCount)
+
+CalledTenFunctionPerc <- label_percent()(nrow(filter(call_dist, call_count > 10)) / TotalFunctionCount)
+
+MacGen$from_args(TotalCallCount = label_num(TotalCallCount, 1),
+                 CalledOneFunctionPerc = latex_sanitize(CalledOneFunctionPerc),
+                 CalledTenFunctionPerc = latex_sanitize(CalledTenFunctionPerc))
     
 call_dist <-
     call_dist %>%
@@ -237,6 +245,7 @@ call_dist_plot <-
     scale_x_discrete(limits = c(1:10, "> 10")) +
     coord_flip()+
     labs(x = "Calls", y = "Functions")
+
 
 save_graph(call_dist_plot, "call_dist")
 ```

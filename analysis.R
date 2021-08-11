@@ -10,10 +10,12 @@ library(viridis)
 library(RColorBrewer)
 library(experimentr)
 
-new_theme <-
-    theme_minimal(base_size = 8) +
-    theme(plot.margin = margin(0.1,0.25,0.1,0.2, "cm"))
-          #plot.background = element_rect(colour = "black", fill=NA, size=1))
+
+library(experimentr)
+
+new_theme <- publication_theme(type = "acmart",
+                               plot.margin = margin(0.1,0.25,0.1,0.2, "cm"))
+
 
 old_theme <- theme_set(new_theme)
 
@@ -50,11 +52,7 @@ show_table <- function(df) {
 
 save_graph <- function(plot, filename, width = 5.4, height = 1.8, ...) {
     dir_create(params$graphdir)
-    filepath <- path_ext_set(path_join(c(params$graphdir, filename)), "tex")
-    tikz(file = filepath, sanitize=TRUE, width=width, height=height, ...)
-    print(plot)
-    dev.off()
-    plot
+    save_as_tikz(plot, filename, dir = params$graphdir, width = width, height = height)
 }
 
 as_perc <- function(col) {
