@@ -644,8 +644,8 @@ provided argument does, we summarize them here:
   currently not supported by our dynamic analysis infrastructure.
 \item[{\bf R}:] An argument that uses \emph{reflection} to observe the state of
   the call stack; this is a strong signal of accidental laziness. This
-  corresponds to calls \c{as.environment(v)} or \c{pos.to.env(v)} where \c
-  v is \c{-1}. %% TODO only -1?????
+  corresponds to calls such as \c{as.environment(v)} or \c{pos.to.env(v)} where
+  \c v is \c{-1}.
 
 \end{itemize}
 
