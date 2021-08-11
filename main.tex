@@ -653,7 +653,7 @@ each promise is bound to the argument of a function, one can connect that
 promise to a corresponding parameter. When a side-effect or reflection occurs,
 the parameters corresponding to all responsible promises are marked S or R.
 Reads and writes are ignored in some cases. For writes, if the environment was
-created after a responsible, then the write is ephemeral with respect to the
+created after a responsible promise, then the write is ephemeral with respect to the
 promise and it needs not be recorded. For reads, if the environment being read
 was modified after the responsible promise was created or modified after is
 started executing, then the read is ignored. For performance but at the cost of
@@ -668,6 +668,7 @@ Consider Fig.~\ref{iss}, for \c{a} no signal is observed, for \c{b} signal U
 come from \c{r1}, for \c{c} signal M comes from all invocations, for \c{d}
 signal S comes from \c{r3} since its argument mutates \c{r1} after it is read by
 \c{e}, we have no signal for \c{e}, and for \c{f} it gets \textbf{?} since \c
+% SK shouldn't it be 'since is missing'? and remove e'
 e is missing in all invocations. \lazr combines this information to synthesize
 the signature, \texttt{strict popular<1,5>}, i.e., parameters \c{a} and \c{e}
 are strict, and the rest are lazy.
@@ -713,9 +714,7 @@ unless the argument is marked as lazy. This eager bytecode also serves as the
 source code for the optimizing tier.  The changes in the lower tier were minimal.
 The benefits we show with \rshstrict are the lower bound on improvements as we
 do not factor in strictness in the analysis passes and other optimizations of
-the compiler. \SK{is it fair to say that this is the lower bound? Considering also
-that we almost blindly turned everything eager}
-
+the compiler.
 
 \section{Inference Experiment}
 
