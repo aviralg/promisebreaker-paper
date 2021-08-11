@@ -656,12 +656,15 @@ analysis finds the responsible promises: all promises on the call stack. Since
 each promise is bound to the argument of a function, one can connect that
 promise to a corresponding parameter. When a side-effect or reflection occurs,
 the parameters corresponding to all responsible promises are marked S or R.
-Reads and writes are ignored in some cases. For writes, if the environment was
-created after a responsible promise, then the write is ephemeral with respect to the
-promise and it needs not be recorded. For reads, if the environment being read
-was modified after the responsible promise was created or modified after is
-started executing, then the read is ignored. For performance but at the cost of
-precision, variable names are not recorded.
+Reads and writes are ignored in some cases. \lazr keeps track of the last
+accessed and modified time of each binding. For a write from a promise, if the
+binding being modified was not accessed after the promise was created and before
+it stated executing, then the write is ignored because evaluating the promise
+early will not introduce a conflict. Similarly, for reads, if the binding being
+read was not modified after the promise was created and before it started
+executing, then the read is ignored. For performance but at the cost of
+precision, only the last 10K read and write times for each variable are
+recorded.
 
 The result of analyzing an R script is a summary for each function and each
 parameter of the signals that were observed during tracing. Multiple scripts can
