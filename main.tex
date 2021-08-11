@@ -1198,12 +1198,12 @@ bound.
 
 Fig.~\ref{fig:validationPipeline} shows the full pipeline, it starts with extracting
 runnable code, then performs two runs with default semantics to check if the
-script is deterministic, if it is the result of a run with strict semantics is
+script is deterministic. If it is, the result of a run with strict semantics is
 compared and differences a recorded.
 
 
 We explored various degrees of strictness by choosing which of the three weak
-signal to treat as requiring lazy evaluation. Table~\ref{table:strictfail}
+signals to treat as requiring lazy evaluation. Table~\ref{table:strictfail}
 reports on the eight configurations we evaluated. For each row in the table, we
 ran all 42K scripts and counted the number of differences from expected outputs.
 Each row corresponds to a different set of strictness signatures for the corpus.
@@ -1212,7 +1212,7 @@ The \emph{+} sign indicates the corresponding parameter is lazy and \emph{-}
 means strict. For example, in the $+U+S+R$ configuration, any parameter marked
 as either U, S or R, is lazy, whereas the configuration $+U+S-R$ means that any
 parameter marked U or S must be lazy, and the configuration $-U+S+R$ means that
-parameters marked S and R must be lazy.
+parameters marked S and \SK{or, right?} R must be lazy.
 
 
 \begin{wraptable}{r}{5cm}
@@ -1243,13 +1243,13 @@ mark that function as strict, but the client may be able to observe the semantic
 difference. Luckily, this is quite rare.
 
 Other configurations are stricter, and thus should experience more errors.
-\config 1 is surprising, as making reflective arguments strict hides 5 errors,
+\cconfig 1 is surprising, as making reflective arguments strict hides 5 errors;
 this is an outlier. At the end of the spectrum, \config 7 makes all parameters
 marked either U, S, or R strict and experiences 16\% of failures which is rather
 high. This suggests a substantial amount of accidental laziness is observed.
 
 One take away is that unevaluated parameters have only a small impact on errors,
-while S and R are the cause of most errors. We conclude that \config 0 is safe
+while S and R are the cause of most errors. We conclude that \config 0 is a safe
 starting point for migration. Manual tightening of the signatures can start with
 the reflective argument and look at side-effecting ones on a case-by-case basis.
 
