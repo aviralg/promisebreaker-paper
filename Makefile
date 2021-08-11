@@ -40,6 +40,9 @@ unevaluated:
 missing:
 	make analysis ANALYSIS=missing
 
+vararg:
+	make analysis ANALYSIS=vararg
+
 signature:
 	make analysis ANALYSIS=signature
 
