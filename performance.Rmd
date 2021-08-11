@@ -16,6 +16,7 @@ params:
     datadir: "./data"
     graphdir: "./graphs"
     macrodir: "./macros"
+    sigdir: "./signatures"
 ---
 
 ```{r echo = FALSE, warning=FALSE, message=FALSE}
