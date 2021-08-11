@@ -268,6 +268,83 @@ TotalParameterCount <- nrow(distinct(parameters, pack_name, fun_name, formal_pos
 
 MacGen$from_args(TotalParameterCount = label_num(TotalParameterCount, 1))
 
+str(package_info)
+
+package_info <- 
+    package_info %>%
+    mutate(funname = paste0("`", funname, "`")) %>%
+    select(pack_name = package, fun_name = funname, arity)
+
+param_dist <-
+    functions %>%
+    distinct(pack_name, fun_name) %>%
+    left_join(package_info, by = c("pack_name", "fun_name")) %>%
+    filter(!is.na(arity)) %>%
+    arrange(desc(arity))
+
+param_dist_raw <-
+    param_dist %>%
+    mutate(full_name = paste0(pack_name, fun_name)) %>%
+    group_by(arity) %>%
+    summarize(fun_count = length(unique(full_name))) %>%
+    ungroup()
+    
+datatable(param_dist_raw)
+
+ZeroArityFunctionPerc <- 
+    param_dist_raw %>%
+    filter(arity == 0) %>%
+    pull(fun_count) %>%
+    `/`(TotalFunctionCount)
+
+OneArityFunctionPerc <- 
+    param_dist_raw %>%
+    filter(arity == 1) %>%
+    pull(fun_count) %>%
+    `/`(TotalFunctionCount)
+
+TenArityFunctionPerc <- 
+    param_dist_raw %>%
+    filter(arity > 10) %>%
+    pull(fun_count) %>%
+    sum() %>%
+    `/`(TotalFunctionCount)
+    
+FiftyArityFunctionCount <- 
+    param_dist_raw %>%
+    filter(arity > 50) %>%
+    pull(fun_count) %>%
+    sum()
+
+MacGen$from_args(ZeroArityFunctionPerc = latex_sanitize(label_percent()(ZeroArityFunctionPerc)),
+                 OneArityFunctionPerc = latex_sanitize(label_percent()(OneArityFunctionPerc)),
+                 TenArityFunctionPerc = latex_sanitize(label_percent()(TenArityFunctionPerc)),
+                 FiftyArityFunctionCount = label_comma()(FiftyArityFunctionCount))
+
+max_arity_function <- slice(param_dist, 1)
+
+MacGen$from_args(MaxArityFunctionName = paste0(max_arity_function$pack_name, "::", str_sub(max_arity_function$fun_name, 2, -2)),
+                 MaxArityFunctionParamCount = max_arity_function$arity)
+
+param_dist_summary <-
+    param_dist_raw %>%
+    mutate(arity = if_else(arity <= 10, as.character(arity), "> 10")) %>%
+    count(arity, wt = fun_count, name = "fun_count") %>%
+    mutate(relative_fun_count = fun_count/TotalFunctionCount)
+    
+datatable(param_dist_summary)
+
+param_dist_plot <-
+    ggplot(param_dist_summary, aes(arity, relative_fun_count)) + 
+    geom_col(fill = "black") +
+    scale_y_continuous(sec.axis = sec_axis(~ . * TotalFunctionCount,
+                                           labels = label_number_si()),
+                       labels = label_percent()) +
+    scale_x_discrete(limits = c(0:10, "> 10")) +
+    coord_flip()+
+    labs(x = "Parameters", y = "Functions")
+
+save_graph(param_dist_plot, "param_dist")
 ```
 
 ```
