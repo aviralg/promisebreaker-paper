@@ -16,11 +16,13 @@ params:
     datadir: "./data"
     graphdir: "./graphs"
     macrodir: "./macros"
+    sigdir: "./signatures"
 ---
 
 ```{r echo = FALSE, warning=FALSE, message=FALSE}
 ## https://bookdown.org/yihui/rmarkdown-cookbook/source-script.html
 source("analysis.R", local = knitr::knit_global())
+MacGen <- LatexMacroGenerator$new(params$macrodir)
 ```
 
 ```{r echo = FALSE, warning=FALSE, message=FALSE}
@@ -143,13 +145,20 @@ validation_summary <-
                    2 * str_detect(signature, fixed("-E")) + 
                    1 * str_detect(signature, fixed("-R"))) %>%
     arrange(order) %>%
-    select(order, signature, total) #test, vignette, example, testthat, total)
+    select(order, signature, total) %>%
+    mutate(count = map_int(str_split(total, fixed("&")), ~as.integer(.[[1]])),
+           perc = map_chr(str_split(total, fixed("&")), ~.[[2]]))
     
 
 validation_summary %>% datatable()
 
 cat(nrow(all_programs))
-cat(baseline_programs)
+
+MacGen$from_args(ValidationAllProgramCount = label_num(nrow(all_programs)),
+                 ValidationBaselineProgramCount = label_num(baseline_programs))
+
+MacGen$from_args(ValidationStrictFailedProgramCount = label_num(validation_summary$count),
+                 ValidationStrictFailedProgramPerc = validation_summary$perc)
 
 header <- colnames(validation_summary)
 

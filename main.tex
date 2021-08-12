@@ -1124,13 +1124,14 @@ Fig.~\ref{fig:validationPipeline} shows the steps performed in the experiment.
 First extract runnable code from clients. Table~\ref{table:clientcorpus} counts
 the various scripts and the lines of code they represent. Next, GNU R evaluates
 each script twice. Scripts that do not have the same output are considered
-non-deterministic and filtered out. This leaves us with \todo{XXX} scripts. They
-are then run with \strictr after applying the strictness signatures obtained by
-\lazr. When the output of this second run differs from the one obtained by GNU
-R, the difference is attributed to the modified semantics. Comparing the output
-of scripts is standard practice in the R community for detecting regressions.
-There may, of course, be differences in execution that does not manifest in the
-output; so these results reported here are a lower bound.
+non-deterministic and filtered out. This leaves us with
+\ValidationBaselineProgramCount scripts. They are then run with \strictr after
+applying the strictness signatures obtained by \lazr. When the output of this
+second run differs from the one obtained by GNU R, the difference is attributed
+to the modified semantics. Comparing the output of scripts is standard practice
+in the R community for detecting regressions. There may, of course, be
+differences in execution that does not manifest in the output; so these results
+reported here are a lower bound.
 
 
 \begin{figure}[H]
@@ -1174,11 +1175,11 @@ output; so these results reported here are a lower bound.
       \draw [connector] (runtwo)   -- (runthree);
       \draw [connector] (runthree) -- (compare);
 
-      \node [below = \textsep of corpus]    (corpusdesc)    {\nodedesc{5 Minutes\\2000 Packages\\51,950 Files}};
+      \node [below = \textsep of corpus]    (corpusdesc)    {\nodedesc{5 Minutes\\2000 Packages\\\ValidationAllProgramCount Files}};
       \node [below = \textsep of runone]    (runonedesc)    {\nodedesc{6 Hours}};
       \node [below = \textsep of runtwo]    (runtwodesc)    {\nodedesc{6 Hours}};
       \node [below = \textsep of runthree]  (runthreedesc)  {\nodedesc{7 Hours}};
-      \node [below = \textsep of compare]   (comparedesc)   {\nodedesc{1 Hour 10 Minutes\\367 Failures}};
+      \node [below = \textsep of compare]   (comparedesc)   {\nodedesc{1 Hour 10 Minutes\\\ValidationStrictFailedProgramCount Failures}};
 
     \end{tikzpicture}
   }
@@ -1190,7 +1191,9 @@ With all the signatures applied, we observed \todo{XX} scripts produce erroneous
 output. We narrowed down the cause of these errors to a handful of packages:
 \code{R.oo}, \code{R.utils}, \code{vctrs}, \code{ggplot2}, \code{Matrix}, and
 \code{spam}. Making these packages lazy decreased the number of failures to
-\todo{XX}. We details some of the errors next.
+\ValidationStrictFailedProgramCount which is only
+\ValidationStrictFailedProgramPerc of all the scripts with deterministic output.
+We detail some of the errors next.
 
 Loading package \code{R.oo}, and \code{R.utils} terminates execution an error as
 strict semantics interfere with the initialization code.
