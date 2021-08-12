@@ -141,29 +141,29 @@
 \maketitle
 \section{Introduction}
 
-The R programming language is widely used in data science. Yet many of users are
+The R programming language is widely used in data science. Yet many users are
 unaware that function calls have lazy semantics: arguments are suspended
 computations that are evaluated if and when they are needed. \citet{oopsla19b}
 provided a thorough observational study of R packages. Most packages are written
 without reliance on laziness with the exception of meta-programming. This paper
 argues that laziness should be the exception in R. We propose to migrate R
 programs to an \emph{eager by default, lazy on demand} semantics. We focus on
-the question whether on can switch the semantics of a language without causing
+the question whether one can switch the semantics of a language without causing
 undue breakage in legacy code that is in daily use. Even if programmers do not
 avail themselves of laziness, their code may accidentally depends on it.
 
 \paragraph{The case for strictness.} Laziness is error-prone, inconsistent,
 and costly! At least when combined with side-effects in a language without type
-annotations it is. When a function with multiple evaluation orders is provided
-effectful arguments, their effects can be ordered randomly. Functional languages
+annotations. When a function with multiple evaluation orders is provided
+effectful arguments, the order of effects is hard to predict. Pure functional languages
 prevent this by controlling effects from their type system. While R users do not
 have types, they often force evaluation at function boundaries. R's laziness is
 inconsistent as there are points where evaluation is arbitrarily forced, \eg the
 right-hand side of assignments and function returns. Furthermore,
 object-oriented multiple dispatch evaluates arguments eagerly to obtain their
 class. The costs of laziness comes from having to box each argument in data
-structure that must be allocated and freed, and the limits this boxing puts on
-compiler optimizations.
+structure that must be allocated and freed, and the side-effects from evaluating
+arguments hindering compiler optimizations.
 
 \paragraph{The case for laziness.} The success of a programming language
 comes down to the strength of its ecosystem. With tens of millions of lines of
@@ -176,8 +176,8 @@ Meta-programming is used for language extension and to create embedded
 domain-specific languages. While one could imagine using macros instead, the
 number of libraries that would have to be refactored would be significant.
 
-\paragraph{A pragmatic path forward.} How does on migrate an entire ecosystem?
-A viable migration path must abide by four tenets: (1) minimal legacy code
+\paragraph{A pragmatic path forward.} How does one migrate an entire ecosystem?
+Our viable migration path abides by four tenets: (1) minimal legacy code
 changes, (2) semi-automated migration, (3) testable outcomes, and (4) measurable
 benefits. We envision a migration path with the following characteristics.
 Changes to legacy code are avoided by non-invasive extensions to the language's
@@ -186,7 +186,7 @@ semantics. Strictness signatures are inferred from the tests associated to every
 R package. For popular libraries, client code is used as an oracle to check the
 correctness of inferred signatures. Performance and memory footprint are
 improved by compiler optimizations that leverage the new semantics. This paper
-aims to evaluate components of this migration path:
+aims to evaluate the following components of this migration path:
 
 \newcommand{\rshstrict}{{\sf {\v R}$_{\mathsf s}$ }} %% SK added extra space at the end
 \newcommand{\brshstrict}{{\bf {\v R}$_{\mathbf s}$}}
@@ -200,10 +200,12 @@ aims to evaluate components of this migration path:
   take advantage of a strict by default semantics.
 \end{itemize}
 
-We conduct two experiments that aim to answer the question whether such a
-semi-automated path is viable. Specifically, it should be the case that change
+Specifically, it should be the case that changes
 to the code are small, that inference is accurate, and that there are
-performance improvements. The paper reports on these two experiments. First, we
+performance improvements.
+We conduct two experiments that aim to answer the question whether such a
+semi-automated path is viable.
+First, we
 obtain the most widely used packages in the R ecosystem and, with \lazr,
 leverage their regression tests to infer strictness signatures. Since \strictr
 can load signatures from external files, no changes to code are required. We
@@ -216,15 +218,15 @@ strict and lazy modes using \rshstrict. We observe speedups ranging from
 \speedupRshStrictMin to \speedupRshStrictMax for the strict version.
 
 Our conclusions are that the approach is viable as user-visible changes are
-small and the inference gives promising results. For community review we intend
+small and the precision of the inference is promising. For community review we intend
 to further reduce the error rate by improving the precision of our analysis and
 using all available clients to infer signatures rather than only the tests
 bundled with a package. The performance numbers should be viewed as a limit
 study as the baseline is a compiler that already performs aggressive
-optimizations. We have not evaluated the benefits of \strictr on the bytecode
-compiler used today. It is conceivable that the relative speedups could be more
+optimizations. We have not evaluated the benefits of \strictr on the GNU R
+reference implementation. It is conceivable that the relative speedups could be more
 impressive than in our native compiler, but in the long run we expect users
-to move away from bytecode execution.
+to move away from bytecode interpretation.
 
 \paragraph{Availability.} Our work is available from:
     URL/of/artifact/goes/here
