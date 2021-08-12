@@ -311,7 +311,7 @@ H3.2a.norm <- function(prom) {
   
   alpha <- 0.4
   prom_plot <-
-    ggplot(prom_, aes(benchmark, speedup, fill=factor(experiment, levels = rev(levels(experiment))))) +
+    ggplot(prom_, aes(benchmark, speedup, fill=factor(experiment, labels=c("Řs", "Ř", "GNU R"), levels = rev(levels(experiment))))) +
     annotate("rect", fill = "grey", alpha = alpha, xmin = 1.5, xmax = 2.5, ymin = -Inf, ymax = Inf) +
     annotate("rect", fill = "grey", alpha = alpha, xmin = 3.5, xmax = 4.5, ymin = -Inf, ymax = Inf) +
     annotate("rect", fill = "grey", alpha = alpha, xmin = 5.5, xmax = 6.5, ymin = -Inf, ymax = Inf) +
