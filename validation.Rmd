@@ -32,31 +32,13 @@ all_programs <-
 
 exitval_raw <-
     exitval_raw %>%
-    pivot_longer(cols = c(`lazy-1`,
-                          `lazy-2`,
-                          `signature+force+effect+reflection`,
-                          `signature+force+effect-reflection`,
-                          `signature+force-effect+reflection`,
-                          `signature+force-effect-reflection`,
-                          `signature-force+effect+reflection`,
-                          `signature-force+effect-reflection`,
-                          `signature-force-effect+reflection`,
-                          `signature-force-effect-reflection`),
+    pivot_longer(cols = c(`lazy-1`, `lazy-2`, `strict`),
                  names_to = "signature",
                  values_to = "exitval")
 
 stdout_raw <-
     stdout_raw %>%
-    pivot_longer(cols = c(`lazy-1`,
-                          `lazy-2`,
-                          `signature+force+effect+reflection`,
-                          `signature+force+effect-reflection`,
-                          `signature+force-effect+reflection`,
-                          `signature+force-effect-reflection`,
-                          `signature-force+effect+reflection`,
-                          `signature-force+effect-reflection`,
-                          `signature-force-effect+reflection`,
-                          `signature-force-effect-reflection`),
+    pivot_longer(cols = c(`lazy-1`, `lazy-2`, `strict`),
                  names_to = "signature",
                  values_to = "stdout")
                  
