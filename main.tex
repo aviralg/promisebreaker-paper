@@ -642,21 +642,19 @@ provided argument does, we summarize them here:
 \end{itemize}
 
 For any trace, \lazr models each argument of each function. If a function is
-invoked, the trace records all operations related to arguments and correlates
-them with parameters.
-%% TODO: this sentence does not parse...
-For each operation performed by the interpreter, the
-analysis finds the responsible promises: all promises on the call stack. Since
-each promise is bound to the argument of a function, one can connect that
-promise to a corresponding parameter. When a side-effect or reflection occurs,
-the parameters corresponding to all responsible promises are marked S or R.
-Reads and writes are ignored in some cases. \lazr keeps track of the last
-accessed and modified time of each binding. For a write from a promise, if the
-binding being modified was not accessed after the promise was created and before
-it stated executing, then the write is ignored because evaluating the promise
-early will not introduce a conflict. Similarly, for reads, if the binding being
-read was not modified after the promise was created and before it started
-executing, then the read is ignored. For performance but at the cost of
+invoked, the tracer records all operations related to its arguments and
+correlates them with the parameters. For each operation performed by the
+interpreter, the analysis finds the responsible promises, i.e., all promises on
+the call stack. Since each promise is bound to the argument of a function, one
+can connect that promise to a corresponding parameter. When a side-effect or
+reflection occurs, the parameters corresponding to all responsible promises are
+marked S or R. Reads and writes are ignored in some cases. \lazr keeps track of
+the last accessed and modified time of each binding. For a write from a promise,
+if the binding being modified was not accessed after the promise was created and
+before it stated executing, then the write is ignored because evaluating the
+promise early will not introduce a conflict. Similarly, for reads, if the
+binding being read was not modified after the promise was created and before it
+started executing, then the read is ignored. For performance but at the cost of
 precision, only the last 10K read and write times for each variable are
 recorded.
 
@@ -682,7 +680,7 @@ are lazy.
 handling data, resulting in a vast API for reading and writing files to disk.
 These functions call arbitrary C/C++ libraries for IO. Tracking these calls
 would require tracing \emph{syscalls} which is currently not supported by our
-dynamic analysis infrastructure. \lazr also does not handle state changes in
+dynamic analysis infrastructure. \lazr also does not handle state changes in the
 native code of packages because there is no particular API that can be
 intercepted to track those changes.
 
@@ -866,13 +864,15 @@ over 50 parameters. Function \texttt{\MaxArityFunctionName} takes the cake with
 \subsection{Inferred strictness signatures}\label{sec:results}
 
 There are three signals we consider strong, parameters marked by either one of
-them are considered lazy. \lazr recorded 1.3K parameters being meta-programmed
-(marked M), furthermore 3.2K were missing and 20K were varargs. All these remain
-lazy. For other combinations of signals Table~\ref{table:strictdist} summarizes
-their distribution. One function can be counted in multiple rows as its
-different parameters may have different combinations. Rows are interpreted as
-follows: the first row, for instance, indicates that no signals were observed
-for 148K parameters coming from 49K functions and 489 packages.
+them are considered lazy. \lazr recorded \MetaCountParametersTotal parameters
+being meta-programmed (marked M), furthermore \MissingAlwaysCountParameters were
+missing and \VarargParameterCount were varargs. All these remain lazy. For other
+combinations of signals Table~\ref{table:strictdist} summarizes their
+distribution. One function can be counted in multiple rows as its different
+parameters may have different combinations. Rows are interpreted as follows: the
+fourth row, for instance, indicates that no signals were observed for
+\TotalStrictParamCount parameters coming from \TotalStrictFunCount functions and
+\TotalStrictPackCount packages.
 
 \begin{table}[!h] \small
   \caption{Signature Summary} \label{table:strictdist} \centering
@@ -893,13 +893,14 @@ for 148K parameters coming from 49K functions and 489 packages.
   \end{tabular}
 \end{table}
 
-We observe that the majority of parameters (72\%) are always evaluated, and the
-corresponding arguments do not perform side-effects or reflective operations.
-These parameters can safely be evaluated eagerly. Unevaluated parameters account
-for 14\% of observations, a significant source of potential laziness. Variable
-lengths arguments and missing arguments account for 9\% and 1.6\% of the data
-respectively. The remaining configurations are in the noise. It is noteworthy
-that parameters marked R come from very few functions and packages.
+We observe that the majority of parameters (\TotalStrictParamPerc) are always
+evaluated, and the corresponding arguments do not perform side-effects or
+reflective operations. These parameters can safely be evaluated eagerly.
+Unevaluated parameters account for \TotalUnevaluatedParamPerc of observations, a
+significant source of potential laziness. Variable lengths arguments and missing
+arguments account for \TotalVarargParamPerc and \TotalMissingParamPerc of the
+data respectively. The remaining configurations are in the noise. It is
+noteworthy that parameters marked R come from very few functions and packages.
 We now discuss the different sources of laziness in more detail.
 
 \paragraph{{\normalfont \textbf{[V]}} Varargs}
@@ -1028,14 +1029,14 @@ by design; \c{tail} is not defined for \c{tbl_lazy} objects.
 Few promises have side-effects and many of those are benign for our purposes as
 they happen to local variables of the promise. Table~\ref{table:effects}
 presents the number of parameters that are made lazy due to observable
-side-effects. Only \EffectCountArgumentsTotal arguments out of \todo{add total
-  argument macro} are made lazy owing to effects. This corresponds to
+side-effects. Only \EffectCountArgumentsTotal arguments out of
+\TotalArgumentCount are made lazy owing to effects. This corresponds to
 \EffectCountParametersTotal lazy parameters from \EffectCountFunctionsTotal
-functions.
-A typical example of this category is the \code{along} parameter of \code{abind}
-function from the \code{abind} package. Its default value is the parameter
-\code{N} which is computed internally in the body of the function before
-\code{along} is used. Clearly, the evaluation of \code{along} has to be delayed.
+functions. A typical example of this category is the \code{along} parameter of
+\code{abind} function from the \code{abind} package. Its default value is the
+parameter \code{N} which is computed internally in the body of the function
+before \code{along} is used. Clearly, the evaluation of \code{along} has to be
+delayed.
 
 \begin{lstlisting}
 abind <- function(..., along=N, ...) {

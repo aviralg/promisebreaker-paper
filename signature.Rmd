@@ -111,12 +111,48 @@ signature_summary <-
     arrange(order) %>%
     mutate(param_perc = round(100 * param_count / total_param_count, 1),
            fun_perc = round(100 * fun_count / total_fun_count, 1)) %>%
-    mutate(param_cumperc = cumsum(param_perc)) %>%
-    mutate(param_count = label_num(param_count),
-           fun_count = label_num(fun_count))
+    mutate(param_cumperc = cumsum(param_perc))
 
 datatable(signature_summary)
 
+strict_param_summary <-
+    signature_summary %>%
+    filter(!vararg & !metaprogram & !missing & !unevaluated & !effects & !reflection)
+
+TotalStrictParamPerc <- pull(strict_param_summary, param_perc)
+TotalStrictParamCount <- pull(strict_param_summary, param_count)
+TotalStrictFunCount <- pull(strict_param_summary, fun_count)
+TotalStrictPackCount <- pull(strict_param_summary, pack_count)
+
+TotalUnevaluatedParamCount <- 
+    signature_summary %>%
+    filter(unevaluated) %>%
+    pull(param_count) %>%
+    sum()
+    
+TotalVarargParamCount <- 
+    signature_summary %>%
+    filter(vararg & !metaprogram & !missing & !unevaluated & !effects & !reflection) %>%
+    pull(param_count) %>%
+    sum()
+    
+TotalMissingParamCount <- 
+    signature_summary %>%
+    filter(!vararg & !metaprogram & missing & !unevaluated & !effects & !reflection) %>%
+    pull(param_count) %>%
+    sum()
+    
+MacGen$from_args(TotalStrictParamPerc = latex_sanitize(label_percent(0.1)(TotalStrictParamCount/total_param_count)),
+                 TotalStrictParamCount = label_num(TotalStrictParamCount),
+                 TotalStrictFunCount = label_num(TotalStrictFunCount),
+                 TotalStrictPackCount = label_num(TotalStrictPackCount),
+                 TotalUnevaluatedParamPerc = latex_sanitize(label_percent(0.1)(TotalUnevaluatedParamCount/total_param_count)),
+                 TotalVarargParamPerc = latex_sanitize(label_percent(0.1)(TotalVarargParamCount/total_param_count)),
+                 TotalMissingParamPerc = latex_sanitize(label_percent(0.1)(TotalMissingParamCount/total_param_count)))
+
+signature_summary <-
+    signature_summary %>%
+    mutate(param_count = label_num(param_count), fun_count = label_num(fun_count))
 
 signature_summary %>%
 select(vararg, metaprogram, missing, unevaluated, effects, reflection, param_count, param_perc, fun_count, fun_perc, pack_count) %>%
