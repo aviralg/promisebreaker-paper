@@ -694,7 +694,7 @@ strict functions, this was not straightforward in our proof of concept
 implementation which does source-level rewriting. To achieve performance in the
 GNU R implementation would have required changing the bytecode compiler and the
 associated bytecode interpreter. While possible, the benefits one would measure
-with such an approach would be bounded by the speed of interpreted code. It long
+with such an approach would be bounded by the speed of interpreted code. In the long
 run, R implementations should generate native code. The alternative was to use
 an experimental native compiler. There are two available in open source,
 Oracle's Truffle implementation of R~\cite{Stadler16} and our own
@@ -710,12 +710,12 @@ realized by a bytecode interpreter, the second tier by an optimizing native
 compiler which relies on LLVM for code generation. The compiler employs, among
 many other optimizations, speculative inlining of R closures and promises
 \citep{dls19, oopsla20c}.
-One benefit of choosing \Rsh is that it allows us to better evaluate the impact
+Choosing \Rsh allows us to better evaluate the impact
 of laziness. In \Rsh we can both measure the impact on an interpreter with few
 optimizations applied to the bytecode, and an optimizing compiler that already
 does its best to elide promises when the semantics of the language allows it.
 
-We build \rshstrict as a minimal adaptation of \Rsh that can let us evaluate
+We build \rshstrict as a minimal adaptation of \Rsh that lets us evaluate
 performance benefits. We changed the first-tier compiler that generate the \Rsh
 bytecode (which differs from the GNU R bytecode) to eagerly evaluate arguments,
 unless the argument is marked as lazy. This eager bytecode also serves as the
@@ -726,7 +726,7 @@ the compiler.
 
 \section{Inference Experiment}
 
-The goal of the inference experiment is to evaluate what is the actual need for
+The goal of the inference experiment is to gauge the actual need for
 laziness in legacy code and the robustness of our inference algorithm.
 \lazr is scalable, it can handle all the packages in CRAN, but the amount of
 data to process can reach multi-terabyte sizes. \lazr adopts a simple map-reduce
@@ -737,7 +737,9 @@ into a result table. Finally, the report phase creates graphs and tables for
 inclusion in the paper. The \lazr pipeline is set up with a container image that
 includes all the dependencies for installing analysis code and R packages. This
 provides a reliable reproducible setup across machines. To run it, we mirror
-repositories, install their packages, run the script to generate traces. These
+repositories, install their packages, run the script to generate traces.
+%% TODO: repetition
+These
 traces are analyzed to output tabular data files and strictness signatures.
 Whenever possible, we parallelize the steps. Our experiments were performed on
 two Intel Xeon 6140, 2.30GHz machines with 72 cores and 256GB of RAM each.
