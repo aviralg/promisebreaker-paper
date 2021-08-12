@@ -1234,7 +1234,7 @@ changed.
 \section{Performance Experiment}\label{sec:rsh}
 
 Our hypothesis is that eager semantics lead to faster programs. This might
-surprise readers who expect call-by-need avoids unnecessary computation.
+surprise readers who expect call-by-need to avoid unnecessary computation.
 Delaying computations is complex and hinders performance in two ways. First, it
 leads to more allocation. Second, it obstructs compiler analyses and
 optimizations. We expect the hypothesis to hold for a just-in-time compiler that
@@ -1355,8 +1355,7 @@ bytecode interpreter to the optimizing just-in-time compiler \Rsh, leads to a
 \promiseAlocationReductionGnurRsh reduction in allocations. The number is
 reached by taking the geometric mean of light-gray bars, yielding a
 \promiseAllocationGnurRsh. Therefore, the reduction is
-\promiseAlocationReductionGnurRsh ({$100\%$\xspace} -
-\promiseAllocationGnurRsh). Note that for some benchmarks the light-gray bar is
+\promiseAlocationReductionGnurRsh. Note that for some benchmarks the light-gray bar is
 too small to be seen and replaced by the actual number. The second step from
 lazy to eager semantics leads to \promiseAlocationReductionRshStrictToZero
 benchmarks not allocating any promises at all. On the remainder, we see an
@@ -1368,8 +1367,7 @@ allocations, the rest reduce on average by
 \promiseAlocationReductionGnurRshStrict. To reach this number, once again we
 compute the geometric mean of dark bars, yielding
 \promiseAllocatioGnurRshStrict. Therefore, the reduction is
-~\promiseAlocationReductionGnurRshStrict ({$100\%$\xspace} -
-\promiseAllocatioGnurRshStrict).
+~\promiseAlocationReductionGnurRshStrict.
 The lowest reduction observed is \promiseAlocationReductionGnurRshStrictMin.
 Surprisingly the number of remaining promises is still relatively high in some
 cases. As far as we were able to observe, they originate largely from special
@@ -1404,7 +1402,7 @@ heap and allocating promises. Surprisingly, that was not the main reason
 for the speedups. We investigated the remaining difference using the
 \lstinline{perf} profiler and found that the overheads of lazy evaluation are to
 be found in setting up the execution context for promise evaluation. This
-includes marking it as 'executing' to detect recursive evaluation dependencies,
+includes marking it as under evaluation, to detect recursive evaluation dependencies,
 and either calling the interpreter's main eval-loop on the code of the promise or
 calling the compiled function. In the case of the native backend, having the
 promises inlined at the call-site instead of in a separate native function
