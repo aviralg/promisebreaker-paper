@@ -186,36 +186,34 @@ semantics. Strictness signatures are inferred from the tests associated to every
 R package. For popular libraries, client code is used as an oracle to check the
 correctness of inferred signatures. Performance and memory footprint are
 improved by compiler optimizations that leverage the new semantics. This paper
-aims to evaluate components of this migration
+aims to evaluate components of this migration path:
 
 \newcommand{\rshstrict}{{\sf {\v R}$_{\mathsf s}$ }} %% SK added extra space at the end
 \newcommand{\brshstrict}{{\bf {\v R}$_{\mathbf s}$}}
 
 \begin{itemize}[---]
-\item {\bf StrictR:} a prototype R interpreter with strict by default
-  semantics; only functions that demand lazy evaluation need to be annotated.
+\item {\bf StrictR:} a prototype R interpreter with strict by default semantics;
+  only functions that demand lazy evaluation need to be annotated.
 \item {\bf LazR:} a scalable infrastructure for inferring strictness annotations
   for function arguments by dynamic program analysis.
 \item {\bf \brshstrict:} an optimizing just-in-time compiler for R modified to
   take advantage of a strict by default semantics.
 \end{itemize}
 
-We conduct several experiments that aim to answer the question whether such a
+We conduct two experiments that aim to answer the question whether such a
 semi-automated path is viable. Specifically, it should be the case that change
 to the code are small, that inference is accurate, and that there are
-performance improvements.
-
-The paper reports on two experiments. First, we obtain the most widely used
-packages in the R ecosystem and, with \lazr, leverage their regression tests to
-infer strictness signatures. Since \strictr can load signatures from external
-files, no changes to code are required. We then use clients of those packages to
-test the accuracy of the inference results. Only \robustnesResult of the
-signatures cause \strictr programs to exhibit observable differences from the
-reference semantics. Our second experiment is independent from the first. We
-take a suite of small computational tasks, manually annotate them for maximal
-strictness, and run the benchmarks in strict and lazy modes using \rshstrict. We
-observe speedups ranging from \speedupRshStrictMin to \speedupRshStrictMax for
-the strict version.
+performance improvements. The paper reports on these two experiments. First, we
+obtain the most widely used packages in the R ecosystem and, with \lazr,
+leverage their regression tests to infer strictness signatures. Since \strictr
+can load signatures from external files, no changes to code are required. We
+then use clients of those packages to test the accuracy of the inference
+results. Only \robustnesResult of the signatures cause \strictr programs to
+exhibit observable differences from the reference semantics. Our second
+experiment is independent from the first. We take a suite of small computational
+tasks, manually annotate them for maximal strictness, and run the benchmarks in
+strict and lazy modes using \rshstrict. We observe speedups ranging from
+\speedupRshStrictMin to \speedupRshStrictMax for the strict version.
 
 Our conclusions are that the approach is viable as user-visible changes are
 small and the inference gives promising results. For community review we intend
@@ -433,14 +431,14 @@ environment.
 
 \section{StrictR: An R Interpreter with Strictness Signatures}\label{sec:strictr}
 
-\strictr is a prototype implementation of GNU R with a strict-by-default
-semantics and strictness signatures to specify which arguments should remain
-lazy. Our implementation is experimental in the sense that it is not looking at
+\strictr is a prototype implementation of R with a strict-by-default semantics
+and strictness signatures to specify which arguments should remain lazy. Our
+implementation is a prototype in the sense that it is not looking at
 performance, instead its purpose is to allow us to experiment with the semantics
 of the language. The implementation uses source-to-source rewriting, and is,
 itself, loaded as a package in an unmodified GNU R interpreter. To avoid code
-changes, strictness information is provided by external signature files.
-Providing signatures in external files avoids the need to modify the source code
+changes, strictness information is provided by external signature files
+to avoid having to modify the source code
 of programs and also enables easy experimentation with different signature
 configurations. We also support inline annotations, but they are not used in our
 experiments.
@@ -448,8 +446,7 @@ experiments.
 
 \paragraph{Strictness Signatures.}
 A signature file contains strictness signatures for functions of one or more
-packages. The format is straightforward, a sequence of signatures \emph{sig} of
-the form
+packages. The format is of signatures of the form
 %
 \[
 \mathit{sig}~~::=~~\mathsf{strict}~\mathsf{`pack}::\mathsf{fun`}~~\langle i, j, k, \dots\rangle
@@ -460,9 +457,9 @@ integers specifies which argument positions are evaluated lazily. This format is
 meant to be generated by our tools, inline annotations are more user-friendly. A
 drawback of signature files is that inner functions can not be annotated as they
 have no names. Only functions exported to a package namespace have a canonical
-name. We considered various heuristics, but some packages dynamically set up
-methods in package load hooks. This dynamism makes it hard to identify the
-correct name. Luckily, these cases are a minority in R code.
+name. We considered heuristics, but some packages dynamically create code in
+package load hooks, this makes it hard to identify the correct name. Luckily,
+these cases are relatively rare.
 
 \paragraph{Execution.}
 Function are source-to-source rewritten as they are loaded. The rewriting is
@@ -521,14 +518,11 @@ stack, and strict evaluation would be observable: \c{as.environment} and
 worth noting, again, that such code is brittle as any change in the the target
 function can change the frame returned by the reflective calls.
 
-Vararg arguments currently remain lazy. Assigning a single strictness annotation
-to $\dots$ is tricky because a function can have different strictness behavior
-for individual elements. This happens in object-oriented dispatch where the
-vararg is forwarded from the dispatcher to the target method. One solution would
-be to make vararg strict if it is strict in all of its constituents. However,
-this may not occur frequently enough to justify the added complexity. The
-current choice is pragmatic but imprecise; we are considering options for a more
-accurate treatment.
+One special case is that of vararg arguments. Assigning a single strictness
+annotation to $\dots$ is tricky because a function can have different strictness
+behavior for each element. For example, object-oriented dispatch uses a vararg
+to forward all method arguments from the caller to the target function.
+Our current choice is pragmatic but imprecise; all varargs remain lazy.
 
 
 \paragraph{Order of evaluation} A design choice we faced
@@ -556,6 +550,24 @@ at scale. \lazr has two important components: a system for tracing the execution
 of R scripts and an infrastructure for extracting executables and running
 analyses that scale to thousands of packages.
 
+
+The goal of this analysis is not to infer maximally strict signatures but rather
+minimize the impact of semantic change on clients by considering both intrinsic
+and accidental laziness. We elucidate this point with Fig.~\ref{iss} which
+shows a \c{popular} function that takes six arguments, \c{a} is always
+evaluated, \c{b} is conditionally evaluated, \c{c} is forwarded to
+\c{substitute} for meta-programming, \c{d} and \c{e} are forwarded to a
+strict function, and \c{f} is evaluated if it is not missing. The client code
+has three invocations. In all them, \c{f} is missing. This makes \c{f}
+lazy because there is no information available about its evaluation. For \c{r1},
+variable \c b should not be evaluated, evaluating it strictly will change the
+output of the program; for \c{r2}, evaluating \c{c} will immediately
+terminate execution, departing from the original program behavior; and for
+\c{r3}, if \c{d} is evaluated before \c{e} a different result can be observed.
+To summarize, the expected output of the analysis of legacy code is to increase
+strictness while keeping the number of observable semantic differences low. For
+new code, we expect programmers to mostly use strict parameters.
+
 \begin{figure}[!h]
   \begin{tabular}{lll}
     \begin{minipage}{6cm}
@@ -572,31 +584,14 @@ analyses that scale to thousands of packages.
      if (a) b
      print(substitute(c))
      if(!missing(f)) print(f)
-     return e+d
+     return(e+d)
  }
 \end{lstlisting}
        \end{minipage}\\
-    \it Client code&& \it Library
+{\it Client code}&& {\it Library}
   \end{tabular}%
   \caption{Inferring strictness signatures}\label{iss} %
 \end{figure}
-
-The goal of this analysis is not to infer maximally strict signatures but rather
-minimize the impact of semantic change on clients by considering both intrinsic
-and accidental laziness. We elucidate this point with fig.~\ref{iss} which
-shows a \c{popular} function that takes six arguments, \c{a} is always
-evaluated, \c{b} is conditionally evaluated, \c{c} is forwarded to
-\c{substitute} for meta-programming, \c{d} and \c{e} are forwarded to a
-strict function, and \c{f} is evaluated if it is not missing. The client code
-has three invocations. In all them, \c{f} is missing. This makes \c{f}
-lazy because there is no information available about its evaluation. For \c{r1},
-variable \c b should not be evaluated, evaluating it strictly will change the
-output of the program; for \c{r2}, evaluating \c{c} will immediately
-terminate execution, departing from the original program behavior; and for
-\c{r3}, if \c{d} is evaluated before \c{e} a different result can be observed.
-To summarize, the expected output of the analysis of legacy code is to increase
-strictness while keeping the number of observable semantic differences low. For
-new code, we expect programmers to mostly use strict parameters.
 
 \paragraph{Tracing}
 The heart of \lazr is a dynamic analysis tool built on the \rdyn package which
