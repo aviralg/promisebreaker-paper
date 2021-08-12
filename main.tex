@@ -678,7 +678,9 @@ allows us to easily explore different merging strategies.
 handling data, resulting in a vast API for reading and writing files to disk.
 These functions call arbitrary C/C++ libraries for IO. Tracking these calls
 would require tracing \emph{syscalls} which is currently not supported by our
-dynamic analysis infrastructure.
+dynamic analysis infrastructure. \lazr also does not handle state changes in
+native code of packages because there is no particular API that can be
+intercepted to track those changes.
 
 \section{\v R$_{\mathbf s}$: A Strict-by-default compiler}\label{sec:rsh1}
 
