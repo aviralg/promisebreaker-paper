@@ -435,23 +435,24 @@ environment.
 
 \strictr is a prototype implementation of R with a strict-by-default semantics
 and strictness signatures to specify which arguments should remain lazy. Our
-implementation is a prototype in the sense that it is not looking at
+implementation is a prototype in the sense that it is not looking to improve
 performance, instead its purpose is to allow us to experiment with the semantics
 of the language. The implementation uses source-to-source rewriting, and is,
-itself, loaded as a package in an unmodified GNU R interpreter. To avoid code
-changes, strictness information is provided by external signature files
+itself, loaded as a package in an unmodified GNU R interpreter.
+Strictness information is provided by external signature files
 to avoid having to modify the source code
-of programs and also enables easy experimentation with different signature
+of programs and also enable easy experimentation with different signature
 configurations. We also support inline annotations, but they are not used in our
 experiments.
 
 
 \paragraph{Strictness Signatures.}
 A signature file contains strictness signatures for functions of one or more
-packages. The format is of signatures of the form
+packages. The format of signatures is of the form
 %
 \[
-\mathit{sig}~~::=~~\mathsf{strict}~\mathsf{`pack}::\mathsf{fun`}~~\langle i, j, k, \dots\rangle
+\mathit{sig}~~::=~~\mathsf{strict}~\mathsf{`pack}::\mathsf{fun`}~~\langle i_1,
+i_2, i_3, \dots\rangle
 \]
 %
 Here, {\sf pack::fun} is the name of the package and function. The sequence of
@@ -464,16 +465,17 @@ package load hooks, this makes it hard to identify the correct name. Luckily,
 these cases are relatively rare.
 
 \paragraph{Execution.}
-Function are source-to-source rewritten as they are loaded. The rewriting is
-simple; each function must \c{force} every argument that was not declared lazy.
-Missing arguments are not forced. The implementation uses a feature of R that
+Functions are source-to-source rewritten as they are loaded. The rewriting is
+simple; each function must \c{force} every argument that was not declared to be lazy.
+Default arguments,
+in the case of missing arguments, are not forced. The implementation uses a feature of R that
 allows registering callbacks when packages are loaded. \strictr registers a
 callback that reads the signature file in the current directory or on the load
 path. Then, as functions are defined, \strictr injects code in the function in
 accordance with the signature. An earlier implementation mutated function
 bodies. This resulted in failures as the same function object can occur with
 different names and different signatures. For instance, in the \c{rlang}
-package, \c{is_same_body <<- is_reference} aliases \c{is_reference}.
+package, \c{is_same_body} aliases \c{is_reference}.
 Mutating \c{is_reference} to make arguments strict inadvertently also makes
 the function \c{is_same_body} strict. Further discussion will clarify why
 this is undesirable. To avoid this, \strictr copies functions as it rewrites
@@ -499,9 +501,9 @@ A call of \c{f(1+2,3+4)} creates two promises. The first is accessed by
 second is accessed by \c{substitute} and evaluated by \c{eval}. Then expression
 \c{x+a} forces the first promise; the second is never forced. Both arguments are
 intrinsically lazy. Intrinsic laziness is transitive as arguments are passed
-from one function to the next. If C code accesses a promise through the
-\c{PREXPR} macro, the argument has to stay lazy for similar reasons. Lastly,
-an argument that is not always evaluated may be marked as lazy. Though, this
+from one function to the next. Additionally, C code sometimes expects an
+argument to be a promise, when using the \c{PREXPR} macro to access its
+expression. Lastly, an argument that is not always evaluated may be marked as lazy. Though, this
 is rarely necessary.
 
 \paragraph{Accidental laziness.} In order to preserve the behavior of legacy
@@ -516,25 +518,25 @@ frequently used data types, so many updates will be locally contained. Errors
 and exceptions are another source of effects inside promises. Some reflective
 functions can make evaluation of a promise sensitive to its position on the call
 stack, and strict evaluation would be observable: \c{as.environment} and
-\c{pos.to.env} use integers to access specific frames on the stack. It is
-worth noting, again, that such code is brittle as any change in the the target
+\c{pos.to.env} access specific frames on the stack by their index. It is
+worth noting, again, that such code is brittle as any change in the target
 function can change the frame returned by the reflective calls.
 
 One special case is that of vararg arguments. Assigning a single strictness
 annotation to $\dots$ is tricky because a function can have different strictness
-behavior for each element. For example, object-oriented dispatch uses a vararg
+behaviors for each element. For example, object-oriented dispatch uses a vararg
 to forward all method arguments from the caller to the target function.
 Our current choice is pragmatic but imprecise; all varargs remain lazy.
 
 
 \paragraph{Order of evaluation} A design choice we faced
 was to select an evaluation order for strict arguments. One can retain the
-evaluation order observed in the function if unique, but this obscure to
+evaluation order observed in the function if unique, but this is obscure to
 programmers. Another reasonable choice is to evaluate strict arguments
 left-to-right at the call site and evaluate strict default values left-to-right
 in the function prologue. This may be natural to users who wrote the call and
 had control over the order of arguments and can reason about their potential
-side effects. For convenience \strictr picks a third alternative. We evaluate
+side effects. For ease of implementation \strictr picks a third alternative. We evaluate
 all arguments left-to-right in the order they appear in the function signature.
 This means that end-users need to know in what order arguments are defined,
 something that can be awkward as functions can have upward of 20 arguments. This
@@ -555,7 +557,7 @@ analyses that scale to thousands of packages.
 
 The goal of this analysis is not to infer maximally strict signatures but rather
 minimize the impact of semantic change on clients by considering both intrinsic
-and accidental laziness. We elucidate this point with Fig.~\ref{iss} which
+and accidental laziness. We elucidate this point in Fig.~\ref{iss} which
 shows a \c{popular} function that takes six arguments, \c{a} is always
 evaluated, \c{b} is conditionally evaluated, \c{c} is forwarded to
 \c{substitute} for meta-programming, \c{d} and \c{e} are forwarded to a
@@ -623,7 +625,7 @@ provided argument does, we summarize them here:
 \item[{\bf V}:] A vararg parameter; we consider this to be signal of intrinsic
   laziness. The reason for this particular choice is that it is unclear how to
   treat individual elements of the varag.
-\item[{\bf M}:] A parameter provided to \c{substitute} or \c{PREXPR} is
+\item[{\bf M}:] A parameter passed to \c{substitute} or \c{PREXPR} is
   \emph{meta-programmed}; this is a signal of intrinsic laziness.
 \item[{\bf G}:] A parameter that did not receives an argument; this is a
   signal for laziness owing to a lack of information.
@@ -640,8 +642,10 @@ provided argument does, we summarize them here:
 \end{itemize}
 
 For any trace, \lazr models each argument of each function. If a function is
-invoked, the trace records all operations related to arguments and correlate
-them with parameters. For each operation performed by the interpreter, the
+invoked, the trace records all operations related to arguments and correlates
+them with parameters.
+%% TODO: this sentence does not parse...
+For each operation performed by the interpreter, the
 analysis finds the responsible promises: all promises on the call stack. Since
 each promise is bound to the argument of a function, one can connect that
 promise to a corresponding parameter. When a side-effect or reflection occurs,
@@ -667,7 +671,7 @@ easily explore different merging strategies.
 
 Consider Fig.~\ref{iss}, for \c a and \c e no signals are observed, \c b is U
 due \c{r1}, \c c is M from all invocations, \c d is S due to \c{r3} since its
-argument mutates \c{r1} after a read by \c e, and \c f get G since it is missing
+argument mutates \c{r1} after a read by \c e, and \c f is G since it is missing
 in all invocations. \lazr combines this information to synthesize the signature,
 \texttt{strict popular<1,5>}, parameters \c a and \c e are strict, and others
 are lazy.
