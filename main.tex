@@ -1024,18 +1024,6 @@ side-effects. Only \EffectCountArgumentsTotal arguments out of \todo{add total
   argument macro} are made lazy owing to effects. This corresponds to
 \EffectCountParametersTotal lazy parameters from \EffectCountFunctionsTotal
 functions.
-
-\begin{table}[h]
-  \small\centering
-  \caption{Side-Effects}\label{table:effects}
-  \begin{tabular}{rrrr}\toprule
-    \bf Arguments&\bf Parameters&\bf Functions&\bf Packages\\
-    \midrule
-    \EffectCountArgumentsTotal&\EffectCountParametersTotal&\EffectCountFunctionsTotal&\EffectCountPackagesTotal\\
-    \bottomrule
-  \end{tabular}
-\end{table}
-
 A typical example of this category is the \code{along} parameter of \code{abind}
 function from the \code{abind} package. Its default value is the parameter
 \code{N} which is computed internally in the body of the function before
