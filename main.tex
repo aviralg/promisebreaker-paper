@@ -102,9 +102,8 @@
   demand. To provide a migration path, it is necessary to provide tooling for
   developers to migrate libraries without introducing errors. This paper reports
   on a dynamic analysis that infers strictness signatures for functions to
-  capture both intentional and accidental laziness. The robustness of the
-  inferred signatures is tested using client code: only \robustnesResult of
-  signatures we incorrect.
+  capture both intentional and accidental laziness. Over 99\% of the inferred
+  signatures were correct when tested against clients of the libraries.
 \end{abstract}
 
 \begin{CCSXML}
@@ -630,7 +629,7 @@ provided argument does, we summarize them here:
 \item[{\bf M}:] A parameter provided to \c{substitute} or \c{PREXPR} is
   \emph{meta-programmed}; this is a strong signal of intrinsic laziness.
 \item[{\bf G}:] A parameter that did not receives an argument; this is a weak
-  signal for laziness owing to a lack of information.  
+  signal for laziness owing to a lack of information.
 \item[{\bf U}:] A parameter that remains \emph{unevaluated}; this is a weak
   signal of intrinsic laziness as we do not know the contract of the function
   for that parameter.
@@ -643,10 +642,8 @@ provided argument does, we summarize them here:
   IO. Tracking these calls would require tracing \emph{syscalls} which is
   currently not supported by our dynamic analysis infrastructure.
 \item[{\bf R}:] An argument that uses \emph{reflection} to observe the state of
-  the call stack; this is a strong signal of accidental laziness. This
-  corresponds to calls such as \c{as.environment(v)} or \c{pos.to.env(v)} where
-  \c v is \c{-1}.
-
+  the call stack; this is a strong signal of accidental laziness as eager
+  evaluation will evaluate the promise with a different stack.
 \end{itemize}
 
 For any trace, \lazr models each argument of each function. If a function is
@@ -1089,12 +1086,10 @@ called from \c{g}, we must make \c{g} lazy. R provides other functions for
 reflective stack access, \c{parent.frame} and \c{sys.frame}; these are less
 brittle as they access frames relative to the promise's creation environment.
 
-
 \begin{lstlisting}
  g <- function(u, v) { f(u, v) }
  g(as.environment(-1), as.environment(-1))
 \end{lstlisting}
-%
 
 
 \begin{wraptable}{r}{5.5cm}
@@ -1111,21 +1106,20 @@ brittle as they access frames relative to the promise's creation environment.
   \end{tabular}
 \end{wraptable}
 
-Table~\ref{table:reflection} presents the number of arguments that call
-\c{as.environment(-1)} and \c{pos.to.env(-1)} directly or transitively.
-This excludes the cases where the argument is also metaprogrammed.
-
-Two parameters from two functions, \c{.getFunctionByName}, and
-\c{backports:::get0} call these functions directly. The first searches for a
-function by name in different scopes. Its argument has a default value of
-\c{as.environment(-1)}.
+Table~\ref{table:reflection} presents the number of arguments that probe the
+call stack either directly or transitively. This does not count cases where the
+argument is also metaprogrammed. Parameters from two functions,
+\c{.getFunctionByName}, and \c{backports:::get0} call these functions directly.
+The first searches for a function by name in different scopes. Its argument has
+a default value of \c{as.environment(-1)}.
 
 \begin{lstlisting}
  R.oo:::.getFunctionByName <-
- function(...,
-          callEnvir = as.environment(-1L)) {
-   envirT <- callEnvir
-   ...
+   function(...,
+            callEnvir = as.environment(-1L)) {
+    envirT <- callEnvir
+    #...
+ }
 \end{lstlisting}
 %
 
