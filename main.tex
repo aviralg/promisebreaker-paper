@@ -1135,7 +1135,7 @@ output; so these results reported here are a lower bound.
 
 \begin{figure}[H]
   \centering
-  \scalebox{0.6}{
+  \scalebox{0.8}{
     \begin{tikzpicture}
 
       \definecolor{gray}{HTML}{F5F5F5}
@@ -1157,40 +1157,28 @@ output; so these results reported here are a lower bound.
 
       \newcommand{\nodesep}[0]{0.060 \textwidth}
       \newcommand{\dummynodesep}[0]{8mm}
-      \newcommand{\textsep}[0]{10mm}
+      \newcommand{\textsep}[0]{0.010 \textwidth}
       \newcommand{\backopacity}[0]{0.9}
 
       \newcommand{\nodename}[1]{\large \begin{tabular}{c}#1\end{tabular}}
       \newcommand{\nodedesc}[1]{\small \begin{tabular}{c}#1\end{tabular}}
 
-      \node [block,      draw = darkgreen,  very thick, fill = green]                                                           (corpus)            {\nodename{Corpus}};
-      \node [block,      draw = gray,       very thick, fill = gray,   right = \nodesep of corpus]                              (dummyrun)          {};
-      \node [block,      draw = darkyellow, very thick, fill = yellow, above = \dummynodesep of dummyrun.north, anchor = north] (runone)            {\nodename{First\\Run}};
-      \node [block,      draw = darkyellow, very thick, fill = yellow, below = \dummynodesep of dummyrun.south, anchor = south] (runtwo)            {\nodename{Second\\Run}};
-      \node [block,      draw = darkblue,   very thick, fill = blue,   right = \nodesep of dummyrun]                            (outone)            {\nodename{Compare\\Output}};
-      \node [block,      draw = darkpurple, very thick, fill = purple, right = \nodesep of outone]                              (strictrun)         {\nodename{Run with\\StrictR}};
-      \node [dummyblock, draw = gray,       very thick, fill = gray,   above = 0mm of strictrun.north]                          (dummystrictrun)    {};
-      \node [dummyblock, draw = gray,       very thick, fill = gray,   below = 0mm of strictrun.south]                          (dummystrictruntwo) {};
-      \node [block,      draw = darkred,    very thick, fill = red,    right = \nodesep of strictrun]                           (outtwo)            {\nodename{Compare\\Output}};
+      \node [block,      draw = darkgreen,  very thick, fill = green]                                (corpus)    {\nodename{Corpus}};
+      \node [block,      draw = darkyellow, very thick, fill = yellow, right = \nodesep of corpus]   (runone)    {\nodename{First\\Lazy Run}};
+      \node [block,      draw = darkblue, very thick, fill = blue, right = \nodesep of runone]       (runtwo)    {\nodename{Second\\Lazy Run}};
+      \node [block,      draw = darkpurple, very thick, fill = purple, right = \nodesep of runtwo]   (runthree)  {\nodename{StrictR Run}};
+      \node [block,      draw = darkred,    very thick, fill = red,    right = \nodesep of runthree] (compare)   {\nodename{Compare\\Output}};
 
-      \draw [connector] (corpus)       -- (runone.west);
-      \draw [connector] (corpus)       -- (runtwo.west);
-      \draw [connector] (runone.east)  -- (outone);
-      \draw [connector] (runtwo.east)  -- (outone);
-      \draw [connector] (outone)       -- (strictrun);
-      \draw [connector] (strictrun)    -- (outtwo);
-      \draw [connector] (runtwo.south) -- ++(0, -0.2) -| ($(runtwo) !1.0! (outtwo.south)$);
+      \draw [connector] (corpus)   -- (runone);
+      \draw [connector] (runone)   -- (runtwo);
+      \draw [connector] (runtwo)   -- (runthree);
+      \draw [connector] (runthree) -- (compare);
 
-      \node [below = \textsep of corpus]    (corpusdesc)     {\nodedesc{XXs\\XX Packages\\XX Files}};
-      \node [below = \textsep of dummyrun]  (rundesc)        {\nodedesc{XXs}};
-      \node [below = \textsep of outone]    (outonedesc)     {\nodedesc{XXs\\XX Files}};
-      \node [below = \textsep of strictrun] (strictrundesc)  {\nodedesc{XXs\\XX Signatures}};
-      \node [below = \textsep of outtwo]    (outtwodesc)     {\nodedesc{XXs\\XX Files}};
-
-      \begin{scope}[on background layer]
-        \node[fit=(corpus) (runone) (runtwo) (outone),                       rectangle, rounded corners, fill=gray, fill opacity=\backopacity, label=above:\textbf{Deterministic Corpus}] (detcorpus) {};
-        \node[fit=(strictrun) (dummystrictrun) (dummystrictruntwo) (outtwo), rectangle, rounded corners, fill=gray, fill opacity=\backopacity, label=above:\textbf{Failures}] (failures) {};
-      \end{scope}
+      \node [below = \textsep of corpus]    (corpusdesc)    {\nodedesc{5 Minutes\\2000 Packages\\51,950 Files}};
+      \node [below = \textsep of runone]    (runonedesc)    {\nodedesc{6 Hours}};
+      \node [below = \textsep of runtwo]    (runtwodesc)    {\nodedesc{6 Hours}};
+      \node [below = \textsep of runthree]  (runthreedesc)  {\nodedesc{7 Hours}};
+      \node [below = \textsep of compare]   (comparedesc)   {\nodedesc{1 Hour 10 Minutes\\367 Failures}};
 
     \end{tikzpicture}
   }
@@ -1255,6 +1243,11 @@ benchmark suite which includes one variant of each benchmark. We acquired one
 real-world program, \c{flx}, and ported three programs from the \emph{Are we
 fast} suite to R. All of these are available with our artifact.
 
+Experiments are run on a dedicated benchmarking machine, with all background
+tasks disabled. The system features an Intel i7-6700K CPU, stepping 3, microcode
+0xe2 with 4 cores and 8 threads. The system has 32 GB of RAM and is running
+Ubuntu 18.04 on a 4.15.0-136 Linux kernel.
+
 \begin{wrapfigure}{r}{6cm}
   \small
   \caption{Benchmarks}\label{table:bms}
@@ -1280,26 +1273,21 @@ fast} suite to R. All of these are available with our artifact.
   \end{tabular}
 \end{wrapfigure}
 
-
-Experiments are run on a dedicated benchmarking machine, with all background
-tasks disabled. The system features an Intel i7-6700K CPU, stepping 3, microcode
-0xe2 with 4 cores and 8 threads. The system has 32 GB of RAM and is running
-Ubuntu 18.04 on a 4.15.0-136 Linux kernel. For ease of use, experiments are
-built as containers, based on Ubuntu 20.04, and executed on the Docker runtime
-20.10.5, build 55c4c88. We verified the overhead introduced by the
-containerization to be uniform. All measurements are recorded repeatedly and we
-keep a historical record to spot unstable behavior. This led us to exclude the
-\lstinline{convolution} benchmark as it appears to have a bi-modal performance
-profile, likely caused by the LLVM backend. Performance measurements are
-gathered by running $t_e$ invocations of \Rsh on each benchmark. Within each
-invocation we measure the execution time of $t_i$ in-process invocations. For
-each invocation, the first 5 in-process iterations are discarded to exclude
-warmup behavior. Aggregate numbers are reported as the speedup over the
-arithmetic mean of the execution times. Multiple speedup numbers are averaged
-using a geometric mean. As a baseline we use \Rsh which already has a
-\speedupRsh mean speedup over GNU R on our subsetted benchmark suite, with
-parameters $t_e = 1, t_i = 15$. Speedup ranges between \speedupRshMin and
-\speedupRshMax.
+For ease of use, experiments are built as containers, based on Ubuntu 20.04, and
+executed on the Docker runtime 20.10.5, build 55c4c88. We verified the overhead
+introduced by the containerization to be uniform. All measurements are recorded
+repeatedly and we keep a historical record to spot unstable behavior. This led
+us to exclude the \lstinline{convolution} benchmark as it appears to have a
+bi-modal performance profile, likely caused by the LLVM backend. Performance
+measurements are gathered by running $t_e$ invocations of \Rsh on each
+benchmark. Within each invocation we measure the execution time of $t_i$
+in-process invocations. For each invocation, the first 5 in-process iterations
+are discarded to exclude warmup behavior. Aggregate numbers are reported as the
+speedup over the arithmetic mean of the execution times. Multiple speedup
+numbers are averaged using a geometric mean. As a baseline we use \Rsh which
+already has a \speedupRsh mean speedup over GNU R on our subsetted benchmark
+suite, with parameters $t_e = 1, t_i = 15$. Speedup ranges between
+\speedupRshMin and \speedupRshMax.
 
 \paragraph{Speedup}
 
