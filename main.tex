@@ -63,7 +63,7 @@
 \renewcommand{\c}[1]{\lstinline |#1|\xspace}
 \newcommand{\strictr}{{\sf StrictR}\xspace}
 \newcommand{\lazr}{{\sf LazR}\xspace}
-\newcommand{\Rsh}{{\sf\v R}\xspace}
+\renewcommand{\Rsh}{{\sf\v R}\xspace}
 \newcommand{\eg}{\emph{e.g.},\xspace}
 \newcommand{\ie}{\emph{i.e.},\xspace}
 \newcommand{\config}[1]{configuration \#{#1}}
@@ -618,23 +618,23 @@ record evaluation start and end.
 signals are relative to how the called function uses the parameter and what the
 provided argument does, we summarize them here:
 \begin{itemize}
-\item[{\bf V}:] A vararg parameter; we consider this to be a strong
-  signal of intrinsic laziness. The reason for this particular choice is that it
-  is unclear how to treat individual elements of the varag.
+\item[{\bf V}:] A vararg parameter; we consider this to be signal of intrinsic
+  laziness. The reason for this particular choice is that it is unclear how to
+  treat individual elements of the varag.
 \item[{\bf M}:] A parameter provided to \c{substitute} or \c{PREXPR} is
-  \emph{meta-programmed}; this is a strong signal of intrinsic laziness.
-\item[{\bf G}:] A parameter that did not receives an argument; this is a weak
+  \emph{meta-programmed}; this is a signal of intrinsic laziness.
+\item[{\bf G}:] A parameter that did not receives an argument; this is a
   signal for laziness owing to a lack of information.
-\item[{\bf U}:] A parameter that remains \emph{unevaluated}; this is a weak
+\item[{\bf U}:] A parameter that remains \emph{unevaluated}; this is a
   signal of intrinsic laziness as we do not know the contract of the function
   for that parameter.
-\item [{\bf S}:] An argument with \emph{side-effects}; a weak signal of
+\item [{\bf S}:] An argument with \emph{side-effects}; a signal of
   accidental laziness as some effects may be benign. We monitor three kinds of
   effects: variable reads, variable writes (definitions, updates, and removals)
   of variables, and errors.
 \item[{\bf R}:] An argument that uses \emph{reflection} to observe the state of
-  the call stack; this is a strong signal of accidental laziness as eager
-  evaluation will evaluate the promise with a different stack.
+  the call stack; this is a signal of accidental laziness as eager evaluation
+  will evaluate the promise with a different stack.
 \end{itemize}
 
 For any trace, \lazr models each argument of each function. If a function is
@@ -657,21 +657,19 @@ recorded.
 The result of analyzing an R script is a summary for each function and each
 parameter of the signals that were observed during tracing. Multiple scripts can
 be straightforwardly merged as the union of signals for each parameter. Finally,
-from this summary, strictness signatures are generated.
+from this summary, strictness signatures are generated. Given a set of signals
+our current implementation treats them all strong signals and conservatively
+make a parameters lazy at the first signal. Our design for \strictr allows us to
+easily explore different merging strategies.
 
-Consider Fig.~\ref{iss}, for \c{a} no signal is observed, for \c{b} signal U
-come from \c{r1}, for \c{c} signal M comes from all invocations, for \c{d}
-signal S comes from \c{r3} since its argument mutates \c{r1} after it is read by
-\c{e}, we have no signal for \c{e}, and for \c{f} it gets \textbf{?} since \c
-% SK shouldn't it be 'since is missing'? and remove e'
-e is missing in all invocations. \lazr combines this information to synthesize
-the signature, \texttt{strict popular<1,5>}, i.e., parameters \c{a} and \c{e}
-are strict, and the rest are lazy.
 
-Given a set of signals there are choices as how to merge them, especially if no
-strong signal is observed. Conservatively one may choose to make a parameters
-lazy at the first signal even if it is a weak one. Our design for \strictr
-allows us to easily explore different merging strategies.
+Consider Fig.~\ref{iss}, for \c a and \c e no signals are observed, \c b is U
+due \c{r1}, \c c is M from all invocations, \c d is S due to \c{r3} since its
+argument mutates \c{r1} after a read by \c e, and \c f get G since it is missing
+in all invocations. \lazr combines this information to synthesize the signature,
+\texttt{strict popular<1,5>}, parameters \c a and \c e are strict, and others
+are lazy.
+
 
 \paragraph{Limitations}
 \lazr does not handle IO. The R ecosystem has a rich collection of libraries for
@@ -1091,39 +1089,27 @@ brittle as they access frames relative to the promise's creation environment.
  g(as.environment(-1), as.environment(-1))
 \end{lstlisting}
 
-
-\begin{wraptable}{r}{5.5cm}
-  \small
-  \centering
-  \caption{Reflection}\label{table:reflection}
-  \begin{tabular}{lrrr}
-    \toprule
-    &\bf Direct&\bf Transitive&\bf Total\\
-    \midrule
-    {Arguments}&\RefCountArgumentsDirect&\RefCountArgumentsTransitive&\RefCountArgumentsTotal\\
-    {Parameters}&\RefCountParametersDirect&\RefCountParametersTransitive&\RefCountParametersTotal\\
-    {Functions}&\RefCountFunctionsDirect&\RefCountFunctionsTransitive&\RefCountFunctionsTotal\\    \bottomrule
-  \end{tabular}
-\end{wraptable}
-
-Table~\ref{table:reflection} presents the number of arguments that probe the
-call stack either directly or transitively. This does not count cases where the
-argument is also metaprogrammed. Parameters from two functions,
-\c{.getFunctionByName}, and \c{backports:::get0} call these functions directly.
-The first searches for a function by name in different scopes. Its argument has
-a default value of \c{as.environment(-1)}.
+In our whole corpus, \RefCountParametersTotal parameters in
+\RefCountFunctionsTotal functions probed the call stack. But in all cases, this
+was because they invoked either of two functions, \c{.getFunctionByName}, and
+\c{backports:::get0}. To give an example, the first searches for a function by
+name in different scopes and its second argument probes the stack by default.
 
 \begin{lstlisting}
- R.oo:::.getFunctionByName <-
-   function(...,
-            callEnvir = as.environment(-1L)) {
+ R.oo:::.getFunctionByName <- function(..., callEnvir=as.environment(-1L)) {
     envirT <- callEnvir
     #...
- }
 \end{lstlisting}
-%
 
 \subsection{Robustness of inferred signatures} \label{Evaluation:Robustness}
+
+This section reports on the robustness of strictness signatures generated by
+\lazr. The intuition is that while we used the tests included in our corpus for
+inference, we need other tests to validate that the results are not limited to
+the code we trained on. Each package in our corpus is widely used, there are
+many packages in CRAN which import it and call its functions, the idea is to use
+the tests of these clients for validation. From the \CorpusDependencyCount
+clients of our corpus, we select 2000 packages.
 
 
 \begin{wraptable}{r}{6cm}  \small  \centering
@@ -1136,24 +1122,23 @@ a default value of \c{as.environment(-1)}.
   \end{tabular}
 \end{wraptable}%%
 
-In this section, we evaluate the robustness of strictness signatures generated
-by \lazr. This is done by running scripts extracted from client packages of our
-corpus. Our corpus of 500 packages has \CorpusDependencyCount client packages in
-CRAN. From these, we select the top 2000 client packages for this experiment.
-These client packages have \ClientRCode lines of R code and \ClientNativeCode
-lines of native code. Table ~\ref{table:clientcorpus} gives the number of
-scripts and lines of code exercised. Using \lazr, we extracted \todo{Add script
-  count} scripts from the clients. From these, we filtered scripts whose output
-was non-deterministic, leaving us with \todo{non-deterministic script counts}
-scripts. The goal of the next step is to validate if, after applying strictness
-signatures, they produce identical outputs. Comparing the output of scripts is
-standard practice in the R community for detecting regressions. There may be a
-difference in execution that does not manifest in the output; this may hide some
-errors, so the results reported here should be considered a lower bound.
+
+Fig.~\ref{fig:validationPipeline} shows the steps performed in the experiment.
+First extract runnable code from clients. Table~\ref{table:clientcorpus} counts
+the various scripts and the lines of code they represent. Next, GNU R evaluates
+each script twice. Scripts that do not have the same output are considered
+non-deterministic and filtered out. This leaves us with \todo{XXX} scripts. They
+are then run with \strictr after applying the strictness signatures obtained by
+\lazr. When the output of this second run differs from the one obtained by GNU
+R, the difference is attributed to the modified semantics. Comparing the output
+of scripts is standard practice in the R community for detecting regressions.
+There may, of course, be differences in execution that does not manifest in the
+output; so these results reported here are a lower bound.
+
 
 \begin{figure}[H]
   \centering
-  \scalebox{0.7}{
+  \scalebox{0.6}{
     \begin{tikzpicture}
 
       \definecolor{gray}{HTML}{F5F5F5}
@@ -1215,86 +1200,40 @@ errors, so the results reported here should be considered a lower bound.
   \caption{Validation Pipeline}\label{fig:validationPipeline}
 \end{figure}
 
-Fig.~\ref{fig:validationPipeline} shows the full pipeline, it starts with extracting
-runnable code, then performs two runs with default semantics to check if the
-script is deterministic. If it is, the result of a run with strict semantics is
-compared and differences a recorded.
 
-With all the signatures applied, we observed \todo{XX} scripts produce
-erroneous output. We narrowed down the cause of these errors to a handful of
-packages: \code{R.oo}, \code{R.utils}, \code{vctrs}, \code{ggplot2},
-\code{Matrix}, and \code{spam}. Removing the signatures of these packages
-resulted in only \todo{XX} failing scripts. We discuss below the cause
-of failures from these packages.
+With all the signatures applied, we observed \todo{XX} scripts produce erroneous
+output. We narrowed down the cause of these errors to a handful of packages:
+\code{R.oo}, \code{R.utils}, \code{vctrs}, \code{ggplot2}, \code{Matrix}, and
+\code{spam}. Making these packages lazy decreased the number of failures to
+\todo{XX}. We details some of the errors next.
 
-Loading package \code{R.oo}, and \code{R.utils} with the signatures terminates
-the programs with the error shown in Figure~\ref{fig:roo}. Both of these
-packages have the same author. The \code{R.oo} package implements an
-object-oriented system. The strict semantics interfere with the initialization
-code of this package.
+Loading package \code{R.oo}, and \code{R.utils} terminates execution an error as
+strict semantics interfere with the initialization code.
 
-\begin{figure}[H]
-  \small
-  \raggedright
-  \texttt{
-    call: getStaticInstance.Object(this, envir = ...envir)\\
-    error: Cannot get static instance. \\
-    Failed to locate Class object for class 'Package'.\\
-    Execution halted
-  }
-  \caption{Error from \code{R.oo}}\label{fig:roo}
-\end{figure}
+\begin{verbatim}
+  call: getStaticInstance.Object(this, envir = ...envir)
+  error: Cannot get static instance.
+  Failed to locate Class object for class 'Package'.
+  Execution halted}
+\end{verbatim}
 
-Loading package \code{vctrs} with the signatures terminates the programs with
-non-deterministic error shown in Figure~\ref{fig:vctrs} originating from native
-code. We believe that the strict semantics expose a memory bug in this package.
-Running the program a couple of times gets rid of the error.
+Loading package \code{vctrs} fails non-deterministic error originating from
+native code. We believe it to be a memory bug as the error disappears after
+a couple of attempts.
 
-\begin{figure}[H]
-  \small
-  \raggedright
-  \texttt{
-    Error: 'rho' must be an environment not NULL: detected in C-level eval
-  }
-  \caption{Error from \code{vctrs}}\label{fig:vctrs}
-\end{figure}
+\begin{verbatim}
+  Error: 'rho' must be an environment not NULL: detected in C-level eval
+\end{verbatim}
 
-Loading package \code{Matrix} changes the printout message on package loading.
-The message is shown in Figure~\ref{fig:matrix} with the difference colored in
-red. We studied the output of a few clients of this package but could not find
-any other discernible difference.
+Loading \code{Matrix} and \code{spam} changes the message on package loading.
+This does not affect execution of the package itself.
 
-\begin{figure}[H]
-  \small
-  \raggedright
-  \texttt{
-    Loading required package: Matrix\\
-    \textcolor{red}{Attaching package: ‘Matrix’\\
-    The following object is masked from ‘package:base’:\\
-    det}
-  }
-  \caption{Different output from \code{Matrix}}\label{fig:matrix}
-\end{figure}
-
-The \code{spam} package similarly provides a \code{det} function and prints a
-different startup message as shown in Figure~\ref{fig:spam} with the signatures
-applied.
-
-\begin{figure}[H]
-  \small
-  \raggedright
-  \texttt{
-    Attaching package: ‘spam’\\
-    The following objects are masked from ‘package:base’:\\
-    backsolve, \textcolor{red}{det,} forwardsolve
-  }
-  \caption{Different output from \code{spam}}\label{fig:spam}
-\end{figure}
-
-The results suggest that the semi-automated inference algorithm of \lazr works
-well for the most part. Only six packages are responsible for most of the
-errors. Fixing these errors requires inspection of the signatures by the
-respective package authors.
+These results suggest that the semi-automated inference algorithm well for the
+most part. Errors in signatures could be located easily and do not require much
+effort to fix. It should be noted that one could increase the strictness by
+turning some of the parameters that lazy for accidental reasons into strict
+ones, but this would require notifying clients and ensures that their code is
+changed.
 
 \section{Performance Experiment}\label{sec:rsh}
 
