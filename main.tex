@@ -279,12 +279,12 @@ written without reliance on, or awareness of, laziness. Out of 388K functions,
 authors found that programmers sometimes force evaluation of arguments at the
 beginning of a function to protect their code from non-deterministic effects,
 this is done by adding calls to \c{force} to every argument. Only a single
-instance of a lazy data structure could be found in all the programs the author
+instance of a lazy data structure could be found in all the programs the authors
 inspected. The main \emph{raison d'\^etre} for delayed evaluation seems to be
 meta-programming which requires delayed arguments that can be manipulated
 symbolically. In that work, a function was deemed to be strict if it had a
 single evaluation order for its arguments. Our approach is inspired by that
-work, but we do not require a single evaluation order for a function, instead,
+work, but we do not require a single evaluation order for a function. Instead,
 we choose to look at clients and declare a parameter lazy if some clients call
 the function with effectful arguments. \citet{oopsla20b} empirically inferred
 {type} signatures for functions by observing the type of arguments and return
@@ -354,7 +354,7 @@ default values.
 
 \paragraph{Reflection}
 R supports meta-programming. The \c{substitute(exp,env)} function yields the
-parse tree of the expression \c{exp} after performing substitutions defined
+AST of the expression \c{exp} after performing substitutions defined
 by the bindings in \c{env}. Consider the following call that substitutes 1
 for \c a and returns a value of type \c{expression}.
 
@@ -363,13 +363,13 @@ for \c a and returns a value of type \c{expression}.
  expression(1 + b)
 \end{lstlisting}
 
-R allows programmatic manipulation of parse trees, which are themselves
+R allows programmatic manipulation of ASTs, which are themselves
 first-class objects. They are evaluated using the \c{eval(exp,env)} function.
 In R, the local scope of a closure is a first-class mutable map. Code can always
 access its local environment, but it is also possible to reflectively extract
 the environments of any function currently on the call stack.
 
-\paragraph{Effects} Logically function arguments are passed by copy to
+\paragraph{Effects} Logically function arguments are passed by value to
 facilitate equational reasoning, the implementation optimizes this with a simple
 copy-on-write of aliased values. While R strives to be functional, it has
 imperative features such as assignment to local variables \c{<-}, assignment
@@ -389,7 +389,7 @@ environment, and its value. To access the value of a promise, one must
 captured for future reference. The following snippet defines a function that
 takes an argument \c x and returns \c{x+x}. When called with an argument
 that has the side effect of printing to the console, the side effect is
-performed only once, the second access to the promise uses the cached result.
+performed only once, the second access to the promise uses the memoized result.
 
 \begin{lstlisting}
  > f <- function(x) x+x
@@ -410,7 +410,7 @@ only provides a small interface for operating on them:
   a symbol) in the environment \c{aenv}, evaluation of the promise will take
   place in environment \c{env}.
 \item[] {\hskip -1em \bf\small\c{substitute(e,env)}}: substitutes variables
-  in \c e with their values found in environment \c{env}, returns an
+  in the expression \c e with their values found in environment \c{env}, returns an
   \c{expression}.
 \item[] {\hskip -1em \bf\small\c{force(x)}}: forces evaluation of its
   argument. This replaces a common programming idiom, \c{x<-x}, which forces
@@ -421,14 +421,14 @@ only provides a small interface for operating on them:
 \end{itemize}
 
 
-There are implicit \c{force} call on values returned by a function and on the
-right hand side of assignment. In addition, many core functions are strict. R
+There is implicit forcing of values returned by functions and on the
+right hand side of assignments. In addition, many core functions are strict. R
 code can include extensions written in C, these are able to freely access and
 mutate the expression stored in a promise, as well as the memoized result of
 promises. Legacy C code, such as mathematical functions, typically expects
 unwrapped values and not promises. While R does not provide built-in lazy data
-structures, they can be encoded. For instance, the 'trick' to return an
-unevaluated promise from a function is to wrap that promise in a newly created
+structures, they can be encoded. For instance, to return an
+unevaluated promise from a function it can be wrapped in a newly created
 environment.
 
 \section{StrictR: An R Interpreter with Strictness Signatures}\label{sec:strictr}
