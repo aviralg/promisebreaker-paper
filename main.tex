@@ -1189,9 +1189,9 @@ reported here are a lower bound.
 
 With all the signatures applied, we observed \todo{XX} scripts produce erroneous
 output. We narrowed down the cause of these errors to a handful of packages:
-\code{R.oo}, \code{R.utils}, \code{vctrs}, \code{ggplot2}, \code{Matrix}, and
-\code{spam}. Making these packages lazy decreased the number of failures to
-\ValidationStrictFailedProgramCount which is only
+\code{R.oo}, \code{R.utils}, \code{rlang}, \code{vctrs}, \code{ggplot2},
+\code{Matrix}, and \code{spam}. Making these packages lazy decreased the number
+of failures to \ValidationStrictFailedProgramCount which is only
 \ValidationStrictFailedProgramPerc of all the scripts with deterministic output.
 We detail some of the errors next.
 

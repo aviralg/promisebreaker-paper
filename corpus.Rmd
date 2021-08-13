@@ -46,8 +46,6 @@ summarize_programs_sloc <- function(df, packages, types = c("test", "example", "
 # Runnable Code
 
 ```{r echo=FALSE, warning=FALSE, message=FALSE, eval=TRUE}
-str(sloc_script)
-
 get_relative_program_names <- function(program_names) {
 	split_and_join <- function(splits) { 
 	    n <- length(splits); 
@@ -65,9 +63,17 @@ client_programs <- get_relative_program_names(client_programs)
 
 all_programs = c(corpus_programs, client_programs)
 
-sloc_script %>%
-    mutate(program = path(type, package, filename, ext = "R")) %>%
+str(all_programs)
+
+sloc_script %>% pull(package) %>% unique()
+
+sloc_script <-
+    sloc_script %>%
+    mutate(temp = type, type = package, package = temp) %>%
+    mutate(program = path_ext_set(path(type, package, filename), "R")) %>%
     filter(program %in% all_programs)
+    
+datatable(sloc_script)
 
 runnable_code <-
    add_column(summarize_programs_sloc(sloc_script, corpus), kind = "Corpus", .before = 1) %>%
