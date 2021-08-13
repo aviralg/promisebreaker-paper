@@ -293,23 +293,28 @@ by validating that if an argument is evaluated it has the expected type. For
 strictness, we have to worry about the interplay of side-effects and changes to
 the order of evaluation of arguments.
 
-\paragraph{Language migration} Changing a language with a large codebase
-is challenging. No migration has been more fraught than that of Python. Python 3
+\paragraph{Language migration} Changing a language with a large codebase is
+challenging. No migration has been more fraught than that of Python. Python 3
 was released in 2008 with many changes that broke backward compatibility and no
 automated upgrade path. \citet{Agg15} attempted to use statistical machine
 learning to convert Python 2 to 3. \citet{Pra20} described a tool for
 discovering types in Python programs as a combination of probabilistic type
-prediction and search-based refinement. Migration was also studied in the
-context of Java libraries~\cite{Xu19}, Android apps~\cite{Orso20} and C++
-applications~\cite{OB20}. A more successful experience is the migration from PHP
-to Hack at Facebook. The key to success was a close feedback loop between
-language changes and their impact on the ecosystem at large. As all Hack users
-share an employer and a source code repository, it was possible to test changes
-and develop tools targeted at relevant usage patterns.\footnote{Private
-  communication with the developers of Hack.} One last relevant thread of work
-is the migratory typing of \citet{matthias06} where a gradual type system is
-added to a variant of the Scheme programming language to enable gradual
-migration from untyped to typed code.
+prediction and search-based refinement. Another popular migration is the
+adoption of \emph{strict mode} for Javascript~\cite{Js20}, a dialect of
+Javascript that fixed some historical mistakes in the language. To
+encourage adoption, \emph{strict mode} was designed to be subtractive; it only
+removed problematic features and did not add new features. This enabled
+\emph{strict mode} code to run on browsers that did not support it. Migration
+was also studied in the context of Java libraries~\cite{Xu19}, Android
+apps~\cite{Orso20} and C++ applications~\cite{OB20}. A more successful
+experience is the migration from PHP to Hack at Facebook. The key to success was
+a close feedback loop between language changes and their impact on the ecosystem
+at large. As all Hack users share an employer and a source code repository, it
+was possible to test changes and develop tools targeted at relevant usage
+patterns.\footnote{Private communication with the developers of Hack.} One last
+relevant thread of work is the migratory typing of \citet{matthias06} where a
+gradual type system is added to a variant of the Scheme programming language to
+enable gradual migration from untyped to typed code.
 
 \subsection{Laziness and the R Language}
 
