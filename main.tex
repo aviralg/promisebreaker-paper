@@ -693,7 +693,7 @@ associated bytecode interpreter. While possible, the benefits one would measure
 with such an approach would be bounded by the speed of interpreted code. In the long
 run, R implementations should generate native code. The alternative was to use
 an experimental native compiler. There are two available in open source,
-Oracle's Truffle implementation of R~\cite{Stadler16} and our own
+Oracle's Truffle implementation of R~\cite{Stadler16}, and our own
 \Rsh~\cite{dls19}. Both systems have their drawbacks. Truffle is not yet a
 complete implementation of the language and it is unfamiliar to the authors.
 \Rsh is less mature, in terms of optimizations, but runs all R programs. For
@@ -703,7 +703,7 @@ One advantage of \Rsh is that it is based on the GNU R reference implementation
 and can always defer to GNU R when it hits codes that is not supported. It
 introduces an additional two-tiered compilation strategy. The first tier is
 realized by a bytecode interpreter, the second tier by an optimizing native
-compiler which relies on LLVM for code generation. The compiler employs, among
+compiler that relies on LLVM for code generation. The compiler employs, among
 many other optimizations, speculative inlining of R closures and promises
 \citep{dls19, oopsla20c}.
 Choosing \Rsh allows us to better evaluate the impact
@@ -712,13 +712,13 @@ optimizations applied to the bytecode, and an optimizing compiler that already
 does its best to elide promises when the semantics of the language allows it.
 
 We build \rshstrict as a minimal adaptation of \Rsh that lets us evaluate
-performance benefits. We changed the first-tier compiler that generate the \Rsh
-bytecode (which differs from the GNU R bytecode) to eagerly evaluate arguments,
-unless the argument is marked as lazy. This eager bytecode also serves as the
-source code for the optimizing tier.  The changes in the lower tier were minimal.
-The benefits we show with \rshstrict are the lower bound on improvements as we
-do not factor in strictness in the analysis passes and other optimizations of
-the compiler.
+performance benefits. We changed the first-tier compiler that generates the \Rsh
+bytecode (which differs from the GNU R bytecode) to strictly evaluate arguments,
+unless they are marked as lazy. This strict bytecode also serves as the source
+code for the optimizing tier. The changes in the lower tier were minimal. The
+benefits we show with \rshstrict are a lower bound on improvements as we do not
+factor in strictness in the analysis passes and other optimizations of the
+compiler.
 
 \section{Inference Experiment}
 
