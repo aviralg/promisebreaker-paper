@@ -552,11 +552,11 @@ analyses that scale to thousands of packages.
 The goal of this analysis is not to infer maximally strict signatures but rather
 minimize the impact of semantic change on clients by considering both intrinsic
 and accidental laziness. We elucidate this point in Fig.~\ref{iss} which
-shows a \c{popular} function that takes six arguments, \c{a} is always
+shows a \c{popular} function that takes six arguments; \c{a} is always
 evaluated, \c{b} is conditionally evaluated, \c{c} is forwarded to
 \c{substitute} for meta-programming, \c{d} and \c{e} are forwarded to a
 strict function, and \c{f} is evaluated if it is not missing. The client code
-has three invocations. In all them, \c{f} is missing. This makes \c{f}
+has three invocations. In all of them, \c{f} is missing. This makes \c{f}
 lazy because there is no information available about its evaluation. For \c{r1},
 variable \c b should not be evaluated, evaluating it strictly will change the
 output of the program; for \c{r2}, evaluating \c{c} will immediately
@@ -570,14 +570,6 @@ new code, we expect programmers to mostly use strict parameters.
   \begin{tabular}{lll}
     \begin{minipage}{6cm}
 \begin{lstlisting}
- r1<-popular(FALSE,print('Hi'),3,4,5)
- r2<-popular(TRUE,1+2,stop(),0,9)
- r3<-popular(TRUE,1+2,3,r1<-4,r1+1)
-\end{lstlisting}
-    \end{minipage}
-    &&
-       \begin{minipage}{6cm}
-\begin{lstlisting}
   popular <- function(a,b,c,d,e,f) {
      if (a) b
      print(substitute(c))
@@ -585,70 +577,79 @@ new code, we expect programmers to mostly use strict parameters.
      return(e+d)
  }
 \end{lstlisting}
+
+    \end{minipage}
+    &&
+       \begin{minipage}{6cm}
+\begin{lstlisting}
+ r1<-popular(FALSE,print('Hi'),3,4,5)
+ r2<-popular(TRUE,1+2,stop(),0,9)
+ r3<-popular(TRUE,1+2,3,r1<-4,r1+1)
+\end{lstlisting}
        \end{minipage}\\
-{\it Client code}&& {\it Library}
+    {\it Library}&&{\it Client code}
   \end{tabular}%
   \caption{Inferring strictness signatures}\label{iss} %
 \end{figure}
 
 \paragraph{Tracing}
 The heart of \lazr is a dynamic analysis tool built on the \rdyn package which
-extends the GNU R virtual machine version 4.0.2~\cite{oopsla19b}. When \lazr
+extends the GNU R virtual machine version 4.0.2~\cite{oopsla19b}. When \rdyn
 executes a script, it generates a \emph{trace} which is a sequence of low-level
-events that mirrors the operations performed by the interpreter. As traces can
-get large, rather than recording them, the infrastructure exposes callbacks that
-are used to hook analysis-specific functionality to events. The trace exposes
-raw R objects being operated on as well as control flow. To provide a layer of
-abstraction, \lazr maintains \emph{model objects} to abstract from concrete R
-data structures. These objects represent function instances, environments, and
-stack frames. Model objects help handling some of the complexities of R. For
-instance, they have unique identities, whereas R objects are identified by
-memory address which can be reused. \lazr reclaims model objects and provides
-efficient indexing. Model functions have names heuristically reconstructed and
-keep track of lexical scopes. The model stack can deal with the use of
-\c{longjump} for non-local returns. Lastly, \lazr maintains a notion of logical
-time, used to record when some events of interest happened. For instance,
-environments record the time of last read and last write. Similarly, code blocks
-record evaluation start and end.
+events that mirrors the operations performed by the interpreter. The trace
+exposes raw R objects being operated on as well as control flow. As traces can
+get large, rather than recording them, \rdyn exposes callbacks that are used to
+hook analysis-specific functionality to events. \lazr intercepts these callbacks
+and provides a layer of abstraction by maintaining \emph{model objects} to
+abstract from concrete R data structures. These objects represent function
+instances, environments, and stack frames. Model objects help in handling some
+of the complexities of R. For instance, they have unique identities, whereas R
+objects are identified by memory address which can be reused. \lazr reclaims
+model objects and provides efficient indexing. Model functions have names
+heuristically reconstructed and keep track of lexical scopes. The model stack
+can deal with the use of \c{longjump} for non-local returns. Lastly, \lazr
+maintains a notion of logical time, used to record when some events of interest
+happened. For instance, environments record the time of last read and last
+write. Similarly, code blocks record evaluation start and end.
 
 \paragraph{Inference}
 \lazr monitors traces looking for signals that parameters are lazy. These
 signals are relative to how the called function uses the parameter and what the
-provided argument does, we summarize them here:
+provided argument does; we summarize them here:
 \begin{itemize}
-\item[{\bf V}:] A vararg parameter; we consider this to be signal of intrinsic
+\item[{\bf V}:] A vararg parameter; we consider this to be a signal of intrinsic
   laziness. The reason for this particular choice is that it is unclear how to
   treat individual elements of the varag.
 \item[{\bf M}:] A parameter passed to \c{substitute} or \c{PREXPR} is
   \emph{meta-programmed}; this is a signal of intrinsic laziness.
-\item[{\bf G}:] A parameter that did not receives an argument; this is a
-  signal for laziness owing to a lack of information.
+\item[{\bf G}:] A parameter that did not receive an argument on any function
+  invocation; this is a signal for laziness owing to a lack of information.
 \item[{\bf U}:] A parameter that remains \emph{unevaluated}; this is a
   signal of intrinsic laziness as we do not know the contract of the function
   for that parameter.
 \item [{\bf S}:] An argument with \emph{side-effects}; a signal of
   accidental laziness as some effects may be benign. We monitor three kinds of
-  effects: variable reads, variable writes (definitions, updates, and removals)
-  of variables, and errors.
+  effects: variable reads, variable writes (definitions, updates, and removals
+  of variables), and errors.
 \item[{\bf R}:] An argument that uses \emph{reflection} to observe the state of
-  the call stack; this is a signal of accidental laziness as eager evaluation
-  will evaluate the promise with a different stack.
+  the call stack; this is a signal of accidental laziness as strict evaluation
+  may evaluate the promise with a different stack.
 \end{itemize}
 
 For any trace, \lazr models each argument of each function. If a function is
 invoked, the tracer records all operations related to its arguments and
 correlates them with the parameters. For each operation performed by the
 interpreter, the analysis finds the responsible promises, i.e., all promises on
-the call stack. Since each promise is bound to the argument of a function, one
+the call stack. Since each promise is bound to an argument of a function, one
 can connect that promise to a corresponding parameter. When a side-effect or
 reflection occurs, the parameters corresponding to all responsible promises are
 marked S or R. Reads and writes are ignored in some cases. \lazr keeps track of
 the last accessed and modified time of each binding. For a write from a promise,
-if the binding being modified was not accessed after the promise was created and
-before it stated executing, then the write is ignored because evaluating the
+if the binding being modified was not accessed or modified after the promise was
+created and before it was executed, the write is ignored because evaluating the
 promise early will not introduce a conflict. Similarly, for reads, if the
 binding being read was not modified after the promise was created and before it
-started executing, then the read is ignored. For performance but at the cost of
+was executed, then the read is ignored. For performance but at the cost of
 precision, only the last 10K read and write times for each variable are
 recorded.
 
@@ -657,16 +658,16 @@ parameter of the signals that were observed during tracing. Multiple scripts can
 be straightforwardly merged as the union of signals for each parameter. Finally,
 from this summary, strictness signatures are generated. Given a set of signals
 our current implementation treats them all strong signals and conservatively
-make a parameters lazy at the first signal. Our design for \strictr allows us to
+makes a parameter lazy at the first signal. Our design for \strictr allows us to
 easily explore different merging strategies.
 
 
-Consider Fig.~\ref{iss}, for \c a and \c e no signals are observed, \c b is U
-due \c{r1}, \c c is M from all invocations, \c d is S due to \c{r3} since its
-argument mutates \c{r1} after a read by \c e, and \c f is G since it is missing
-in all invocations. \lazr combines this information to synthesize the signature,
-\texttt{strict popular<1,5>}, parameters \c a and \c e are strict, and others
-are lazy.
+Consider Fig.~\ref{iss}, for \c a and \c e no signals are observed, \c b is
+\textbf{U} due to \c{r1}, \c c is \textbf{M} from all invocations, \c d is
+\textbf{S} due to \c{r3} since its argument mutates \c{r1} after a read by \c e,
+and \c f is \textbf{G} since it is missing in all invocations. \lazr combines
+this information to synthesize the signature, \texttt{strict popular<1,5>},
+parameters \c a and \c e are strict, and others are lazy.
 
 
 \paragraph{Limitations}
