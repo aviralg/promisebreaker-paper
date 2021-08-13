@@ -246,7 +246,7 @@ strategy must contend with memory pressure and associated performance issues due
 to the allocation of a substantial number of thunks (suspended
 computations)~\cite{transformopt,stricteffective,opteval}. The Glasgow Haskell
 Compiler performs a strictness analysis pass to identify arguments that can be
-evaluated eagerly. While most programs benefit from such a transformation, due
+evaluated strictly. While most programs benefit from such a transformation, due
 to its conservative nature, this pass misses some opportunities for
 optimizations. To recover performance, programmers can manually insert
 strictness annotations to control evaluation; identifying where to put them,
@@ -378,7 +378,7 @@ Of course, there are all sorts of external effects and no monads.
 
 \paragraph{Delayed Evaluation}
 The combination of side effects, frequent interaction with C, and absence of
-types has pushed R to be more eager than other lazy languages. Strictly
+types has pushed R to be more strict than other lazy languages. Strictly
 speaking, R is not lazy as it evaluates some arguments that it does not need to.
 Let us review its design. Arguments to a function are bundled into a thunk
 called a \emph{promise}. Logically, a promise combines an expression's code, its
@@ -890,7 +890,7 @@ fourth row, for instance, indicates that no signals were observed for
 
 We observe that the majority of parameters (\TotalStrictParamPerc) are always
 evaluated, and the corresponding arguments do not perform side-effects or
-reflective operations. These parameters can safely be evaluated eagerly.
+reflective operations. These parameters can safely be evaluated strictly.
 Unevaluated parameters account for \TotalUnevaluatedParamPerc of observations, a
 significant source of potential laziness. Variable lengths arguments and missing
 arguments account for \TotalVarargParamPerc and \TotalMissingParamPerc of the
@@ -1220,12 +1220,12 @@ changed.
 
 \section{Performance Experiment}\label{sec:rsh}
 
-Our hypothesis is that eager semantics lead to faster programs. This might
+Our hypothesis is that strict semantics lead to faster programs. This might
 surprise readers who expect call-by-need to avoid unnecessary computation.
 Delaying computations is complex and hinders performance in two ways. First, it
 leads to more allocation. Second, it obstructs compiler analyses and
 optimizations. We expect the hypothesis to hold for a just-in-time compiler that
-uses advanced optimizations like \Rsh. In particular, we expect: (1) eager
+uses advanced optimizations like \Rsh. In particular, we expect: (1) strict
 semantics to improve performance of most benchmarks, for both tiers of \Rsh; (2)
 a portion of the speedup to come from reduced garbage collection; (3) and an
 additional speedup due to improved compiler optimizations. We present our
@@ -1295,7 +1295,7 @@ suite, with parameters $t_e = 1, t_i = 15$. Speedup ranges between
 \end{figure}
 
 First, we compare \Rsh against \rshstrict. This experiment estimates the
-end-to-end improvement on performance that a change to eager semantics in the R
+end-to-end improvement on performance that a change to strict semantics in the R
 language would have on \Rsh. The execution times were measured with $t_e = 4,
 t_i = 25$. \autoref{fig:speedup} shows a boxplot for the speedups of \rshstrict
 along the X-axis, normalized with respect to \Rsh (lazy). Outliers are
@@ -1344,7 +1344,7 @@ reached by taking the geometric mean of light-gray bars, yielding a
 \promiseAllocationGnurRsh. Therefore, the reduction is
 \promiseAlocationReductionGnurRsh. Note that for some benchmarks the light-gray bar is
 too small to be seen and replaced by the actual number. The second step from
-lazy to eager semantics leads to \promiseAlocationReductionRshStrictToZero
+lazy to strict semantics leads to \promiseAlocationReductionRshStrictToZero
 benchmarks not allocating any promises at all. On the remainder, we see an
 additional \promiseAlocationReductionRshStrict reduction (\rshstrict normalized
 to \Rsh).
@@ -1372,7 +1372,7 @@ garbage collector, which is reused in \Rsh, has a fairly slow allocation path,
 which includes mutating a doubly-linked list. Therefore, some portion of the
 speedup could be due to the saved time in the allocation of promises, which is
 not counted in the GC time. We therefore conducted an additional experiment,
-where we evaluated arguments to calls eagerly, but additionally allocated a
+where we evaluated arguments to calls strictly, but additionally allocated a
 promise only to be subsequently discarded. This configuration led to an overall
 speedup of \speedupBCRshStrictAlloc instead of \speedupBCRshStrict, suggesting
 that about \speedupDueToReducedGC of the performance improvement in the bytecode
@@ -1401,7 +1401,7 @@ the strict mode. In native, the execution time decreased from 79ms to 53ms. In
 the interpreter, time went from 143ms to 97ms per iteration. In the former case,
 the speedup comes from the effects described above; for the latter, part of the
 speedup is due to better optimizations. Previously the local environment of
-the innermost function was live. Thanks to eager evaluation of the arguments,
+the innermost function was live. Thanks to strict evaluation of the arguments,
 the argument promises do not leak the environment and therefore \Rsh is able to
 elide it.
 
@@ -1411,7 +1411,7 @@ In R, function arguments are not evaluated at the call-site, instead, the
 evaluation is suspended until the callee needs them. The definition of
 \emph{need} is quite liberal here as, for example, local re-binding, returning,
 and many builtin functions are strict. As was reported in previous work, this
-leads to many programs being on the eager side of the spectrum for a lazy
+leads to many programs being on the strict side of the spectrum for a lazy
 language. Why is R lazy at all? It turns out that allowing users to reflectively
 alter argument expressions, before evaluating them, is a very expressive and
 powerful meta-programming technique, enjoyed by many package authors in the R
