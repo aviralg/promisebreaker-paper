@@ -919,13 +919,13 @@ that uses \c{PREXPR}. Arguments count all of the invocations of a function.
 \end{wraptable}
 
 For details about \c{substitute}, we refer the reader to \cite{oopsla19b}.
-\c{PREXPR} was not addressed there: it is a C macro is used to extract a
-promise's expression for ad-hoc evaluation strategies. Packages such as
-\c{lazyeval} and \c{rlang} use it. \c{PREXPR} is also used by the builtins of
-the GNU R interpreter, a canonical example is the \c{missing} function which
-checks if an argument was provided. Unlike user packages, these uses of
-\c{PREXPR} do not require the corresponding arguments to be lazily evaluated.
-Hence, uses of \c{PREXPR} from the interpreter are not signals.
+\c{PREXPR} was not addressed there: it is a C macro used to extract a promise's
+expression for ad-hoc evaluation. Packages such as \c{lazyeval} and \c{rlang}
+use it. \c{PREXPR} is also used by the builtins of the GNU R interpreter, a
+canonical example is the \c{missing} function which checks if an argument is
+provided. Unlike user packages, these uses of \c{PREXPR} do not require the
+corresponding arguments to be lazily evaluated. Hence, uses of \c{PREXPR} from
+the interpreter are not signals.
 
 
 \paragraph{{\normalfont \textbf{[G]}} Missing Arguments}
