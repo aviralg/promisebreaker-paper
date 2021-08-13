@@ -375,12 +375,14 @@ reflectively extract the environment of any function currently on the call
 stack. Such reflective code is brittle. The following example shows that code
 that looks up its call stack is sensitive to small implementation changes, such
 as the addition of a call to an identity function. A call to
-\code{as.environment(-1)} returns the environment of the caller. In the first
-call to \code{f}, both \c x and \c y yield the global environment, i.e., the
-environment from which \code{f} is called. In the second call, argument \c y
-returns the environment of \c f since \c y is evaluated inside the \c{id}
-function which is called from \c f. Thus, the evaluation of \c x and \c y will
-yield different results as the latter is executing within the \c{id} function.
+\code{as.environment(-1)} returns the environment of the caller. Positive
+argument to \code{as.environment} refers to package environments instead of call
+stack. In the first call to \code{f}, both \c x and \c y yield the global
+environment, i.e., the environment from which \code{f} is called. In the second
+call, argument \c y returns the environment of \c f since \c y is evaluated
+inside the \c{id} function which is called from \c f. Thus, the evaluation of \c
+x and \c y will yield different results as the latter is executing within the
+\c{id} function.
 % 
 \begin{lstlisting}
  f <- function(x, y) { x; y }
