@@ -815,13 +815,13 @@ two Intel Xeon 6140, 2.30GHz machines with 72 cores and 256GB of RAM each.
       \draw [connector] (combine)   edge (summarize);
       \draw [connector] (summarize) edge (report);
 
-      \node [below = \textsep of install]   (installdesc)   {\nodedesc{8 Hours\\17,398 Packages}};
-      \node [below = \textsep of extract]   (extractdesc)   {\nodedesc{5 Minutes\\500 Packages\\24,141 Scripts}};
-      \node [below = \textsep of trace]     (tracedesc)     {\nodedesc{24 Hours\\240,520 Files\\966 GB}};
-      \node [below = \textsep of reduce]    (reducedesc)    {\nodedesc{6 Hours\\XX Files\\38 TB}};
-      \node [below = \textsep of combine]   (combinedesc)   {\nodedesc{1 Hour\\XX Files\\36.5 GB}};
+      \node [below = \textsep of install]   (installdesc)   {\nodedesc{8 Hours\\17K Packages}};
+      \node [below = \textsep of extract]   (extractdesc)   {\nodedesc{5 Minutes\\500 Packages\\24K Scripts}};
+      \node [below = \textsep of trace]     (tracedesc)     {\nodedesc{24 Hours\\240K Files\\966 GB}};
+      \node [below = \textsep of reduce]    (reducedesc)    {\nodedesc{6 Hours\\264K Files\\38 TB}};
+      \node [below = \textsep of combine]   (combinedesc)   {\nodedesc{1 Hour\\11 Files\\37 GB}};
       \node [below = \textsep of summarize] (summarizedesc) {\nodedesc{53 Minutes\\9 Files\\107 MB}};
-      \node [below = \textsep of report]    (reportdesc)    {\nodedesc{XXs\\XX Files}};
+      \node [below = \textsep of report]    (reportdesc)    {\nodedesc{5 Minutes\\11 Reports}};
 
       \begin{scope}[on background layer]
         \node[fit=(install) (extract), rectangle, rounded corners, fill=gray, fill opacity=\backopacity, label=above:\textbf{Corpus}]          (corpus) {};
@@ -1125,22 +1125,22 @@ inference, we need other tests to validate that the results are not limited to
 the code we trained on. Each package in our corpus is widely used, there are
 many packages in CRAN which import it and call its functions, the idea is to use
 the tests of these clients for validation. From the \CorpusDependencyCount
-clients of our corpus, we select 2000 packages.
+clients of our corpus, we select 2000 packages for this experiment.
 
 Fig.~\ref{fig:validationPipeline} shows the steps performed in the experiment.
-First extract runnable code from clients. Table~\ref{table:clientcorpus} counts
-the various scripts and the lines of code they represent. Next, GNU R evaluates
-each script twice. Scripts that do not have the same output are considered
-non-deterministic and filtered out. This leaves us with
+First, we extract runnable code from the clients. Table~\ref{table:clientcorpus}
+counts the various scripts and the lines of code they represent. Next, GNU R
+evaluates each script twice. Scripts that do not have the same output are
+considered non-deterministic and filtered out. This leaves us with
 \ValidationBaselineProgramCount scripts. They are then run with \strictr after
 applying the strictness signatures obtained by \lazr. \lazr generates signatures
-for \TotalParameterCount parameters of \TotalFunctionCount functions of which
+for \TotalFunctionCount functions with \TotalParameterCount parameters of which
 \TotalStrictParamCount (\TotalStrictParamPerc) parameters are strict. When the
-output of this second run differs from the one obtained by GNU R, the difference
+output of this strict run differs from the one obtained by GNU R, the difference
 is attributed to the modified semantics. Comparing the output of scripts is
 standard practice in the R community for detecting regressions. There may, of
-course, be differences in execution that does not manifest in the output; so
-these results reported here are a lower bound.
+course, be differences in execution that do not manifest in the output; so the
+results reported here are a lower bound.
 
 
 \begin{figure}[H]
@@ -1204,7 +1204,7 @@ of failures to \ValidationStrictFailedProgramCount which is only
 \ValidationStrictFailedProgramPerc of all the scripts with deterministic output.
 We detail some of the errors next.
 
-Loading package \code{R.oo}, and \code{R.utils} terminates execution an error as
+Loading package \code{R.oo}, and \code{R.utils} terminates execution with an error as
 strict semantics interfere with the initialization code.
 
 \begin{verbatim}
@@ -1225,11 +1225,11 @@ a couple of attempts.
 Loading \code{Matrix} and \code{spam} changes the message on package loading.
 This does not affect execution of the package itself.
 
-These results suggest that the semi-automated inference algorithm well for the
-most part. Errors in signatures could be located easily and do not require much
-effort to fix. It should be noted that one could increase the strictness by
-turning some of the parameters that lazy for accidental reasons into strict
-ones, but this would require notifying clients and ensures that their code is
+These results suggest that the semi-automated inference algorithm works well for
+the most part. Errors in signatures could be located easily and do not require
+much effort to fix. It should be noted that one could increase the strictness by
+turning some of the parameters that are lazy for accidental reasons into strict
+ones, but this would require notifying clients and ensuring that their code is
 changed.
 
 \section{Performance Experiment}\label{sec:rsh}
