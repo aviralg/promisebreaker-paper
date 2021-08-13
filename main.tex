@@ -990,8 +990,8 @@ is to evaluate one argument only if another has a given value.
  %||% <- function(x,y) if(is.null(x)) y else x
 \end{lstlisting}
 
-Another pattern is to delay evaluation: \c{expr} is delayed until \c{pkg} is
-loaded.
+Another pattern is to delay evaluation: \c{expr} argument is delayed until
+\c{pkg} is loaded in the example below.
 
 \begin{lstlisting}
  glue::on_package_load <- function(pkg, expr) {
@@ -1002,8 +1002,8 @@ loaded.
 \end{lstlisting}
 
 S3 generic methods are functions dynamically dispatched: here, \c x is always
-evaluated in order to dispatch, the others depend on where the call dispatches
-to.
+evaluated in order to dispatch, the evaluation of others depends on where the
+call dispatches to.
 
 \begin{lstlisting}
  abind::acorn <- function(x,n=6,m=5,r=1,...) UseMethod('acorn')
@@ -1012,7 +1012,8 @@ to.
 Some functions implement a common interface, the \c{proxy} package defines over
 a dozen methods with interface \c{function(a,b,c,d,n)} to compute different
 proximity metrics with a subset of the arguments. Arguments can also be \never
-by design; \c{tail} is not defined for \c{tbl_lazy} objects.
+by design; \c{tail} is not defined for \c{tbl_lazy} objects, so it terminates
+the program with an error message without using its arguments.
 
 \begin{lstlisting}
  dbplyr::tail.tbl_lazy <- function(x, n = 6L, ...)
@@ -1045,7 +1046,7 @@ Another example is the \code{expr} parameter of \code{withPrivateSeed} function
 from the \code{shiny} package. This function evaluates \code{expr} after setting
 the global random number generator seed to its own private value. The seed is
 set back to its initial value on function exit. The \code{expr} parameter should
-not be evaluated until the seed has been changed, hence it made lazy by \lazr.
+not be evaluated until the seed has been changed, hence it is made lazy by \lazr.
 
 \begin{lstlisting}
 withPrivateSeed <- function(expr) {
