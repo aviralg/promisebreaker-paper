@@ -314,7 +314,7 @@ migration from untyped to typed code.
 \subsection{Laziness and the R Language}
 
 The R language is widely used in data science. R is a vectorized, dynamic, lazy,
-functional and object-oriented programming language~\cite{ecoop12}, designed to
+functional, and object-oriented programming language~\cite{ecoop12}, designed to
 be easy to learn by non-programmers and to enable rapid development of new
 statistical methods. The language was created in 1993 by~\citet{R96} as a
 successor to an earlier language for statistics named S~\cite{S88}.
@@ -336,25 +336,25 @@ closure.
 
 
 This function can be called with a single argument matching \c x, as in
-\c{f(3)}, with named arguments, as in \c{f(y=4,x=2)}, with a variable
-number of arguments, for example \c{f(1,2,3,4,y=5)}, multiple arguments
-captured by \c{...}, or with no arguments at all, \c{f()}, which creates a
-cyclic dependency and errors out when the returned function is used. Some
+\c{f(3)}, with named arguments, as in \c{f(y=4,x=2)}, with a variable number of
+arguments, for example \c{f(1,2,3,4,y=5)}, with multiple arguments captured by
+\c{...}, or with no arguments at all, \c{f()}, which creates a cyclic dependency
+between \c x and \c y and errors out when the returned function is used. Some
 functions are written to behave differently in the presence of missing
 arguments. To this end the \c{missing(x)} built-in can be used to check if
 parameter \c{x} was provided at the call site or not, even if it was later
-substituted by a default value. A vararg parameter, written \c{...}, accepts
-an arbitrary number of arguments, including missing arguments. A vararg can be
+substituted by a default value. A vararg parameter, written \c{...}, accepts an
+arbitrary number of arguments, including missing arguments. A vararg can be
 materialized into a list with \c{list(...)}. Most frequently varargs are
 forwarded to a called function. This enables the function to expose its callee's
 interface to the callers without listing the callee's parameters and their
 default values.
 
 \paragraph{Reflection}
-R supports meta-programming. The \c{substitute(exp,env)} function yields the
-AST of the expression \c{exp} after performing substitutions defined
-by the bindings in \c{env}. Consider the following call that substitutes 1
-for \c a and returns a value of type \c{expression}.
+R supports meta-programming. The \c{substitute(exp,env)} function yields the AST
+of the expression \c{exp} after performing substitutions defined by the bindings
+in \c{env}. Consider the following call that substitutes \c 1 for \c a and
+returns a value of type \c{expression}.
 
 \begin{lstlisting}
  > substitute(expression(a + b), list(a = 1))
@@ -365,7 +365,7 @@ R allows programmatic manipulation of ASTs, which are themselves
 first-class objects. They are evaluated using the \c{eval(exp,env)} function.
 In R, the local scope of a closure is a first-class mutable map. Code can always
 access its local environment, but it is also possible to reflectively extract
-the environments of any function currently on the call stack.
+the environment of any function currently on the call stack.
 
 \paragraph{Effects} Logically function arguments are passed by value to
 facilitate equational reasoning, the implementation optimizes this with a simple
@@ -420,13 +420,13 @@ only provides a small interface for operating on them:
 
 
 There is implicit forcing of values returned by functions and on the
-right hand side of assignments. In addition, many core functions are strict. R
+right-hand side of assignments. In addition, many core functions are strict. R
 code can include extensions written in C, these are able to freely access and
 mutate the expression stored in a promise, as well as the memoized result of
 promises. Legacy C code, such as mathematical functions, typically expects
 unwrapped values and not promises. While R does not provide built-in lazy data
 structures, they can be encoded. For instance, to return an
-unevaluated promise from a function it can be wrapped in a newly created
+unevaluated promise from a function, it can be wrapped in a newly created
 environment.
 
 \section{StrictR: An R Interpreter with Strictness Signatures}\label{sec:strictr}
