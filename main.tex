@@ -626,13 +626,16 @@ and provides a layer of abstraction by maintaining \emph{model objects} to
 abstract from concrete R data structures. These objects represent function
 instances, environments, and stack frames. Model objects help in handling some
 of the complexities of R. For instance, they have unique identities, whereas R
-objects are identified by memory address which can be reused. \lazr reclaims
-model objects and provides efficient indexing. Model functions have names
-heuristically reconstructed and keep track of lexical scopes. The model stack
-can deal with the use of \c{longjump} for non-local returns. Lastly, \lazr
-maintains a notion of logical time, used to record when some events of interest
-happened. For instance, environments record the time of last read and last
-write. Similarly, code blocks record evaluation start and end.
+objects are identified by their memory address which can be reused. For
+scalability, \lazr reclaims model objects when the corresponding raw R object is
+garbage collected and supports efficient indexing of these objects. Model
+objects are also used for bookkeeping of the relevant operations on the
+corresponding raw R objects. Model functions have names heuristically
+reconstructed by keeping track of their lexical scopes. The model stack can also
+deal with the use of \c{longjump} for non-local returns. Lastly, \lazr maintains
+a notion of logical time, used to record when some events of interest happened.
+For instance, environments record the time of last read and last write.
+Similarly, code blocks record evaluation start and end.
 
 \paragraph{Inference}
 \lazr monitors traces looking for signals that parameters are lazy. These
