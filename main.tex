@@ -1,4 +1,4 @@
-\documentclass[review,creen,acmsmall]{acmart}
+\documentclass[screen,acmsmall]{acmart}
 %\settopmatter{printfolios=false,printccs=false,printacmref=false}
 
 \bibliographystyle{ACM-Reference-Format}
@@ -1059,8 +1059,13 @@ withPrivateSeed <- function(expr) {
 \paragraph{{\normalfont \textbf{[R]}} Reflection}
 Reflective code is brittle. The following example shows that code that looks up
 its call stack is sensitive to small implementation changes, such as the
-addition of a call to an identity function. The evaluation of \c x and \c y will
-yield different results as the latter is executing within the \c{id} function.
+addition of a call to an identity function. A call to \code{as.environment(-1)}
+returns the environment of the caller. In the first call to \code{f}, both \c x
+and \c y yield the global environment, i.e., the environment from which \code{f}
+is called. In the second call, argument \c y returns the environment of \c f
+since \c y is evaluated inside the \c{id} function which is called from \c f.
+Thus, the evaluation of \c x and \c y will yield different results as the latter
+is executing within the \c{id} function.
 %
 \begin{lstlisting}
  f <- function(x, y) { x; y }
@@ -1072,20 +1077,23 @@ yield different results as the latter is executing within the \c{id} function.
 %
 
 This can transitively affect the strictness of other parameters. If \c{f} is
-called from \c{g}, we must make \c{g} lazy. R provides other functions for
-reflective stack access, \c{parent.frame} and \c{sys.frame}; these are less
-brittle as they access frames relative to the promise's creation environment.
+called from \c{g}, we must make \c{g} lazy.
 
 \begin{lstlisting}
  g <- function(u, v) { f(u, v) }
  g(as.environment(-1), as.environment(-1))
 \end{lstlisting}
 
+R provides other functions for reflective stack access, such as
+\c{parent.frame}. However, this function is less brittle as it accesses frames
+relative to the promise's creation environment.
+
 In our whole corpus, \RefCountParametersTotal parameters in
 \RefCountFunctionsTotal functions probed the call stack. But in all cases, this
-was because they invoked either of two functions, \c{.getFunctionByName}, and
-\c{backports:::get0}. To give an example, the first searches for a function by
-name in different scopes and its second argument probes the stack by default.
+was because they invoked either of two functions, \c{.getFunctionByName}, or
+\c{backports:::get0}. To give an example, the first function searches for a
+function by name in different scopes, and its second argument probes the stack
+by default.
 
 \begin{lstlisting}
  R.oo:::.getFunctionByName <- function(..., callEnvir=as.environment(-1L)) {
