@@ -166,14 +166,14 @@ obtain their class. The costs of laziness come from having to box each argument
 in data structure that must be allocated and freed, and the hindering of
 compiler optimizations due to the side-effects from evaluating arguments.
 
-\paragraph{The case for laziness.} The success of a programming language
-comes down to the strength of its ecosystem. With tens of millions of lines of
-library code, any change risks breaking something. Preserving the status quo is
-a pragmatic choice to protect an ecosystem. There is also a genuine need for
-lazy evaluation: it is the building block of R's meta-programming facilities.
+\paragraph{The case for laziness.} The success of a programming language comes
+down to the strength of its ecosystem. With tens of millions of lines of library
+code, any change risks breaking something. Preserving the status quo is a
+pragmatic choice to protect an ecosystem. There is also a genuine need for lazy
+evaluation: it is the building block of R's meta-programming facilities.
 Unevaluated arguments can be coerced back to their source code, that code can be
 modified and evaluated in an environment of the programmer's choice.
-Meta-programming is used for language extension and to create embedded
+Meta-programming is used for extending the language and to create embedded
 domain-specific languages. While one could imagine using macros instead, the
 number of libraries that would have to be refactored would be significant.
 
@@ -182,8 +182,8 @@ Our viable migration path abides by four tenets: (1) minimal legacy code
 changes, (2) semi-automated migration, (3) testable outcomes, and (4) measurable
 benefits. We envision a migration path with the following characteristics.
 Changes to legacy code are avoided by non-invasive extensions to the language's
-syntax and semantics and limited to library functions that need a lazy
-semantics. Strictness signatures are inferred from the tests associated to every
+syntax and semantics and limited to library functions that need lazy
+semantics. Strictness signatures are inferred from the tests associated with every
 R package. For popular libraries, client code is used as an oracle to check the
 correctness of inferred signatures. Performance and memory footprint are
 improved by compiler optimizations that leverage the new semantics. This paper
@@ -193,41 +193,39 @@ aims to evaluate the following components of this migration path:
 \newcommand{\brshstrict}{{\bf {\v R}$_{\mathbf s}$}}
 
 \begin{itemize}[---]
-\item {\bf StrictR:} a prototype R interpreter with strict by default semantics;
+\item {\bf StrictR:} a prototype R interpreter with strict-by-default semantics;
   only functions that demand lazy evaluation need to be annotated.
 \item {\bf LazR:} a scalable infrastructure for inferring strictness annotations
   for function arguments by dynamic program analysis.
 \item {\bf \brshstrict:} an optimizing just-in-time compiler for R modified to
-  take advantage of a strict by default semantics.
+  take advantage of strict-by-default semantics.
 \end{itemize}
 
-Specifically, it should be the case that changes
-to the code are small, that inference is accurate, and that there are
-performance improvements.
-We conduct two experiments that aim to answer the question whether such a
-semi-automated path is viable.
-First, we
-obtain the most widely used packages in the R ecosystem and, with \lazr,
-leverage their regression tests to infer strictness signatures. Since \strictr
-can load signatures from external files, no changes to code are required. We
-then use clients of those packages to test the accuracy of the inference
-results. Only \robustnesResult of the signatures cause \strictr programs to
-exhibit observable differences from the reference semantics. Our second
-experiment is independent from the first. We take a suite of small computational
-tasks, manually annotate them for maximal strictness, and run the benchmarks in
-strict and lazy modes using \rshstrict. We observe speedups ranging from
-\speedupRshStrictMin to \speedupRshStrictMax for the strict version.
+Specifically, it should be the case that changes to the code are small, that
+inference is accurate, and that there are performance improvements. We conduct
+two experiments that aim to investigate whether such a semi-automated path is
+viable. First, we obtain the most widely used packages in the R ecosystem and,
+with \lazr, leverage their regression tests to infer strictness signatures.
+Since \strictr can load signatures from external files, no changes to code are
+required. We then use clients of those packages to test the accuracy of the
+inference results. Only \ValidationStrictFailedProgramPerc of the client
+programs executed by \strictr exhibit observable differences from the reference
+semantics. Our second experiment is independent of the first. We take a suite
+of small computational tasks, manually annotate them for maximal strictness, and
+run the benchmarks in strict and lazy modes using \rshstrict. We observe
+speedups ranging from \speedupRshStrictMin to \speedupRshStrictMax for the
+strict version.
 
 Our conclusions are that the approach is viable as user-visible changes are
-small and the precision of the inference is promising. For community review we intend
-to further reduce the error rate by improving the precision of our analysis and
-using all available clients to infer signatures rather than only the tests
-bundled with a package. The performance numbers should be viewed as a limit
-study as the baseline is a compiler that already performs aggressive
+small and the precision of the inference is promising. For community review, we
+intend to further reduce the error rate by improving the precision of our
+analysis and using all available clients to infer signatures rather than only
+the tests bundled with a package. The performance numbers should be viewed as a
+limit study as the baseline is a compiler that already performs aggressive
 optimizations. We have not evaluated the benefits of \strictr on the GNU R
-reference implementation. It is conceivable that the relative speedups could be more
-impressive than in our native compiler, but in the long run we expect users
-to move away from bytecode interpretation.
+reference implementation. It is conceivable that the relative speedups could be
+more impressive than in our native compiler, but in the long run, we expect
+users to move away from bytecode interpretation.
 
 \paragraph{Availability.} Our work is available from:
     URL/of/artifact/goes/here
