@@ -98,12 +98,13 @@
   25 years of experience with the language, there are very few cases where
   programmers leverage delayed evaluation intentionally and laziness comes at a
   price in performance and complexity. This paper explores how to evolve the
-  semantics of a lazy language towards strictness by default and laziness on
-  demand. To provide a migration path, it is necessary to provide tooling for
-  developers to migrate libraries without introducing errors. This paper reports
-  on a dynamic analysis that infers strictness signatures for functions to
-  capture both intentional and accidental laziness. Over 99\% of the inferred
-  signatures were correct when tested against clients of the libraries.
+  semantics of a lazy language towards strictness-by-default and
+  laziness-on-demand. To provide a migration path, it is necessary to provide
+  tooling for developers to migrate libraries without introducing errors. This
+  paper reports on a dynamic analysis that infers strictness signatures for
+  functions to capture both intentional and accidental laziness. Over 99\% of
+  the inferred signatures were correct when tested against clients of the
+  libraries.
 \end{abstract}
 
 \begin{CCSXML}
@@ -147,23 +148,23 @@ computations that are evaluated if and when they are needed. \citet{oopsla19b}
 provided a thorough observational study of R packages. Most packages are written
 without reliance on laziness with the exception of meta-programming. This paper
 argues that laziness should be the exception in R. We propose to migrate R
-programs to an \emph{eager by default, lazy on demand} semantics. We focus on
-the question whether one can switch the semantics of a language without causing
+programs to a \emph{strict-by-default, lazy-on-demand} semantics. We
+investigate whether one can switch the semantics of a language without causing
 undue breakage in legacy code that is in daily use. Even if programmers do not
-avail themselves of laziness, their code may accidentally depends on it.
+avail themselves of laziness, their code may accidentally depend on it.
 
-\paragraph{The case for strictness.} Laziness is error-prone, inconsistent,
-and costly! At least when combined with side-effects in a language without type
+\paragraph{The case for strictness.} Laziness is error-prone, inconsistent, and
+costly, at least when combined with side-effects in a language without type
 annotations. When a function with multiple evaluation orders is provided
-effectful arguments, the order of effects is hard to predict. Pure functional languages
-prevent this by controlling effects from their type system. While R users do not
-have types, they often force evaluation at function boundaries. R's laziness is
-inconsistent as there are points where evaluation is arbitrarily forced, \eg the
-right-hand side of assignments and function returns. Furthermore,
-object-oriented multiple dispatch evaluates arguments eagerly to obtain their
-class. The costs of laziness comes from having to box each argument in data
-structure that must be allocated and freed, and the side-effects from evaluating
-arguments hindering compiler optimizations.
+effectful arguments, the order of effects is hard to predict. Pure functional
+languages prevent this by controlling effects from their type system. While R
+users do not have types, they often force evaluation at function boundaries. R's
+laziness is inconsistent as there are points where evaluation is arbitrarily
+forced, \eg the right-hand side of assignments and function returns.
+Furthermore, object-oriented multiple dispatch evaluates arguments strictly to
+obtain their class. The costs of laziness come from having to box each argument
+in data structure that must be allocated and freed, and the hindering of
+compiler optimizations due to the side-effects from evaluating arguments.
 
 \paragraph{The case for laziness.} The success of a programming language
 comes down to the strength of its ecosystem. With tens of millions of lines of
