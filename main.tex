@@ -1226,7 +1226,7 @@ Delaying computations is complex and hinders performance in two ways. First, it
 leads to more allocation. Second, it obstructs compiler analyses and
 optimizations. We expect the hypothesis to hold for a just-in-time compiler that
 uses advanced optimizations like \Rsh. In particular, we expect: (1) strict
-semantics to improve performance of most benchmarks, for both tiers of \Rsh; (2)
+semantics to improve the performance of most benchmarks, for both tiers of \Rsh; (2)
 a portion of the speedup to come from reduced garbage collection; (3) and an
 additional speedup due to improved compiler optimizations. We present our
 evidence in support of (1) and (3), and partial evidence for (2).
@@ -1243,7 +1243,7 @@ fast} suite to R. All of these are available with our artifact.
 
 Experiments are run on a dedicated benchmarking machine, with all background
 tasks disabled. The system features an Intel i7-6700K CPU, stepping 3, microcode
-0xe2 with 4 cores and 8 threads. The system has 32 GB of RAM and is running
+0xe2 with 4 cores and 8 threads. The system has 32 GB of RAM and runs
 Ubuntu 18.04 on a 4.15.0-136 Linux kernel.
 
 \begin{wrapfigure}{r}{6cm}
@@ -1313,7 +1313,7 @@ measure a significant increase in performance.
 %
 
 Then, we repeated the performance experiment, but with the second tier optimizer
-completely disabled. In other words, we compare non optimized variants of
+completely disabled. In other words, we compare non-optimized variants of
 \rshstrict vs. \Rsh. Since this variant executes overall \rshBCSlowdown slower,
 we chose to only run with $t_e = 1, t_i = 15$. The results are presented in
 \autoref{fig:speedup-bc}. We found that the bytecode interpreter also gains a
@@ -1323,7 +1323,7 @@ speedup of \speedupBCRshStrict, ranging from \speedupBCRshStrictMin to
 Thus, we conclude that in our benchmark suite both a naive interpreter and a
 speculatively optimizing native compiler achieve better performance on a strict
 dialect of R. Even though the speedup is very similar in numbers, the reasons
-seem to be different at times. We will get back to that point in the discussion
+seem to be different at times. We will get back to this point in the discussion
 at the end of this section.
 
 
@@ -1340,7 +1340,7 @@ We measure the number of promises allocated per iteration for GNU R, \Rsh, and
 geometric mean of the reductions in each benchmark. The first jump from GNU R's
 bytecode interpreter to the optimizing just-in-time compiler \Rsh, leads to a
 \promiseAlocationReductionGnurRsh reduction in allocations. The number is
-reached by taking the geometric mean of light-gray bars, yielding a
+reached by taking the geometric mean of light-gray bars, yielding
 \promiseAllocationGnurRsh. Therefore, the reduction is
 \promiseAlocationReductionGnurRsh. Note that for some benchmarks the light-gray bar is
 too small to be seen and replaced by the actual number. The second step from
@@ -1371,7 +1371,7 @@ contribution to the overall speedup to be smaller than expected. The GNU R
 garbage collector, which is reused in \Rsh, has a fairly slow allocation path,
 which includes mutating a doubly-linked list. Therefore, some portion of the
 speedup could be due to the saved time in the allocation of promises, which is
-not counted in the GC time. We therefore conducted an additional experiment,
+not counted in the GC time. Therefore, we conducted an additional experiment,
 where we evaluated arguments to calls strictly, but additionally allocated a
 promise only to be subsequently discarded. This configuration led to an overall
 speedup of \speedupBCRshStrictAlloc instead of \speedupBCRshStrict, suggesting
