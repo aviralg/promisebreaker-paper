@@ -517,7 +517,7 @@ second is accessed by \c{substitute} and evaluated by \c{eval}. Then expression
 \c{x+a} forces the first promise; the second is never forced. Both arguments are
 intrinsically lazy.
 %Intrinsic laziness is transitive as arguments are passed
-%from one function to the next. - No, metaprogramming is not transitive
+%from one function to the next. - No, meta-programming is not transitive
 Additionally, C code sometimes expects an
 argument to be a promise, when using the \c{PREXPR} macro to access its
 expression. Lastly, an argument that is not always evaluated may be marked as
@@ -926,9 +926,9 @@ packages. We now discuss the different sources of laziness in more detail.
 Some \VarargParameterCount parameters from \VarargFunctionCount functions are
 marked \textbf{V} for \emph{vararg}.
 
-\paragraph{{\normalfont \textbf{[M]}} Metaprogramming}
+\paragraph{{\normalfont \textbf{[M]}} Meta-Programming}
 Table~\ref{table:metaprogramming} counts arguments, parameters and functions
-using the metaprogramming facilities of R. Numbers are also provided for C code
+using the meta-programming facilities of R. Numbers are also provided for C code
 that uses \c{PREXPR}. Arguments count all of the invocations of a function.
 
 \begin{wraptable}{r}{5.5cm}\small\centering
