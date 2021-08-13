@@ -929,10 +929,10 @@ the interpreter are not signals.
 
 
 \paragraph{{\normalfont \textbf{[G]}} Missing Arguments}
-Some \MissingAlwaysCountParameters parameters are always missing; they are
-classified as \always. This is in contrast to the
-\MissingSometimesCountParameters \sometimes parameters which are sometimes
-passed an argument.
+Some \MissingAlwaysCountParameters parameters never receive arguments, default,
+or explicitly supplied; they are classified as \always. This is in contrast to
+the \MissingSometimesCountParameters \sometimes parameters which sometimes
+receive arguments.
 
 \begin{wraptable}{r}{5.76cm}\small\centering
   \caption{Missing}\label{table:missing}
@@ -946,7 +946,7 @@ passed an argument.
 
 Table~\ref{table:missing} gives numbers of missing arguments and parameters.
 \always parameters are a strong signal, whereas \sometimes missing are only lazy
-if also marked U. In the following definition the \c{names} argument was missing
+if also marked \textbf{U}. In the following definition the \c{names} argument was missing
 in all calls to this function from \c{rlang}, it is thus an \always parameter.
 That fact is not surprising when inspecting the code of the function: the
 argument is not used! It is presumably only there for backwards compatibility.
