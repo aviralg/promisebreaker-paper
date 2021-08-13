@@ -241,20 +241,19 @@ There are three clusters of related results: research on adding and removing
 laziness in functional languages, research on the R language, and approaches to
 language migration.
 
-\paragraph{Call by need}  Functional languages with
-a call by need evaluation strategy must contend with memory pressure and
-associated performance issues due to allocation of a substantial number of
-thunks (suspended computations)~\cite{transformopt,stricteffective,opteval}. The
-Glasgow Haskell Compiler performs a strictness analysis pass to identify
-arguments that can be evaluated eagerly. While most programs benefit from such a
-transformation, due to its conservative nature, this pass misses some
-opportunities for optimizations. To recover performance, programmers can
-manually insert strictness annotations to control evaluation; identifying where
-to put them, however, can be challenging. \citet{autobahn} proposed Autobahn, a
-tool that automatically infers strictness annotations using a genetic algorithm.
-The approach relies on dynamic analysis, which can be more precise than static
+\paragraph{Call by need} Functional languages with a call-by-need evaluation
+strategy must contend with memory pressure and associated performance issues due
+to the allocation of a substantial number of thunks (suspended
+computations)~\cite{transformopt,stricteffective,opteval}. The Glasgow Haskell
+Compiler performs a strictness analysis pass to identify arguments that can be
+evaluated eagerly. While most programs benefit from such a transformation, due
+to its conservative nature, this pass misses some opportunities for
+optimizations. To recover performance, programmers can manually insert
+strictness annotations to control evaluation; identifying where to put them,
+however, can be challenging. \citet{autobahn} proposed Autobahn, a tool that
+automatically infers strictness annotations using a genetic algorithm. This
+approach relies on dynamic analysis, which can be more precise than static
 analysis but does not guarantee termination on all inputs. As the annotations
-%%% TODO CHECK IF THE ABOVE IS RIGHT (says Jan)
 are based on a heuristic, developers must manually validate their soundness. The
 authors report an average 8.5\% speedup (with a maximum speedup of 89\%).
 \citet{lazyprof} solve the complementary problem of suggesting laziness
