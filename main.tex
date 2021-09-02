@@ -1063,16 +1063,14 @@ the program with an error message without using its arguments.
 
 \paragraph{{\normalfont \textbf{[S]}} Side-Effects}
 Few promises have side-effects and many of those are benign for our purposes as
-they happen to local variables of the promise. Table~\ref{table:effects}
-presents the number of parameters that are made lazy due to observable
-side-effects. Only \EffectCountArgumentsTotal arguments out of
-\TotalArgumentCount are made lazy owing to effects. This corresponds to
-\EffectCountParametersTotal lazy parameters from \EffectCountFunctionsTotal
-functions. A typical example of this category is the \code{along} parameter of
-\code{abind} function from the \code{abind} package. Its default value is the
-parameter \code{N} which is computed internally in the body of the function
-before \code{along} is used. Clearly, the evaluation of \code{along} has to be
-delayed.
+they happen to local variables of the promise. Only \EffectCountArgumentsTotal
+arguments out of \TotalArgumentCount are made lazy owing to effects. This
+corresponds to \EffectCountParametersTotal lazy parameters from
+\EffectCountFunctionsTotal functions. A typical example of this category is the
+\code{along} parameter of \code{abind} function from the \code{abind} package.
+Its default value is the parameter \code{N} which is computed internally in the
+body of the function before \code{along} is used. Clearly, the evaluation of
+\code{along} has to be delayed.
 
 \begin{lstlisting}
 abind <- function(..., along=N, ...) {
