@@ -400,13 +400,15 @@ R provides other functions for reflective stack access, such as
 relative to the promise's creation environment.
 
 \paragraph{Effects} Logically function arguments are passed by value to
-facilitate equational reasoning, the implementation optimizes this with a simple
-copy-on-write of aliased values. While R strives to be functional, it has
-imperative features such as assignment to local variables \c{<-}, assignment
-to variables in an enclosing scope \c{<<-}, and assignment in a
-programmatically chosen scope \c{assign()}. R supports non-local returns
-either through exceptions or by delayed evaluation of a \c{return} statement.
-Of course, there are all sorts of external effects and no monads.
+facilitate equational reasoning; the implementation optimizes this with a simple
+copy-on-write of aliased values. As long as an aliased value is not modified,
+the variables refer to the same object. On write, a \textit{copy} of the value
+is modified and the corresponding binding is updated. While R strives to be
+functional, it has imperative features such as assignment to local variables
+\c{<-}, assignment to variables in an enclosing scope \c{<<-}, and assignment in
+a programmatically chosen scope \c{assign()}. R supports non-local returns
+either through exceptions or by delayed evaluation of a \c{return} statement. Of
+course, there are all sorts of external effects and no monads.
 
 \paragraph{Delayed Evaluation}
 The combination of side effects, frequent interaction with C, and absence of
