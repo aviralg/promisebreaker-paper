@@ -1435,24 +1435,29 @@ ecosystem to build, \eg embedded domain-specific languages. It is part of what
 makes R appealing to its users, even if they do not realize that the language
 they use has a lazy core. However, the joy is limited when it comes to writing
 robust R code --- as both the caller and the callee co-determine what a function
-actually does --- and also when implementing the language itself. When we turned
-R into a mostly strict mode, the \Rsh just-in-time compiler ran
-\speedupRshStrict faster through our benchmarks without any further changes.
-Taking everything into account, we believe that R should be strict by default,
-giving package authors the option to opt-in to laziness. We provide a strategy
-for R as an ecosystem to get there by automatically inferring robust strictness
-signatures for package code. These signatures try to capture the desired and
-accidental laziness of arguments passed to R packages, thereby allowing most of
-the client code to run unchanged --- in our experiments, only
+actually does --- and also when implementing the language itself. Taking
+everything into account, we believe that R should be strict by default, giving
+package authors the option to opt-in to laziness.
+
+We propose and evaluate a strategy for evolving R as an ecosystem to strict
+semantics. First, we provide strictness signatures as a non-invasive R extension
+to avoid changes to legacy code. Second, we automatically infer robust
+strictness signatures for package code by capturing the desired and accidental
+laziness of arguments passed to R functions, thereby allowing most of the client
+code to run unchanged --- in our experiments, only
 \ValidationStrictFailedProgramPerc of all depending packages' tests failed. Such
-automatically generated strictness signatures can then subsequently be refined
-by the package authors and users. The change to the language would be beneficial
-in several ways. Implementations would become faster, compilers and program
-analysis easier to perform, users would be presented with a more commonly
-expected call semantics, and it would open up the path for further evolution.
-Currently, many standard techniques such as gradually typed function signatures
-and efficient just-in-time optimizations are difficult to apply to R because of
-laziness.
+automatically generated strictness signatures can be subsequently refined by the
+package authors and users. Finally, by turning R into a mostly strict language,
+the \Rsh just-in-time compiler ran \speedupRshStrict faster through our
+benchmarks without any further changes, incentivizing the users to adopt the new
+semantics.
+
+Changing R to a strict language would be beneficial in several ways.
+Implementations would become faster, compilers and program analyses would be
+easier to perform, users would be presented with a more commonly expected call
+semantics, and it would open up the path for further evolution. Currently, many
+standard techniques such as gradually typed function signatures and efficient
+just-in-time optimizations are difficult to apply to R because of laziness.
 
 \bibliography{bib/jv,bib/aviral,bib/ml,bib/bib}
 
