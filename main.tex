@@ -358,12 +358,15 @@ default values.
 \paragraph{Reflection}
 R supports meta-programming. The \c{substitute(exp,env)} function yields the AST
 of the expression \c{exp} after performing substitutions defined by the bindings
-in \c{env}. Consider the following call that substitutes \c 1 for \c a and
-returns a value of type \c{expression}.
+in \c{env}. The \c{env} parameter can be a list of bindings or an environment
+(environments in R are first-class objects). It defaults to the current
+environment if not explicitly supplied. Consider the following call that
+substitutes \c 1 for \c a in the expression \c{a + b} and returns the expression
+\c{1 + b}.
 
 \begin{lstlisting}
- > substitute(expression(a + b), list(a = 1))
- expression(1 + b)
+ > substitute(a + b, list(a = 1))
+ 1 + b
 \end{lstlisting}
 
 R allows programmatic manipulation of ASTs, which are themselves first-class
