@@ -1,8 +1,27 @@
-\documentclass[review,screen,acmsmall]{acmart}
-%\settopmatter{printfolios=false,printccs=false,printacmref=false}
-
+\documentclass[acmsmall, screen]{acmart}
+\setlength{\pdfpagewidth}{8.5in}
+\setlength{\pdfpageheight}{11in}
 \bibliographystyle{ACM-Reference-Format}
 \citestyle{acmauthoryear}   %% For author/year citations
+
+
+%%% The following is specific to OOPSLA '20 and the paper
+%%% 'World Age in Julia: Optimizing Method Dispatch in the Presence of Eval'
+%%% by Julia Belyakova, Benjamin Chung, Jack Gelinas, Jameson Nash, Ross Tate, and Jan Vitek.
+%%%
+\setcopyright{rightsretained}
+\acmPrice{}
+\acmDOI{10.1145/3428275}
+\acmYear{2020}
+\copyrightyear{2020}
+\acmSubmissionID{oopsla20main-p384-p}
+\acmJournal{PACMPL}
+\acmVolume{4}
+\acmNumber{OOPSLA}
+\acmArticle{207}
+\acmMonth{11}
+
+
 \usepackage{listings,multirow,wrapfig,xspace,paralist}
 \usepackage{xcolor,tikz,graphicx, pifont}
 \usetikzlibrary{positioning,automata,fit,shapes.geometric,backgrounds,calc}
@@ -227,10 +246,7 @@ reference implementation. It is conceivable that the relative speedups could be
 more impressive than in our native compiler, but in the long run, we expect
 users to move away from bytecode interpretation.
 
-\paragraph{Availability.} Our software was validated as Functional and Reusable
-and is available at:
-
-\begin{center}\url{https://doi.org/10.5281/zenodo.5394235}\end{center}
+\paragraph{Availability.} Our software is at: \url{https://doi.org/10.5281/zenodo.5394235}
 
 \section{Background}\label{sec:background}
 
@@ -388,7 +404,7 @@ call, argument \c y returns the environment of \c f since \c y is evaluated
 inside the \c{id} function which is called from \c f. Thus, the evaluation of \c
 x and \c y will yield different results as the latter is executing within the
 \c{id} function.
-% 
+%
 \begin{lstlisting}
  f <- function(x, y) { x; y }
  f(as.environment(-1), as.environment(-1))
@@ -509,7 +525,7 @@ package, \c{is_same_body} aliases \c{is_reference}. Mutating \c{is_reference} to
 make arguments strict inadvertently also makes the function \c{is_same_body}
 strict. Further discussion will clarify why this is undesirable. To avoid this,
 \strictr copies functions as it rewrites them.
-\newpage
+
 \paragraph{Intrinsic laziness.} When should an  argument be lazy?
 We have found barely any use of functional programming idioms related to
 call-by-need, such as infinite data structures. In fact, most code seems to be
@@ -1460,6 +1476,23 @@ easier to perform, users would be presented with a more commonly expected call
 semantics, and it would open up the path for further evolution. Currently, many
 standard techniques such as gradually typed function signatures and efficient
 just-in-time optimizations are difficult to apply to R because of laziness.
+
+
+
+\begin{acks}
+  This work has received funding from the
+\grantsponsor{NSF}{National Science Foundation}{} awards
+\grantnum{NSF}{1759736}, \grantnum{NSF}{1544542},
+\grantnum{NSF}{1925644}, and \grantnum{NSF}{1910850}, the
+\grantsponsor{BC}{Czech Ministry of Education, Youth and Sports from
+  the Czech Operational Programme Research, Development, and
+  Education}{}, under grant agreement No.
+\grantnum{BC}{CZ.02.1.01/0.0/0.0/\-15\_003/0000421}, and the
+\grantsponsor{ELE}{European Research Council (ERC) under the European
+  Union's Horizon 2020 research and innovation programme}{}, under
+grant agreement No.  \grantnum{ELE}{695412}.
+\end{acks}
+
 
 \bibliography{bib/jv,bib/aviral,bib/ml,bib/bib}
 
