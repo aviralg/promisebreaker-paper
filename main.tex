@@ -848,20 +848,21 @@ two Intel Xeon 6140, 2.30GHz machines with 72 cores and 256GB of RAM each.
 
 \subsection{Corpus}\label{sec:corpus}
 
-A corpus of 500 packages with most client packages was selected from
-CRAN~\cite{ligges2017} on the 26th of July 2021.
-
-\begin{wraptable}{r}{7cm}
-\small\centering
+\begin{wraptable}{r}{6cm}
+  \vspace{-24pt}
+  \small\centering
   \caption{Corpus}\label{table:corpus}
+  \vspace{-8pt}
   \begin{tabular}{lrrr}\toprule
     &\bf Tests&\bf Examples&\bf Vignettes\\\midrule
     {Scripts}&\CorpusTestCount&\CorpusExampleCount&\CorpusVignetteCount\\\midrule
     {LOC}&\CorpusTestCode&\CorpusExampleCode&\CorpusVignetteCode\\\bottomrule
   \end{tabular}
+  \vspace{-6pt}
 \end{wraptable}%%
 
-
+We selected a corpus of 500 packages with most client packages from
+CRAN~\cite{ligges2017}.% on the 26th of July 2021.
 The packages have a total of \CorpusDependencyCount clients ranging from
 \texttt{\CorpusMaximumDependencyPackage} with \CorpusMaximumDependencyCount
 clients all the way to \texttt{\CorpusMinimumDependencyPackage} with only
@@ -950,7 +951,6 @@ Some \VarargParameterCount parameters from \VarargFunctionCount functions are
 marked \textbf{V} for \emph{vararg}.
 
 \paragraph{{\normalfont \textbf{[M]}} Meta-Programming}
-
 
 \begin{wraptable}{r}{5.5cm}\small\centering
   \caption{Meta-programming}\label{table:metaprogramming}
