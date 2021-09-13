@@ -768,20 +768,7 @@ The goal of the inference experiment is to gauge the actual need for
 laziness in legacy code and the robustness of our inference algorithm.
 \lazr is scalable, it can handle all the packages in CRAN, but the amount of
 data to process can reach multi-terabyte sizes. \lazr adopts a simple map-reduce
-style. Analysis is split in phases shown in Fig.~\ref{ap}. The reduce maps a
-function on the output of one trace to get a partial summary. The combine phase
-concatenates partial summaries. Then, the summarize phase aggregates summaries
-into a result table. Finally, the report phase creates graphs and tables for
-inclusion in the paper. The \lazr pipeline is set up with a container image that
-includes all the dependencies for installing analysis code and R packages. This
-provides a reliable reproducible setup across machines. To run it, we mirror
-repositories, install their packages, run the script to generate traces.
-%% TODO: repetition
-These
-traces are analyzed to output tabular data files and strictness signatures.
-Whenever possible, we parallelize the steps. Our experiments were performed on
-two Intel Xeon 6140, 2.30GHz machines with 72 cores and 256GB of RAM each.
-
+style. Analysis is split in phases shown in Fig.~\ref{ap}.
 
 \begin{figure}[h!]
   \centering
@@ -846,19 +833,30 @@ two Intel Xeon 6140, 2.30GHz machines with 72 cores and 256GB of RAM each.
   \caption{Analysis Pipeline}\label{ap}
 \end{figure}
 
+
+The reduce maps a function on the output of one trace to get a partial summary.
+The combine phase concatenates partial summaries. Then, the summarize phase
+aggregates summaries into a result table. Finally, the report phase creates
+graphs and tables for inclusion in the paper. For reproducibility, the \lazr
+pipeline is set up with a container image that includes all the dependencies for
+installing analysis code and R packages.
+% This provides a reliable reproducible setup across machines.
+To run it, we mirror repositories, install their packages, run the
+script to generate traces. These traces are analyzed to output tabular data
+files and strictness signatures. Whenever possible, we parallelize the steps.
+Our experiments were performed on two Intel Xeon 6140, 2.30GHz machines with 72
+cores and 256GB of RAM each.
+
 \subsection{Corpus}\label{sec:corpus}
 
 \begin{wraptable}{r}{6cm}
-  \vspace{-24pt}
   \small\centering
   \caption{Corpus}\label{table:corpus}
-  \vspace{-8pt}
   \begin{tabular}{lrrr}\toprule
     &\bf Tests&\bf Examples&\bf Vignettes\\\midrule
     {Scripts}&\CorpusTestCount&\CorpusExampleCount&\CorpusVignetteCount\\\midrule
     {LOC}&\CorpusTestCode&\CorpusExampleCode&\CorpusVignetteCode\\\bottomrule
   \end{tabular}
-  \vspace{-6pt}
 \end{wraptable}%%
 
 We selected a corpus of 500 packages with most client packages from
@@ -867,7 +865,10 @@ The packages have a total of \CorpusDependencyCount clients ranging from
 \texttt{\CorpusMaximumDependencyPackage} with \CorpusMaximumDependencyCount
 clients all the way to \texttt{\CorpusMinimumDependencyPackage} with only
 \CorpusMinimumDependencyCount. The packages have \CorpusRCode lines of R code
-and \CorpusNativeCode lines of native code. Table~\ref{table:corpus} summarizes
+and \CorpusNativeCode lines of native code.
+
+
+Table~\ref{table:corpus} summarizes
 the runnable code extracted from these 500 packages. Each test is run as a
 separate script. Examples and vignettes are snippets of code embedded in the
 documentation. \lazr extracts them into self-standing scripts. Typically,
