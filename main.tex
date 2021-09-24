@@ -5,21 +5,6 @@
 \citestyle{acmauthoryear}   %% For author/year citations
 
 
-%%% The following is specific to OOPSLA '21 and the paper
-%%% 'Promises Are Made to Be Broken'
-%%% by Aviral Goel, Jan Ječmen, Sebastián Krynski, Olivier Flückiger, and Jan Vitek.
-%%%
-\setcopyright{rightsretained}
-\acmPrice{}
-\acmDOI{10.1145/3485478}
-\acmYear{2021}
-\copyrightyear{2021}
-\acmSubmissionID{oopsla21main-p18-p}
-\acmJournal{PACMPL}
-\acmVolume{5}
-\acmNumber{OOPSLA}
-\acmArticle{101}
-\acmMonth{10}
 
 \usepackage{listings,multirow,wrapfig,xspace,paralist}
 \usepackage{xcolor,tikz,graphicx, pifont}
@@ -89,8 +74,25 @@
 \input{macros.tex}
 \include{results}
 
+\setcopyright{rightsretained}
+
 \begin{document}
-\title{Promises Are Made To Be Broken}
+%%% The following is specific to OOPSLA '21 and the paper
+%%% 'Promises Are Made to Be Broken'
+%%% by Aviral Goel, Jan Ječmen, Sebastián Krynski, Olivier Flückiger, and Jan Vitek.
+%%% 
+\acmPrice{}
+\acmDOI{10.1145/3485478}
+\acmYear{2021}
+\copyrightyear{2021}
+\acmSubmissionID{oopsla21main-p18-p}
+\acmJournal{PACMPL}
+\acmVolume{5}
+\acmNumber{OOPSLA}
+\acmArticle{101}
+\acmMonth{10}
+
+\title{Promises Are Made to Be Broken}
 \subtitle{Migrating R to Strict Semantics}
 
 \author{Aviral Goel}\affiliation{\institution{Northeastern University}\country{USA}}
@@ -99,7 +101,7 @@
 \author{Olivier Flückiger}\affiliation{\institution{Northeastern University}\country{USA}}
 \author{Jan Vitek}\affiliation{\institution{Czech Technical University and Northeastern University}\country{USA}}
 \authorsaddresses{}
-\renewcommand{\shortauthors}{Goel, et al.}
+\renewcommand{\shortauthors}{Aviral Goel, Jan Ječmen, Sebastián Krynski, Olivier Flückiger, Jan Vitek}
 
 \begin{abstract}
   Function calls in the R language do not evaluate their arguments, these are
@@ -1267,7 +1269,7 @@ benchmark suite which includes one variant of each benchmark. We acquired one
 real-world program, \c{flx}, and ported three programs from the \emph{Are we
 fast} suite to R. All of these are available with our artifact.
 
-\begin{wrapfigure}{r}{6cm}
+\begin{wraptable}{r}{6cm}
   \small
   \caption{Benchmarks}\label{table:bms}
   \begin{tabular}{lll}
@@ -1290,7 +1292,7 @@ fast} suite to R. All of these are available with our artifact.
     spn&Spectralnorm&Shootout\\
     \bottomrule
   \end{tabular}
-\end{wrapfigure}
+\end{wraptable}
 
 Experiments are run on a dedicated benchmarking machine, with all background
 tasks disabled. The system features an Intel i7-6700K CPU, stepping 3, microcode
