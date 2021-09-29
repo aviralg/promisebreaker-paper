@@ -100,7 +100,6 @@
 \author{Sebastián Krynski}\affiliation{\institution{Czech Technical University}\country{Czechia}}
 \author{Olivier Flückiger}\affiliation{\institution{Northeastern University}\country{USA}}
 \author{Jan Vitek}\affiliation{\institution{Czech Technical University and Northeastern University}\country{USA}}
-\authorsaddresses{}
 \renewcommand{\shortauthors}{Aviral Goel, Jan Ječmen, Sebastián Krynski, Olivier Flückiger, Jan Vitek}
 
 \begin{abstract}
@@ -1043,7 +1042,7 @@ is to evaluate one argument only if another has a given value.
 
 Another pattern is to delay evaluation: \c{expr} argument is delayed until
 \c{pkg} is loaded in the example below.
-
+\newpage
 \begin{lstlisting}
  glue::on_package_load <- function(pkg, expr) {
    if (isNamespaceLoaded(pkg)) { expr } else {
